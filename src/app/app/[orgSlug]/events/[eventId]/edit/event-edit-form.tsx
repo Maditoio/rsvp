@@ -1,0 +1,126 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { updateEvent } from "@/modules/events/actions";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
+function toDatetimeLocal(value: Date | string | null) {
+  if (!value) return "";
+  const d = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function EventEditForm({
+  orgSlug,
+  eventId,
+  event,
+}: {
+  orgSlug: string;
+  eventId: string;
+  event: {
+    name: string;
+    description: string | null;
+    venue: string | null;
+    timezone: string;
+    startsAt: Date | string | null;
+    endsAt: Date | string | null;
+    website: string | null;
+  };
+}) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  return (
+    <Card className="max-w-xl">
+      <h1 className="font-serif text-3xl text-slate-900">Edit event</h1>
+      <p className="mt-2 text-sm text-slate-600">
+        Name, dates, venue and timezone. Invitation status is independent of
+        these branding fields.
+      </p>
+      <form
+        className="mt-6 space-y-4"
+        action={(formData) => {
+          setError(null);
+          start(async () => {
+            try {
+              await updateEvent(orgSlug, eventId, formData);
+              router.push(`/app/${orgSlug}/events/${eventId}`);
+              router.refresh();
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Could not update event");
+            }
+          });
+        }}
+      >
+        <div>
+          <Label htmlFor="name">Event name</Label>
+          <Input id="name" name="name" required defaultValue={event.name} />
+        </div>
+        <div>
+          <Label htmlFor="venue">Venue</Label>
+          <Input id="venue" name="venue" defaultValue={event.venue ?? ""} />
+        </div>
+        <div>
+          <Label htmlFor="timezone">Timezone</Label>
+          <Input id="timezone" name="timezone" defaultValue={event.timezone} />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="startsAt">Starts</Label>
+            <Input
+              id="startsAt"
+              name="startsAt"
+              type="datetime-local"
+              defaultValue={toDatetimeLocal(event.startsAt)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="endsAt">Ends</Label>
+            <Input
+              id="endsAt"
+              name="endsAt"
+              type="datetime-local"
+              defaultValue={toDatetimeLocal(event.endsAt)}
+            />
+          </div>
+        </div>
+        <div>
+          <Label htmlFor="website">Website</Label>
+          <Input
+            id="website"
+            name="website"
+            placeholder="https://"
+            defaultValue={event.website ?? ""}
+          />
+        </div>
+        <div>
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            name="description"
+            defaultValue={event.description ?? ""}
+          />
+        </div>
+        {error ? <p className="text-sm text-error-500">{error}</p> : null}
+        <div className="flex gap-2">
+          <Button disabled={pending}>{pending ? "Saving…" : "Save changes"}</Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => router.push(`/app/${orgSlug}/events/${eventId}`)}
+          >
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+}

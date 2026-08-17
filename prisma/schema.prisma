@@ -1,0 +1,864 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+}
+
+enum EventRole {
+  EVENT_ADMINISTRATOR
+  REGISTRATION_MANAGER
+  CHECKIN_STAFF
+}
+
+enum InvitationStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  DELIVERED
+  OPENED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  BOUNCED
+  CANCELLED
+}
+
+enum InvitationActivityType {
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  COMPLAINED
+}
+
+enum RegistrationStatus {
+  NOT_STARTED
+  INCOMPLETE
+  COMPLETED
+  CONFIRMED
+  CANCELLED
+  WAITLISTED
+}
+
+enum AttendeeStatus {
+  REGISTERED
+  CONFIRMED
+  CHECKED_IN
+  NO_SHOW
+  CANCELLED
+}
+
+enum MeetingRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  EXPIRED
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum EmailMessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  OPENED
+  BOUNCED
+  FAILED
+}
+
+enum DataRequestType {
+  EXPORT
+  DELETE
+  RECTIFY
+}
+
+enum DataRequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+enum FileKind {
+  CONTACT_IMPORT
+  EXPORT
+  EVENT_ASSET
+  OTHER
+}
+
+model User {
+  id            String   @id @default(cuid())
+  clerkUserId   String   @unique
+  email         String
+  firstName     String?
+  lastName      String?
+  imageUrl      String?
+  platformAdmin Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  organisationUsers OrganisationUser[]
+  eventUsers        EventUser[]
+  attendees         Attendee[]
+  checkInsPerformed CheckIn[]           @relation("CheckedInBy")
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  calendarConnections CalendarConnection[]
+  dataRequests      DataRequest[]
+
+  @@index([email])
+}
+
+model Organisation {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users                   OrganisationUser[]
+  events                  Event[]
+  contacts                Contact[]
+  contactTags             ContactTag[]
+  invitationCategories    InvitationCategory[]
+  invitations             Invitation[]
+  invitationActivities    InvitationActivity[]
+  registrationForms       RegistrationForm[]
+  registrationFields      RegistrationField[]
+  registrationResponses   RegistrationResponse[]
+  attendees               Attendee[]
+  attendeeProfiles        AttendeeProfile[]
+  attendeePrivacy         AttendeePrivacy[]
+  sessions                Session[]
+  sessionRegistrations    SessionRegistration[]
+  matchmakingProfiles     MatchmakingProfile[]
+  matchScores             MatchScore[]
+  meetingRequests         MeetingRequest[]
+  meetings                Meeting[]
+  meetingParticipants     MeetingParticipant[]
+  meetingRooms            MeetingRoom[]
+  calendarConnections     CalendarConnection[]
+  calendarEvents          CalendarEvent[]
+  checkIns                CheckIn[]
+  badges                  Badge[]
+  emailTemplates          EmailTemplate[]
+  emailCampaigns          EmailCampaign[]
+  emailMessages           EmailMessage[]
+  notifications           Notification[]
+  auditLogs               AuditLog[]
+  consents                Consent[]
+  dataRequests            DataRequest[]
+  apiKeys                 ApiKey[]
+  webhooks                Webhook[]
+  files                   FileObject[]
+  eventSettings           EventSettings[]
+  eventUsers              EventUser[]
+}
+
+model OrganisationUser {
+  id             String   @id @default(cuid())
+  organisationId String
+  userId         String
+  role           OrgRole
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, userId])
+  @@index([userId])
+}
+
+model Event {
+  id             String    @id @default(cuid())
+  organisationId String
+  name           String
+  slug           String
+  description    String?
+  venue          String?
+  timezone       String    @default("UTC")
+  startsAt       DateTime?
+  endsAt         DateTime?
+  logoUrl        String?
+  website        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organisation          Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  settings              EventSettings?
+  users                 EventUser[]
+  contacts              Contact[]
+  invitationCategories  InvitationCategory[]
+  invitations           Invitation[]
+  invitationActivities  InvitationActivity[]
+  registrationForms     RegistrationForm[]
+  registrationFields    RegistrationField[]
+  registrationResponses RegistrationResponse[]
+  attendees             Attendee[]
+  attendeeProfiles      AttendeeProfile[]
+  attendeePrivacy       AttendeePrivacy[]
+  sessions              Session[]
+  sessionRegistrations  SessionRegistration[]
+  matchmakingProfiles   MatchmakingProfile[]
+  matchScores           MatchScore[]
+  meetingRequests       MeetingRequest[]
+  meetings              Meeting[]
+  meetingParticipants   MeetingParticipant[]
+  meetingRooms          MeetingRoom[]
+  calendarEvents        CalendarEvent[]
+  checkIns              CheckIn[]
+  badges                Badge[]
+  emailTemplates        EmailTemplate[]
+  emailCampaigns        EmailCampaign[]
+  emailMessages         EmailMessage[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+  consents              Consent[]
+  files                 FileObject[]
+
+  @@unique([organisationId, slug])
+  @@index([organisationId])
+}
+
+model EventSettings {
+  id                     String  @id @default(cuid())
+  organisationId         String
+  eventId                String  @unique
+  invitationExpiryDays   Int     @default(30)
+  allowPublicApplication Boolean @default(false)
+  capacity               Int?
+  waitlistEnabled        Boolean @default(false)
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model EventUser {
+  id             String    @id @default(cuid())
+  organisationId String
+  eventId        String
+  userId         String
+  role           EventRole
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([organisationId])
+  @@index([userId])
+}
+
+model Contact {
+  id             String   @id @default(cuid())
+  organisationId String
+  eventId        String
+  email          String
+  firstName      String
+  lastName       String
+  phone          String?
+  company        String?
+  jobTitle       String?
+  country        String?
+  notes          String?
+  vip            Boolean  @default(false)
+  speaker        Boolean  @default(false)
+  sponsor        Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tags         ContactTagOnContact[]
+  invitations  Invitation[]
+  registrations RegistrationResponse[]
+  attendees    Attendee[]
+
+  @@unique([eventId, email])
+  @@index([organisationId])
+  @@index([eventId])
+}
+
+model ContactTag {
+  id             String @id @default(cuid())
+  organisationId String
+  name           String
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  contacts     ContactTagOnContact[]
+
+  @@unique([organisationId, name])
+}
+
+model ContactTagOnContact {
+  contactId String
+  tagId     String
+
+  contact Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag     ContactTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, tagId])
+}
+
+model InvitationCategory {
+  id                    String   @id @default(cuid())
+  organisationId        String
+  eventId               String
+  name                  String
+  slug                  String
+  matchmakingEligible   Boolean  @default(true)
+  meetingPrivileges     Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  invitations  Invitation[]
+  attendees    Attendee[]
+
+  @@unique([eventId, slug])
+  @@index([organisationId])
+}
+
+model Invitation {
+  id             String           @id @default(cuid())
+  organisationId String
+  eventId        String
+  contactId      String
+  categoryId     String?
+  status         InvitationStatus @default(DRAFT)
+  tokenHash      String           @unique
+  sentAt         DateTime?
+  openedAt       DateTime?
+  acceptedAt     DateTime?
+  declinedAt     DateTime?
+  expiresAt      DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organisation  Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event         Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  contact       Contact                @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  category      InvitationCategory?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  activities    InvitationActivity[]
+  registrations RegistrationResponse[]
+  attendees     Attendee[]
+  emailMessages EmailMessage[]
+
+  @@index([organisationId, eventId])
+  @@index([eventId, status])
+  @@index([contactId])
+}
+
+model InvitationActivity {
+  id             String                  @id @default(cuid())
+  organisationId String
+  eventId        String
+  invitationId   String
+  type           InvitationActivityType
+  payload        Json?
+  createdAt      DateTime                @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  invitation   Invitation   @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  @@index([invitationId])
+  @@index([organisationId])
+}
+
+model RegistrationForm {
+  id             String  @id @default(cuid())
+  organisationId String
+  eventId        String
+  name           String  @default("Default")
+  isDefault      Boolean @default(true)
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  fields       RegistrationField[]
+
+  @@index([organisationId, eventId])
+}
+
+model RegistrationField {
+  id             String  @id @default(cuid())
+  organisationId String
+  eventId        String
+  formId         String
+  key            String
+  label          String
+  type           String
+  required       Boolean @default(false)
+  options        Json?
+  sortOrder      Int     @default(0)
+
+  organisation Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  form         RegistrationForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+}
+
+model RegistrationResponse {
+  id             String             @id @default(cuid())
+  organisationId String
+  eventId        String
+  invitationId   String?
+  contactId      String?
+  userId         String?
+  status         RegistrationStatus @default(INCOMPLETE)
+  data           Json
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  invitation   Invitation?  @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  attendees    Attendee[]
+
+  @@index([organisationId, eventId])
+  @@index([invitationId])
+}
+
+model Attendee {
+  id               String         @id @default(cuid())
+  organisationId   String
+  eventId          String
+  userId           String?
+  contactId        String?
+  invitationId     String?
+  registrationId   String?
+  categoryId       String?
+  qrTokenHash      String         @unique
+  attendanceTokenEnc String?
+  status           AttendeeStatus @default(REGISTERED)
+  firstName        String
+  lastName         String
+  email            String
+  phone            String?
+  company          String?
+  jobTitle         String?
+  country          String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user         User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  contact      Contact?              @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  invitation   Invitation?           @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  registration RegistrationResponse? @relation(fields: [registrationId], references: [id], onDelete: SetNull)
+  category     InvitationCategory?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  profile      AttendeeProfile?
+  privacy      AttendeePrivacy?
+  checkIns     CheckIn[]
+  badges       Badge[]
+  sessionRegs  SessionRegistration[]
+  matchProfile MatchmakingProfile?
+  matchScoresA MatchScore[]          @relation("MatchSubject")
+  matchScoresB MatchScore[]          @relation("MatchCandidate")
+  meetingReqsFrom MeetingRequest[]   @relation("MeetingRequester")
+  meetingReqsTo   MeetingRequest[]   @relation("MeetingTarget")
+  meetingParts MeetingParticipant[]
+
+  @@unique([eventId, email])
+  @@index([organisationId, eventId])
+  @@index([userId])
+}
+
+model AttendeeProfile {
+  id             String  @id @default(cuid())
+  organisationId String
+  eventId        String
+  attendeeId     String  @unique
+  about          String?
+  lookingFor     String?
+  offering       String?
+  interests      Json?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  attendee     Attendee     @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+}
+
+model AttendeePrivacy {
+  id                    String  @id @default(cuid())
+  organisationId        String
+  eventId               String
+  attendeeId            String  @unique
+  profileVisible        Boolean @default(true)
+  matchmakingEnabled    Boolean @default(false)
+  showEmail             Boolean @default(false)
+  showPhone             Boolean @default(false)
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  attendee     Attendee     @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+}
+
+model Session {
+  id             String    @id @default(cuid())
+  organisationId String
+  eventId        String
+  title          String
+  description    String?
+  startsAt       DateTime?
+  endsAt         DateTime?
+  location       String?
+
+  organisation  Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event         Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrations SessionRegistration[]
+
+  @@index([organisationId, eventId])
+}
+
+model SessionRegistration {
+  id             String @id @default(cuid())
+  organisationId String
+  eventId        String
+  sessionId      String
+  attendeeId     String
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  session      Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  attendee     Attendee     @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, attendeeId])
+}
+
+model MatchmakingProfile {
+  id             String @id @default(cuid())
+  organisationId String
+  eventId        String
+  attendeeId     String @unique
+  questionnaire  Json
+  embedding      Json?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  attendee     Attendee     @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+}
+
+model MatchScore {
+  id              String @id @default(cuid())
+  organisationId  String
+  eventId         String
+  subjectId       String
+  candidateId     String
+  score           Float
+  reasons         Json?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  subject      Attendee     @relation("MatchSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+  candidate    Attendee     @relation("MatchCandidate", fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@unique([subjectId, candidateId])
+  @@index([organisationId, eventId])
+}
+
+model MeetingRequest {
+  id             String               @id @default(cuid())
+  organisationId String
+  eventId        String
+  requesterId    String
+  targetId       String
+  status         MeetingRequestStatus @default(PENDING)
+  message        String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  requester    Attendee     @relation("MeetingRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  target       Attendee     @relation("MeetingTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, eventId])
+}
+
+model Meeting {
+  id             String        @id @default(cuid())
+  organisationId String
+  eventId        String
+  roomId         String?
+  status         MeetingStatus @default(SCHEDULED)
+  startsAt       DateTime?
+  endsAt         DateTime?
+  location       String?
+
+  organisation Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  room         MeetingRoom?         @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  participants MeetingParticipant[]
+  calendarEvents CalendarEvent[]
+
+  @@index([organisationId, eventId])
+}
+
+model MeetingParticipant {
+  id             String @id @default(cuid())
+  organisationId String
+  eventId        String
+  meetingId      String
+  attendeeId     String
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  meeting      Meeting      @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  attendee     Attendee     @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, attendeeId])
+}
+
+model MeetingRoom {
+  id             String @id @default(cuid())
+  organisationId String
+  eventId        String
+  name           String
+  capacity       Int?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  meetings     Meeting[]
+
+  @@index([organisationId, eventId])
+}
+
+model CalendarConnection {
+  id             String    @id @default(cuid())
+  organisationId String
+  userId         String
+  provider       String
+  accessTokenEnc String
+  refreshTokenEnc String?
+  expiresAt      DateTime?
+  scopes         String?
+
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events       CalendarEvent[]
+
+  @@index([userId])
+}
+
+model CalendarEvent {
+  id             String  @id @default(cuid())
+  organisationId String
+  eventId        String
+  meetingId      String?
+  connectionId   String
+  externalId     String?
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  meeting      Meeting?           @relation(fields: [meetingId], references: [id], onDelete: SetNull)
+  connection   CalendarConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+}
+
+model CheckIn {
+  id               String   @id @default(cuid())
+  organisationId   String
+  eventId          String
+  attendeeId       String
+  checkedInAt      DateTime @default(now())
+  checkedInById    String?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  attendee     Attendee     @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+  checkedInBy  User?        @relation("CheckedInBy", fields: [checkedInById], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, attendeeId])
+  @@index([organisationId, eventId])
+}
+
+model Badge {
+  id             String @id @default(cuid())
+  organisationId String
+  eventId        String
+  attendeeId     String
+  template       String @default("default")
+  printedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  attendee     Attendee     @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+}
+
+model EmailTemplate {
+  id             String @id @default(cuid())
+  organisationId String
+  eventId        String?
+  key            String
+  subject        String
+  html           String
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event?       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  campaigns    EmailCampaign[]
+  messages     EmailMessage[]
+
+  @@unique([organisationId, eventId, key])
+}
+
+model EmailCampaign {
+  id             String @id @default(cuid())
+  organisationId String
+  eventId        String
+  templateId     String?
+  name           String
+  scheduledAt    DateTime?
+
+  organisation Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  template     EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  messages     EmailMessage[]
+}
+
+model EmailMessage {
+  id             String             @id @default(cuid())
+  organisationId String
+  eventId        String?
+  invitationId   String?
+  campaignId     String?
+  templateId     String?
+  toEmail        String
+  subject        String
+  providerId     String?
+  status         EmailMessageStatus @default(QUEUED)
+  createdAt      DateTime           @default(now())
+  sentAt         DateTime?
+
+  organisation Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event?         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  invitation   Invitation?    @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+  campaign     EmailCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  template     EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([toEmail])
+}
+
+model Notification {
+  id             String   @id @default(cuid())
+  organisationId String
+  eventId        String?
+  userId         String
+  title          String
+  body           String
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organisationId String?
+  eventId        String?
+  userId         String?
+  action         String
+  resource       String
+  resourceId     String?
+  metadata       Json?
+  ip             String?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  event        Event?        @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, createdAt])
+  @@index([action])
+}
+
+model Consent {
+  id             String   @id @default(cuid())
+  organisationId String
+  eventId        String?
+  email          String
+  purpose        String
+  granted        Boolean
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([email, purpose])
+}
+
+model DataRequest {
+  id             String            @id @default(cuid())
+  organisationId String
+  userId         String?
+  type           DataRequestType
+  status         DataRequestStatus @default(PENDING)
+  createdAt      DateTime          @default(now())
+  completedAt    DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model ApiKey {
+  id             String    @id @default(cuid())
+  organisationId String
+  name           String
+  keyHash        String    @unique
+  lastUsedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+}
+
+model Webhook {
+  id             String  @id @default(cuid())
+  organisationId String
+  url            String
+  secretHash     String
+  events         Json
+  active         Boolean @default(true)
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+}
+
+model FileObject {
+  id             String   @id @default(cuid())
+  organisationId String
+  eventId        String?
+  kind           FileKind @default(OTHER)
+  filename       String
+  contentType    String
+  url            String?
+  sizeBytes      Int?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+}
