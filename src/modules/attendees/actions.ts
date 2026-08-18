@@ -80,8 +80,13 @@ export async function getQrForInvitationHolder(rawToken: string) {
   if (!invitation) return null;
   const attendee = await prisma.attendee.findFirst({
     where: {
-      invitationId: invitation.id,
       organisationId: invitation.organisationId,
+      eventId: invitation.eventId,
+      OR: [
+        { invitationId: invitation.id },
+        { contactId: invitation.contactId },
+        { email: invitation.contact.email },
+      ],
     },
     select: { attendanceTokenEnc: true, firstName: true, status: true },
   });

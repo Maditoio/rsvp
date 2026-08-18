@@ -46,8 +46,13 @@ export async function getPublicInvitation(
 
   const attendee = await prisma.attendee.findFirst({
     where: {
-      invitationId: invitation.id,
       organisationId: invitation.organisationId,
+      eventId: invitation.eventId,
+      OR: [
+        { invitationId: invitation.id },
+        { contactId: invitation.contactId },
+        { email: invitation.contact.email },
+      ],
     },
     select: { id: true },
   });

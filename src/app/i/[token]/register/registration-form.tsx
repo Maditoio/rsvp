@@ -111,14 +111,16 @@ export function RegistrationForm({
               formData,
               turnstileToken ?? undefined,
             );
+            if (!result.ok) {
+              setError(result.error);
+              return;
+            }
             setQrDataUrl(result.qrDataUrl);
             if (result.signedIn) {
               setSetupHref(matchmakingPath(result.eventId));
             }
-          } catch (e) {
-            setError(
-              e instanceof Error ? e.message : "Could not complete registration",
-            );
+          } catch {
+            setError("Could not complete registration. Please try again.");
           }
         });
       }}

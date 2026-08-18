@@ -74,7 +74,12 @@ export default async function RegisterPage({
   );
 
   let matchmakingHref: string | null = null;
-  const user = await getCurrentUser();
+  let user = null;
+  try {
+    user = await getCurrentUser();
+  } catch {
+    user = null;
+  }
   if (user && invitation.registered) {
     const attendee = await prisma.attendee.findFirst({
       where: {
