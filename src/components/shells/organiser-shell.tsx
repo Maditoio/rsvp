@@ -48,7 +48,7 @@ export function OrganiserShell({
               href={`/app/${orgSlug}`}
               className="mt-2 block font-display text-[1.625rem] text-ink-800"
             >
-              Delegate
+              Bizcon RSVP
             </Link>
             <p className="mt-1 text-sm text-stone-500">{orgName}</p>
           </div>

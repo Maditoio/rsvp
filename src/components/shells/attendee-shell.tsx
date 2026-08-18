@@ -18,7 +18,7 @@ export function AttendeeShell({ children }: { children: React.ReactNode }) {
               Attendee portal
             </p>
             <Link href="/me" className="mt-2 block font-display text-2xl text-ink-800">
-              Delegate
+              Bizcon RSVP
             </Link>
           </div>
           <nav className="hidden gap-4 text-sm sm:flex">

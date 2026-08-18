@@ -6,7 +6,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <span className="font-display text-2xl text-ink-800">Delegate</span>
+        <span className="font-display text-2xl text-ink-800">Bizcon RSVP</span>
         <div className="flex gap-3">
           <Link
             href="/sign-in"
@@ -26,14 +26,14 @@ export default function HomePage() {
       <main className="mx-auto max-w-6xl px-6 pb-20 pt-10">
         <section className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-gray-500">
-              For professional summits
+            <p className="text-xs tracking-[0.22em] text-gray-500">
+              Event Intelligence for professional summits.
             </p>
             <h1 className="mt-4 max-w-xl font-display text-5xl leading-tight text-gray-800">
               Invitation to check-in, without treating RSVP as the product.
             </h1>
             <p className="mt-5 max-w-lg text-lg text-gray-700">
-              Delegate is a secure event intelligence platform: curated
+              Bizcon RSVP is a secure event intelligence platform: curated
               invitations, controlled registration, attendee profiles, and
               event-day operations for 5,000–10,000 person summits.
             </p>

@@ -139,6 +139,7 @@ const eventSettingsSchema = z.object({
     }),
   waitlistEnabled: z.boolean(),
   allowPublicApplication: z.boolean(),
+  aiInsightsEnabled: z.boolean(),
 });
 
 export async function updateEventSettings(
@@ -152,24 +153,25 @@ export async function updateEventSettings(
     capacity: String(formData.get("capacity") ?? ""),
     waitlistEnabled: formData.get("waitlistEnabled") === "on",
     allowPublicApplication: formData.get("allowPublicApplication") === "on",
+    aiInsightsEnabled: formData.get("aiInsightsEnabled") === "on",
   });
+
+  const settingsData = {
+    invitationExpiryDays: input.invitationExpiryDays,
+    capacity: input.capacity,
+    waitlistEnabled: input.waitlistEnabled,
+    allowPublicApplication: input.allowPublicApplication,
+    aiInsightsEnabled: input.aiInsightsEnabled,
+  };
 
   await prisma.eventSettings.upsert({
     where: { eventId },
     create: {
       organisationId: ctx.organisation.id,
       eventId,
-      invitationExpiryDays: input.invitationExpiryDays,
-      capacity: input.capacity,
-      waitlistEnabled: input.waitlistEnabled,
-      allowPublicApplication: input.allowPublicApplication,
+      ...settingsData,
     },
-    update: {
-      invitationExpiryDays: input.invitationExpiryDays,
-      capacity: input.capacity,
-      waitlistEnabled: input.waitlistEnabled,
-      allowPublicApplication: input.allowPublicApplication,
-    },
+    update: settingsData,
   });
 
   await writeAudit({
@@ -184,11 +186,14 @@ export async function updateEventSettings(
       capacity: input.capacity,
       waitlistEnabled: input.waitlistEnabled,
       allowPublicApplication: input.allowPublicApplication,
+      aiInsightsEnabled: input.aiInsightsEnabled,
     },
   });
 
   revalidatePath(`/app/${orgSlug}/events/${eventId}`);
   revalidatePath(`/app/${orgSlug}/events/${eventId}/settings`);
+  revalidatePath(`/me/events/${eventId}/privacy`);
+  revalidatePath(`/me/events/${eventId}/directory`);
 }
 
 export async function createCategory(

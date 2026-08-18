@@ -9,7 +9,7 @@ export default function InvitationLayout({
     <div className="min-h-screen bg-stone-50">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-6 py-6">
         <Link href="/" className="font-display text-2xl text-ink-800">
-          Delegate
+          Bizcon RSVP
         </Link>
         <span className="text-xs font-semibold uppercase tracking-[0.18em] text-bronze-700">
           Invitation

@@ -13,7 +13,7 @@ export default async function AttendeeAccountPage() {
       <Card>
         <p className="text-sm text-gray-600">
           Identity is managed by Clerk. Organisation roles and event access live
-          in Delegate — signing in does not grant organiser permissions.
+          in Bizcon RSVP — signing in does not grant organiser permissions.
         </p>
         <p className="mt-4 text-sm text-gray-500">Signed in as</p>
         <p className="text-gray-800">{user.email}</p>

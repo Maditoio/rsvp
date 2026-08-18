@@ -32,10 +32,17 @@ export default async function DirectoryPage({
         </p>
         <h1 className="mt-1 font-display text-3xl text-ink-800">Directory</h1>
         <p className="mt-1 text-sm text-stone-700">
-          Ranked by shared interests and country. This is not AI matchmaking.
+          Matched on shared objectives — complementary looking-for and offering,
+          industries, geographies, and meeting preferences.
         </p>
       </div>
-      <DirectoryPanel eventId={eventId} people={directory.people} />
+      <DirectoryPanel
+        eventId={eventId}
+        forYou={directory.forYou}
+        people={directory.people}
+        eventAiEnabled={directory.eventAiEnabled}
+        attendeeOptIn={directory.attendeeOptIn}
+      />
     </div>
   );
 }

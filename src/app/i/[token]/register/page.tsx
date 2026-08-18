@@ -6,6 +6,12 @@ import { getPublicInvitation } from "@/modules/invitations/public";
 import { getQrForInvitationHolder } from "@/modules/attendees/actions";
 import { turnstileSiteKey } from "@/lib/utils";
 import { ensureDefaultRegistrationForm } from "@/modules/registrations/form";
+import { getCurrentUser } from "@/lib/authz/require";
+import { prisma } from "@/lib/db/prisma";
+import {
+  isQuestionnaireComplete,
+  matchmakingPath,
+} from "@/modules/matchmaking/questionnaire";
 import { RegistrationForm } from "./registration-form";
 
 export default async function RegisterPage({
@@ -67,6 +73,22 @@ export default async function RegisterPage({
     invitation.eventId,
   );
 
+  let matchmakingHref: string | null = null;
+  const user = await getCurrentUser();
+  if (user && invitation.registered) {
+    const attendee = await prisma.attendee.findFirst({
+      where: {
+        eventId: invitation.eventId,
+        userId: user.id,
+        organisationId: invitation.organisationId,
+      },
+      include: { matchProfile: true },
+    });
+    if (attendee && !isQuestionnaireComplete(attendee.matchProfile?.questionnaire)) {
+      matchmakingHref = matchmakingPath(invitation.eventId);
+    }
+  }
+
   return (
     <RouteDrawer
       title={`Register for ${invitation.eventName}`}
@@ -89,6 +111,7 @@ export default async function RegisterPage({
           siteKey={turnstileSiteKey()}
           fields={form.fields}
           existingQr={existingQr}
+          matchmakingHref={matchmakingHref}
           defaults={{
             firstName: invitation.firstName,
             lastName: invitation.lastName,

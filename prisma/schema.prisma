@@ -252,6 +252,7 @@ model EventSettings {
   allowPublicApplication Boolean @default(false)
   capacity               Int?
   waitlistEnabled        Boolean @default(false)
+  aiInsightsEnabled      Boolean @default(false)
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -543,6 +544,7 @@ model AttendeePrivacy {
   matchmakingEnabled    Boolean @default(false)
   showEmail             Boolean @default(false)
   showPhone             Boolean @default(false)
+  aiInsightsOptIn       Boolean @default(false)
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)

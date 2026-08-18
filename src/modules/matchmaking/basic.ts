@@ -1,7 +1,18 @@
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { requireUser } from "@/lib/authz/require";
-import { AuthzError } from "@/lib/db/tenant";
+import { AuthzError, forOrganisation } from "@/lib/db/tenant";
+import {
+  asStringArray,
+  isMatchmakingEligible,
+  isProfileVisible,
+  loadAiInsightFlags,
+  matchBandFromScore,
+  parseMatchReasons,
+  scoreMatch,
+  toScoreableProfile,
+  type MatchBand,
+  type MatchReasons,
+} from "./score";
 
 export type DirectoryPerson = {
   id: string;
@@ -18,56 +29,82 @@ export type DirectoryPerson = {
   interests: string[];
   sharedInterests: string[];
   score: number;
+  reasons: MatchReasons;
+  band: MatchBand | null;
+  matchmakingEnabled: boolean;
+  matchmakingEligible: boolean;
 };
 
-function asStringArray(value: Prisma.JsonValue | null | undefined): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === "string");
-}
-
-function interestKey(value: string) {
-  return value.trim().toLowerCase();
-}
-
-export async function rankedDirectory(eventId: string): Promise<{
+export type RankedDirectory = {
   meId: string;
+  forYou: DirectoryPerson[];
   people: DirectoryPerson[];
-}> {
+  eventAiEnabled: boolean;
+  attendeeOptIn: boolean;
+};
+
+const directoryInclude = {
+  profile: true,
+  privacy: true,
+  category: { select: { matchmakingEligible: true as const } },
+  matchProfile: true,
+};
+
+function byName(a: DirectoryPerson, b: DirectoryPerson) {
+  return a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName);
+}
+
+function forYouRank(a: DirectoryPerson, b: DirectoryPerson) {
+  return b.score - a.score || byName(a, b);
+}
+
+/**
+ * Ranked attendee directory. Reads persisted MatchScore rows when present;
+ * otherwise scores in memory and does not write.
+ */
+export async function rankedDirectory(eventId: string): Promise<RankedDirectory> {
   const user = await requireUser();
   const me = await prisma.attendee.findFirst({
     where: { eventId, userId: user.id },
-    include: { profile: true, privacy: true },
+    include: directoryInclude,
   });
   if (!me) throw new AuthzError("You are not registered for this event", 403);
 
   const others = await prisma.attendee.findMany({
-    where: {
+    where: forOrganisation(me.organisationId, {
       eventId,
-      organisationId: me.organisationId,
       id: { not: me.id },
-      OR: [{ privacy: { is: null } }, { privacy: { profileVisible: true } }],
-    },
-    include: { profile: true, privacy: true },
+    }),
+    include: directoryInclude,
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
 
-  const myInterests = asStringArray(me.profile?.interests).map(interestKey);
-  const people = others.map((row) => {
+  const visible = others.filter(isProfileVisible);
+  const stored =
+    visible.length === 0
+      ? []
+      : await prisma.matchScore.findMany({
+          where: forOrganisation(me.organisationId, {
+            eventId,
+            subjectId: me.id,
+            candidateId: { in: visible.map((row) => row.id) },
+          }),
+        });
+  const storedByCandidate = new Map(stored.map((row) => [row.candidateId, row]));
+  const meScoreable = toScoreableProfile(me);
+
+  const people: DirectoryPerson[] = visible.map((row) => {
+    const storedRow = storedByCandidate.get(row.id);
+    const live =
+      storedRow == null
+        ? scoreMatch(meScoreable, toScoreableProfile(row))
+        : null;
+    const score = storedRow ? storedRow.score : (live?.score ?? 0);
+    const reasons = storedRow
+      ? parseMatchReasons(storedRow.reasons, row.country)
+      : (live?.reasons ?? parseMatchReasons(null, row.country));
     const interests = asStringArray(row.profile?.interests);
-    const sharedInterests = interests.filter((item) =>
-      myInterests.includes(interestKey(item)),
-    );
-    let score = sharedInterests.length * 10;
-    if (
-      me.country &&
-      row.country &&
-      me.country.trim().toLowerCase() === row.country.trim().toLowerCase()
-    ) {
-      score += 5;
-    }
-    if (me.privacy?.matchmakingEnabled && row.privacy?.matchmakingEnabled) {
-      score += 2;
-    }
+
     return {
       id: row.id,
       firstName: row.firstName,
@@ -81,55 +118,30 @@ export async function rankedDirectory(eventId: string): Promise<{
       lookingFor: row.profile?.lookingFor ?? null,
       offering: row.profile?.offering ?? null,
       interests,
-      sharedInterests,
+      sharedInterests: reasons.sharedInterests,
       score,
+      reasons,
+      band: matchBandFromScore(score),
+      matchmakingEnabled: row.privacy?.matchmakingEnabled === true,
+      matchmakingEligible: isMatchmakingEligible(row),
     };
   });
 
-  people.sort((a, b) => b.score - a.score || a.lastName.localeCompare(b.lastName));
+  const ranked = people.filter(
+    (person) => person.matchmakingEligible && person.band != null,
+  );
+  const enabledRanked = ranked.filter((person) => person.matchmakingEnabled);
+  const forYou = (enabledRanked.length > 0 ? enabledRanked : ranked).sort(forYouRank);
+  const forYouIds = new Set(forYou.map((person) => person.id));
+  const remaining = people.filter((person) => !forYouIds.has(person.id)).sort(byName);
 
-  if (people.length > 0) {
-    await prisma.$transaction(
-      people.map((person) =>
-        prisma.matchScore.upsert({
-          where: {
-            subjectId_candidateId: {
-              subjectId: me.id,
-              candidateId: person.id,
-            },
-          },
-          create: {
-            organisationId: me.organisationId,
-            eventId,
-            subjectId: me.id,
-            candidateId: person.id,
-            score: person.score,
-            reasons: {
-              sharedInterests: person.sharedInterests,
-              sameCountry: Boolean(
-                me.country &&
-                  person.country &&
-                  me.country.trim().toLowerCase() ===
-                    person.country.trim().toLowerCase(),
-              ),
-            },
-          },
-          update: {
-            score: person.score,
-            reasons: {
-              sharedInterests: person.sharedInterests,
-              sameCountry: Boolean(
-                me.country &&
-                  person.country &&
-                  me.country.trim().toLowerCase() ===
-                    person.country.trim().toLowerCase(),
-              ),
-            },
-          },
-        }),
-      ),
-    );
-  }
+  const flags = await loadAiInsightFlags(eventId, me.id);
 
-  return { meId: me.id, people };
+  return {
+    meId: me.id,
+    forYou,
+    people: remaining,
+    eventAiEnabled: flags.eventAiEnabled,
+    attendeeOptIn: flags.attendeeOptIn,
+  };
 }

@@ -139,5 +139,7 @@ export async function submitRegistration(
   return {
     attendeeId: result.attendee.id,
     qrDataUrl: await opaqueQrDataUrl(qr.raw),
+    eventId: invitation.eventId,
+    signedIn: Boolean(user),
   };
 }

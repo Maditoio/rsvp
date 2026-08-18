@@ -1,6 +1,8 @@
-# Delegate
+# Bizcon RSVP
 
-Delegate is a multi-tenant **event intelligence** platform for professional summits — invitation, RSVP, registration, QR check-in, and (later) matchmaking. Invitation is not registration.
+Event Intelligence for professional summits.
+
+Bizcon RSVP is a multi-tenant **event intelligence** platform for professional summits — invitation, RSVP, registration, QR check-in, and (later) matchmaking. Invitation is not registration.
 
 Product spec: [`docs/product-spec.md`](docs/product-spec.md)  
 Design tokens: [`docs/color-system.md`](docs/color-system.md)

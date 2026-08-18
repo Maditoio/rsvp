@@ -21,6 +21,7 @@ export function EventSettingsForm({
     capacity: number | null;
     waitlistEnabled: boolean;
     allowPublicApplication: boolean;
+    aiInsightsEnabled: boolean;
   };
 }) {
   const router = useRouter();
@@ -35,7 +36,8 @@ export function EventSettingsForm({
         </p>
         <h1 className="mt-1 font-display text-3xl text-ink-800">Settings</h1>
         <p className="mt-1 text-sm text-stone-700">
-          Invitation windows, capacity, and whether the public may apply.
+          Invitation windows, capacity, public applications, and optional AI
+          insights.
         </p>
       </div>
       <form
@@ -111,6 +113,22 @@ export function EventSettingsForm({
             <span className="mt-1 block text-xs font-normal text-stone-500">
               Publishes an Apply to attend page. Approving creates an invitation,
               not a registration.
+            </span>
+          </span>
+        </label>
+        <label className="flex items-start gap-3 text-sm text-ink-700">
+          <input
+            type="checkbox"
+            name="aiInsightsEnabled"
+            value="on"
+            defaultChecked={settings.aiInsightsEnabled}
+            className="mt-1 size-4 accent-ink-700"
+          />
+          <span>
+            <span className="font-semibold">Enable AI insights</span>
+            <span className="mt-1 block text-xs font-normal text-stone-500">
+              Structured matching always runs. AI only writes explanations later,
+              and only for attendees who opt in.
             </span>
           </span>
         </label>

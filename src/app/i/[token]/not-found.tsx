@@ -12,7 +12,7 @@ export default function InvitationNotFound() {
         the invitation.
       </p>
       <Link href="/" className="mt-5 inline-flex text-sm text-ink-700 underline">
-        Back to Delegate
+        Back to Bizcon RSVP
       </Link>
     </Card>
   );

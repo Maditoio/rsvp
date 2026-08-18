@@ -6,20 +6,34 @@ import { getMyAttendance } from "@/modules/attendees/actions";
 import { requireUser } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { formatEventWindow } from "@/lib/utils";
+import { prisma } from "@/lib/db/prisma";
+import {
+  isQuestionnaireComplete,
+  matchmakingPath,
+} from "@/modules/matchmaking/questionnaire";
 
 export default async function AttendeeEventPage({
   params,
 }: PageProps<"/me/events/[eventId]">) {
   const { eventId } = await params;
-  await safe(() => requireUser());
+  const user = await safe(() => requireUser());
   const attendance = await safe(() => getMyAttendance(eventId));
   const checkedInAt = attendance.checkIns[0]?.checkedInAt ?? null;
+  const matchProfile = await prisma.matchmakingProfile.findFirst({
+    where: {
+      eventId,
+      attendeeId: attendance.id,
+      attendee: { userId: user.id },
+    },
+    select: { questionnaire: true },
+  });
+  const matchingComplete = isQuestionnaireComplete(matchProfile?.questionnaire);
 
   return (
     <div className="space-y-6">
       <AttendeeEventNav eventId={eventId} current="Overview" />
       <DecisionCard>
-        <p className="text-xs uppercase tracking-[0.18em] text-bloom-200">
+        <p className="text-xs uppercase tracking-[0.18em] text-bronze-200">
           My event
         </p>
         <h1 className="mt-2 font-display text-4xl">{attendance.event.name}</h1>
@@ -32,6 +46,29 @@ export default async function AttendeeEventPage({
           )}
         </p>
       </DecisionCard>
+      {!matchingComplete ? (
+        <Card>
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+            Matching
+          </p>
+          <h2 className="mt-2 font-display text-2xl text-ink-800">
+            Set up who you want to meet
+          </h2>
+          <p className="mt-2 text-sm text-stone-700">
+            Your registration is complete. A short questionnaire ranks the
+            directory around what you are looking for and what you offer.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center gap-4">
+            <Link
+              href={matchmakingPath(eventId)}
+              className="inline-flex h-11 items-center rounded-sm bg-ink-700 px-5 text-[0.9375rem] font-semibold text-white hover:bg-ink-800"
+            >
+              Set up matching profile
+            </Link>
+            <span className="text-sm text-stone-500">You can skip this for now.</span>
+          </div>
+        </Card>
+      ) : null}
       <Card>
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="font-display text-2xl text-ink-800">Registration</h2>

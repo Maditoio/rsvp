@@ -26,9 +26,14 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Delegate — Event intelligence for professional summits",
-  description:
-    "Invitation, registration, delegate intelligence, matchmaking, meetings and check-in for professional summits.",
+  title: "Bizcon RSVP — Event Intelligence for professional summits.",
+  description: "Event Intelligence for professional summits.",
+  applicationName: "Bizcon RSVP",
+  openGraph: {
+    title: "Bizcon RSVP",
+    description: "Event Intelligence for professional summits.",
+    siteName: "Bizcon RSVP",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

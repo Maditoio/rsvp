@@ -14,6 +14,7 @@ export function AttendeeEventNav({
     { href: `/me/events/${eventId}/privacy`, label: "Privacy" },
     { href: `/me/events/${eventId}/agenda`, label: "Agenda" },
     { href: `/me/events/${eventId}/directory`, label: "Directory" },
+    { href: `/me/events/${eventId}/matchmaking`, label: "Matching" },
     { href: `/me/events/${eventId}/meetings`, label: "Meetings" },
     { href: `/me/events/${eventId}/qr`, label: "Check-in code" },
   ];

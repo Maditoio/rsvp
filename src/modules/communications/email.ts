@@ -32,7 +32,7 @@ async function deliver(input: OutboundEmail) {
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const from = process.env.RESEND_FROM_EMAIL ?? "Delegate <noreply@example.com>";
+  const from = process.env.RESEND_FROM_EMAIL ?? "Bizcon RSVP <noreply@example.com>";
   const result = await resend.emails.send({
     from,
     to: input.toEmail,

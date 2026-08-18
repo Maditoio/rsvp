@@ -15,14 +15,7 @@ export default async function EventSettingsPage({
     select: {
       name: true,
       slug: true,
-      settings: {
-        select: {
-          invitationExpiryDays: true,
-          capacity: true,
-          waitlistEnabled: true,
-          allowPublicApplication: true,
-        },
-      },
+      settings: true,
     },
   });
   if (!event) return null;
@@ -44,6 +37,7 @@ export default async function EventSettingsPage({
           capacity: event.settings?.capacity ?? null,
           waitlistEnabled: event.settings?.waitlistEnabled ?? false,
           allowPublicApplication: event.settings?.allowPublicApplication ?? false,
+          aiInsightsEnabled: event.settings?.aiInsightsEnabled ?? false,
         }}
       />
     </div>

@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { AuthzError } from "@/lib/db/tenant";
 import { AttendeeEventNav } from "@/components/attendee-event-nav";
+import { isQuestionnaireComplete } from "@/modules/matchmaking/questionnaire";
 import { ProfileForm } from "./profile-form";
 
 function asStringArray(value: unknown): string[] {
@@ -17,7 +18,7 @@ export default async function AttendeeProfilePage({
   const user = await safe(() => requireUser());
   const attendee = await prisma.attendee.findFirst({
     where: { eventId, userId: user.id },
-    include: { profile: true, event: { select: { name: true } } },
+    include: { profile: true, matchProfile: true, event: { select: { name: true } } },
   });
   if (!attendee) {
     await safe(async () => {
@@ -41,6 +42,7 @@ export default async function AttendeeProfilePage({
       </div>
       <ProfileForm
         eventId={eventId}
+        matchingComplete={isQuestionnaireComplete(attendee.matchProfile?.questionnaire)}
         profile={{
           about: attendee.profile?.about ?? "",
           lookingFor: attendee.profile?.lookingFor ?? "",

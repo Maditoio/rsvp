@@ -7,14 +7,17 @@ import { Button } from "@/components/ui/button";
 
 export function PrivacyForm({
   eventId,
+  eventAiEnabled,
   privacy,
 }: {
   eventId: string;
+  eventAiEnabled: boolean;
   privacy: {
     profileVisible: boolean;
     matchmakingEnabled: boolean;
     showEmail: boolean;
     showPhone: boolean;
+    aiInsightsOptIn: boolean;
   };
 }) {
   const router = useRouter();
@@ -60,8 +63,28 @@ export function PrivacyForm({
         <span>
           <span className="font-semibold">Include me in basic matching</span>
           <span className="mt-1 block text-xs font-normal text-stone-500">
-            Shared interests and country are used to rank the directory. This is
-            not AI matching.
+            Matching uses shared objectives; AI explanations are optional.
+          </span>
+        </span>
+      </label>
+      <label
+        className={`flex items-start gap-3 text-sm ${
+          eventAiEnabled ? "text-ink-700" : "text-stone-500"
+        }`}
+      >
+        <input
+          type="checkbox"
+          name="aiInsightsOptIn"
+          defaultChecked={privacy.aiInsightsOptIn}
+          disabled={!eventAiEnabled}
+          className="mt-1 size-4 accent-ink-700 disabled:cursor-not-allowed"
+        />
+        <span>
+          <span className="font-semibold">Allow AI to explain my matches</span>
+          <span className="mt-1 block text-xs font-normal text-stone-500">
+            {eventAiEnabled
+              ? "When enabled, AI may write an explanation of why a connection fits. Matching still uses shared objectives."
+              : "The organiser has not enabled AI insights for this event. Matching still uses shared objectives."}
           </span>
         </span>
       </label>

@@ -12,7 +12,10 @@ export default async function AttendeePrivacyPage({
   const user = await safe(() => requireUser());
   const attendee = await prisma.attendee.findFirst({
     where: { eventId, userId: user.id },
-    include: { privacy: true, event: { select: { name: true } } },
+    include: {
+      privacy: true,
+      event: { select: { name: true, settings: true } },
+    },
   });
   if (!attendee) {
     await safe(async () => {
@@ -30,17 +33,20 @@ export default async function AttendeePrivacyPage({
         </p>
         <h1 className="mt-1 font-display text-3xl text-ink-800">Privacy</h1>
         <p className="mt-1 text-sm text-stone-700">
-          Control what other attendees can see. Organisers still see your
-          registration record.
+          Control what other attendees can see. Matching uses shared objectives;
+          AI explanations are optional. Organisers still see your registration
+          record.
         </p>
       </div>
       <PrivacyForm
         eventId={eventId}
+        eventAiEnabled={attendee.event.settings?.aiInsightsEnabled ?? false}
         privacy={{
           profileVisible: attendee.privacy?.profileVisible ?? true,
           matchmakingEnabled: attendee.privacy?.matchmakingEnabled ?? false,
           showEmail: attendee.privacy?.showEmail ?? false,
           showPhone: attendee.privacy?.showPhone ?? false,
+          aiInsightsOptIn: attendee.privacy?.aiInsightsOptIn ?? false,
         }}
       />
     </div>
