@@ -6,7 +6,12 @@ import ExcelJS from "exceljs";
 import { requireEvent } from "@/lib/authz/require";
 import { prisma } from "@/lib/db/prisma";
 import { writeAudit } from "@/modules/audit/log";
-import { previewImport, type ImportRow } from "@/modules/contacts/parse";
+import {
+  contactCreateFromFormData,
+  contactCreateSchema,
+  previewImport,
+  type ImportRow,
+} from "@/modules/contacts/parse";
 
 type SheetRow = Record<string, unknown>;
 
@@ -134,4 +139,70 @@ export async function commitContactImport(
 
   revalidatePath(`/app/${orgSlug}/events/${eventId}/invitees`);
   return { created, skipped };
+}
+
+function emptyToNull(value?: string) {
+  return value ? value : null;
+}
+
+export async function createContact(
+  orgSlug: string,
+  eventId: string,
+  formData: FormData,
+) {
+  const ctx = await requireEvent(orgSlug, eventId, "invitees.write");
+  const parsed = contactCreateSchema.safeParse(contactCreateFromFormData(formData));
+  if (!parsed.success) {
+    throw new Error(
+      parsed.error.issues[0]?.message ?? "Check the invitee details and try again.",
+    );
+  }
+  const input = parsed.data;
+
+  const exists = await prisma.contact.findFirst({
+    where: {
+      eventId,
+      organisationId: ctx.organisation.id,
+      email: input.email,
+    },
+    select: { id: true },
+  });
+  if (exists) {
+    throw new Error("An invitee with this email is already on this event.");
+  }
+
+  const contact = await prisma.contact.create({
+    data: {
+      organisationId: ctx.organisation.id,
+      eventId,
+      email: input.email,
+      firstName: input.firstName,
+      lastName: input.lastName,
+      phone: emptyToNull(input.phone),
+      company: emptyToNull(input.company),
+      jobTitle: emptyToNull(input.jobTitle),
+      country: emptyToNull(input.country),
+      notes: null,
+      vip: false,
+      speaker: false,
+      sponsor: false,
+    },
+  });
+
+  await writeAudit({
+    organisationId: ctx.organisation.id,
+    eventId,
+    userId: ctx.user.id,
+    action: "contact.create",
+    resource: "contact",
+    resourceId: contact.id,
+    metadata: { email: contact.email },
+  });
+
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/invitees`);
+  return {
+    id: contact.id,
+    firstName: contact.firstName,
+    lastName: contact.lastName,
+  };
 }

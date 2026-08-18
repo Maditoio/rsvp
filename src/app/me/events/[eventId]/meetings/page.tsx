@@ -3,7 +3,6 @@ import { requireUser } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { AuthzError } from "@/lib/db/tenant";
 import { displayName } from "@/lib/utils";
-import { AttendeeEventNav } from "@/components/attendee-event-nav";
 import { AttendeeMeetingsPanel } from "./meetings-panel";
 
 export default async function AttendeeMeetingsPage({
@@ -65,7 +64,6 @@ export default async function AttendeeMeetingsPage({
 
   return (
     <div className="space-y-6">
-      <AttendeeEventNav eventId={eventId} current="Meetings" />
       <div>
         <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
           {attendee.event.name}

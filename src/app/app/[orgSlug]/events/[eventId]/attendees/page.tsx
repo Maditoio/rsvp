@@ -2,7 +2,6 @@ import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
-import { EventSubnav } from "@/components/event-subnav";
 import { Card } from "@/components/ui/card";
 import { Table, Td, Th } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
@@ -33,12 +32,6 @@ export default async function AttendeesPage({
 
   return (
     <div>
-      <EventSubnav
-        orgSlug={orgSlug}
-        eventId={eventId}
-        current="Attendees"
-        grants={ctx.grants}
-      />
       <h1 className="font-display text-3xl text-ink-800">Attendees</h1>
       <p className="mt-1 mb-6 text-sm text-stone-700">
         Registered delegates for this event. An accepted invitation does not

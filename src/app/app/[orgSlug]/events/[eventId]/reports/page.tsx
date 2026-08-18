@@ -1,6 +1,5 @@
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
-import { EventSubnav } from "@/components/event-subnav";
 import { Card } from "@/components/ui/card";
 
 export default async function ReportsPage({
@@ -12,12 +11,6 @@ export default async function ReportsPage({
 
   return (
     <div>
-      <EventSubnav
-        orgSlug={orgSlug}
-        eventId={eventId}
-        current="Reports"
-        grants={ctx.grants}
-      />
       <h1 className="font-display text-3xl text-gray-800">Reports</h1>
       <p className="mt-1 mb-6 text-sm text-gray-600">
         CSV exports are permission-gated and written to the audit log.

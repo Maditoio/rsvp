@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { previewImport } from "./parse";
+import { contactCreateSchema, previewImport } from "./parse";
 
 describe("contact import preview", () => {
   it("reports invalid email, missing name, and in-file duplicates instead of dropping them silently", () => {
@@ -48,5 +48,65 @@ describe("contact import preview", () => {
 
     const accounted = preview.valid.length + preview.issues.length;
     expect(accounted).toBe(5);
+  });
+});
+
+describe("contactCreateSchema", () => {
+  it("requires a name and a valid email, and normalises the address", () => {
+    const result = contactCreateSchema.safeParse({
+      firstName: " Ada ",
+      lastName: "Lovelace",
+      email: "ADA@Example.COM",
+      phone: "",
+      company: "Analytical Engines",
+      jobTitle: "",
+      country: "United Kingdom",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toMatchObject({
+        firstName: "Ada",
+        lastName: "Lovelace",
+        email: "ada@example.com",
+        company: "Analytical Engines",
+        country: "United Kingdom",
+      });
+    }
+  });
+
+  it("rejects a missing name, invalid email, phone, or unknown country", () => {
+    const missingName = contactCreateSchema.safeParse({
+      firstName: " ",
+      lastName: "Lovelace",
+      email: "ada@example.com",
+      country: "",
+    });
+    expect(missingName.success).toBe(false);
+
+    const invalidEmail = contactCreateSchema.safeParse({
+      firstName: "Ada",
+      lastName: "Lovelace",
+      email: "not-an-email",
+      country: "",
+    });
+    expect(invalidEmail.success).toBe(false);
+
+    const invalidPhone = contactCreateSchema.safeParse({
+      firstName: "Ada",
+      lastName: "Lovelace",
+      email: "ada@example.com",
+      phone: "abc",
+      country: "",
+    });
+    expect(invalidPhone.success).toBe(false);
+
+    const unknownCountry = contactCreateSchema.safeParse({
+      firstName: "Ada",
+      lastName: "Lovelace",
+      email: "ada@example.com",
+      country: "Narnia",
+    });
+    expect(unknownCountry.success).toBe(false);
   });
 });

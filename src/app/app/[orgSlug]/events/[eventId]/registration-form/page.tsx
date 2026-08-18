@@ -1,7 +1,6 @@
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
-import { EventSubnav } from "@/components/event-subnav";
 import { ensureDefaultRegistrationForm } from "@/modules/registrations/form";
 import { RegistrationFormBuilder } from "./form-builder";
 
@@ -14,12 +13,6 @@ export default async function RegistrationFormPage({
 
   return (
     <div>
-      <EventSubnav
-        orgSlug={orgSlug}
-        eventId={eventId}
-        current="Form"
-        grants={ctx.grants}
-      />
       <RegistrationFormBuilder
         orgSlug={orgSlug}
         eventId={eventId}

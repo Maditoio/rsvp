@@ -3,7 +3,6 @@ import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
-import { EventSubnav } from "@/components/event-subnav";
 import { InvitationsPanel } from "./invitations-panel";
 
 const INACTIVE_STATUSES: InvitationStatus[] = [
@@ -60,12 +59,6 @@ export default async function InvitationsPage({
 
   return (
     <div>
-      <EventSubnav
-        orgSlug={orgSlug}
-        eventId={eventId}
-        current="Invitations"
-        grants={ctx.grants}
-      />
       <h1 className="mb-2 font-display text-3xl text-ink-800">Invitations</h1>
       <p className="mb-6 text-sm text-stone-700">
         Invitation status is independent of registration. Accepted is not

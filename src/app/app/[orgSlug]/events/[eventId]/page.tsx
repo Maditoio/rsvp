@@ -4,7 +4,6 @@ import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
 import { eventCounts } from "@/modules/events/stats";
-import { EventSubnav } from "@/components/event-subnav";
 import { Card, DecisionCard } from "@/components/ui/card";
 import { StaffManagement } from "./staff-management";
 
@@ -75,12 +74,6 @@ export default async function EventDashboardPage({
 
   return (
     <div>
-      <EventSubnav
-        orgSlug={orgSlug}
-        eventId={eventId}
-        current="Dashboard"
-        grants={ctx.grants}
-      />
       <DecisionCard>
         <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-200">
           Event

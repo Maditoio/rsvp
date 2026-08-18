@@ -1,6 +1,5 @@
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
-import { EventSubnav } from "@/components/event-subnav";
 import { DecisionCard } from "@/components/ui/card";
 import { CheckInScanner } from "@/components/checkin-scanner";
 
@@ -12,12 +11,6 @@ export default async function CheckInPage({
 
   return (
     <div>
-      <EventSubnav
-        orgSlug={orgSlug}
-        eventId={eventId}
-        current="Check-in"
-        grants={ctx.grants}
-      />
       <DecisionCard className="mb-6">
         <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-200">
           Check-in

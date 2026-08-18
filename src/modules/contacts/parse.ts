@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isCountryName } from "@/lib/countries";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -103,3 +104,76 @@ export function previewImport(
 export const confirmSchema = z.object({
   eventId: z.string(),
 });
+
+const optionalText = (max: number, message: string) =>
+  z
+    .string()
+    .trim()
+    .max(max, message)
+    .optional()
+    .or(z.literal(""));
+
+const PHONE_RE = /^[+0-9()\s.-]{7,40}$/;
+
+export const contactCreateSchema = z.object({
+  firstName: z
+    .string()
+    .trim()
+    .min(1, "First name is required")
+    .max(80, "First name must be 80 characters or fewer"),
+  lastName: z
+    .string()
+    .trim()
+    .min(1, "Last name is required")
+    .max(80, "Last name must be 80 characters or fewer"),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email is required")
+    .email("Enter a valid email address")
+    .transform((value) => normalizeEmail(value)),
+  phone: z
+    .string()
+    .trim()
+    .max(40, "Phone must be 40 characters or fewer")
+    .refine((value) => value === "" || PHONE_RE.test(value), {
+      message: "Enter a valid phone number",
+    })
+    .optional()
+    .or(z.literal("")),
+  company: optionalText(160, "Company must be 160 characters or fewer"),
+  jobTitle: optionalText(160, "Job title must be 160 characters or fewer"),
+  country: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || isCountryName(value), {
+      message: "Select a country from the list",
+    }),
+});
+
+export type ContactCreateInput = z.infer<typeof contactCreateSchema>;
+
+export function contactCreateFromFormData(formData: FormData) {
+  return {
+    firstName: String(formData.get("firstName") ?? ""),
+    lastName: String(formData.get("lastName") ?? ""),
+    email: String(formData.get("email") ?? ""),
+    phone: String(formData.get("phone") ?? ""),
+    company: String(formData.get("company") ?? ""),
+    jobTitle: String(formData.get("jobTitle") ?? ""),
+    country: String(formData.get("country") ?? ""),
+  };
+}
+
+export function contactCreateFieldErrors(
+  error: z.ZodError,
+): Partial<Record<keyof ContactCreateInput, string>> {
+  const fields: Partial<Record<keyof ContactCreateInput, string>> = {};
+  for (const issue of error.issues) {
+    const key = issue.path[0];
+    if (typeof key === "string" && !(key in fields)) {
+      fields[key as keyof ContactCreateInput] = issue.message;
+    }
+  }
+  return fields;
+}

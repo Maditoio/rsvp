@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
-import { EventSubnav } from "@/components/event-subnav";
 import { getAppUrl } from "@/lib/utils";
 import { EventSettingsForm } from "./event-settings-form";
 
@@ -22,12 +21,6 @@ export default async function EventSettingsPage({
 
   return (
     <div>
-      <EventSubnav
-        orgSlug={orgSlug}
-        eventId={eventId}
-        current="Settings"
-        grants={ctx.grants}
-      />
       <EventSettingsForm
         orgSlug={orgSlug}
         eventId={eventId}

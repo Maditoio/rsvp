@@ -2,7 +2,6 @@ import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
-import { EventSubnav } from "@/components/event-subnav";
 import { AgendaPanel } from "./agenda-panel";
 
 export default async function AgendaPage({
@@ -18,12 +17,6 @@ export default async function AgendaPage({
 
   return (
     <div>
-      <EventSubnav
-        orgSlug={orgSlug}
-        eventId={eventId}
-        current="Agenda"
-        grants={ctx.grants}
-      />
       <AgendaPanel
         orgSlug={orgSlug}
         eventId={eventId}

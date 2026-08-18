@@ -2,7 +2,6 @@ import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
-import { EventSubnav } from "@/components/event-subnav";
 import { Card } from "@/components/ui/card";
 import { Table, Td, Th } from "@/components/ui/table";
 import { CategoryForm } from "./category-form";
@@ -23,12 +22,6 @@ export default async function CategoriesPage({
 
   return (
     <div>
-      <EventSubnav
-        orgSlug={orgSlug}
-        eventId={eventId}
-        current="Categories"
-        grants={ctx.grants}
-      />
       <h1 className="font-display text-3xl text-gray-800">Invitation categories</h1>
       <p className="mt-1 text-sm text-gray-600">
         Categories are configured per event. They are not a hard-coded list of

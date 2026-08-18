@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Card, DecisionCard } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AttendeeEventNav } from "@/components/attendee-event-nav";
 import { getMyAttendance } from "@/modules/attendees/actions";
 import { requireUser } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
@@ -31,7 +30,6 @@ export default async function AttendeeEventPage({
 
   return (
     <div className="space-y-6">
-      <AttendeeEventNav eventId={eventId} current="Overview" />
       <DecisionCard>
         <p className="text-xs uppercase tracking-[0.18em] text-bronze-200">
           My event

@@ -2,7 +2,6 @@ import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
-import { EventSubnav } from "@/components/event-subnav";
 import { CommunicationsPanel } from "./communications-panel";
 
 export default async function CommunicationsPage({
@@ -27,12 +26,6 @@ export default async function CommunicationsPage({
 
   return (
     <div>
-      <EventSubnav
-        orgSlug={orgSlug}
-        eventId={eventId}
-        current="Communications"
-        grants={ctx.grants}
-      />
       <CommunicationsPanel
         orgSlug={orgSlug}
         eventId={eventId}

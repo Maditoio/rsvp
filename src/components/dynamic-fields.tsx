@@ -1,23 +1,9 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { COUNTRIES } from "@/lib/countries";
 import type { FormFieldDef } from "@/modules/registrations/defaults";
-
-const COUNTRIES = [
-  "South Africa",
-  "Nigeria",
-  "Kenya",
-  "Ghana",
-  "Egypt",
-  "United Kingdom",
-  "United States",
-  "United Arab Emirates",
-  "Germany",
-  "France",
-  "India",
-  "China",
-  "Other",
-];
 
 export function DynamicFields({
   fields,
@@ -71,12 +57,11 @@ function FieldControl({
 
   if (field.type === "select" || field.type === "country") {
     return (
-      <select
+      <Select
         id={field.key}
         name={field.key}
         required={field.required}
         defaultValue={defaultValue}
-        className="h-[42px] w-full rounded-sm border border-stone-300 bg-stone-0 px-4 text-[0.9375rem] text-ink-700 outline-none focus:border-ink-700 focus:ring-3 focus:ring-ink-700/12"
       >
         <option value="">Select</option>
         {options.map((option) => (
@@ -84,7 +69,7 @@ function FieldControl({
             {option}
           </option>
         ))}
-      </select>
+      </Select>
     );
   }
 

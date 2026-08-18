@@ -1,6 +1,5 @@
 import { Card } from "@/components/ui/card";
 import { QrCodeImage } from "@/components/qr-code";
-import { AttendeeEventNav } from "@/components/attendee-event-nav";
 import { getMyAttendanceQrDataUrl } from "@/modules/attendees/actions";
 import { requireUser } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
@@ -16,7 +15,6 @@ export default async function AttendeeQrPage({
 
   return (
     <div className="space-y-6">
-      <AttendeeEventNav eventId={eventId} current="Check-in code" />
       <h1 className="font-display text-4xl text-ink-800">My QR code</h1>
       <p className="max-w-lg text-stone-700">
         This is an opaque attendance token. It does not contain your name,
