@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, DecisionCard } from "@/components/ui/card";
+import { RouteDrawer } from "@/components/ui/drawer";
 import { getPublicInvitation } from "@/modules/invitations/public";
 import { getQrForInvitationHolder } from "@/modules/attendees/actions";
 import { turnstileSiteKey } from "@/lib/utils";
@@ -21,15 +22,15 @@ export default async function RegisterPage({
   ) {
     return (
       <Card>
-        <h1 className="font-serif text-3xl text-slate-900">
+        <h1 className="font-display text-3xl text-gray-800">
           Registration is not available
         </h1>
-        <p className="mt-3 text-slate-600">
+        <p className="mt-3 text-gray-600">
           This invitation cannot be used to register for {invitation.eventName}.
         </p>
         <Link
           href={`/i/${encodeURIComponent(token)}`}
-          className="mt-5 inline-flex text-sm text-primary-700 underline"
+          className="mt-5 inline-flex text-sm text-ink-700 underline"
         >
           Back to invitation
         </Link>
@@ -40,16 +41,16 @@ export default async function RegisterPage({
   if (!invitation.accepted) {
     return (
       <Card>
-        <h1 className="font-serif text-3xl text-slate-900">
+        <h1 className="font-display text-3xl text-gray-800">
           Accept the invitation first
         </h1>
-        <p className="mt-3 text-slate-600">
+        <p className="mt-3 text-gray-600">
           Invitation is not registration. Accept your place at{" "}
           {invitation.eventName}, then return here to complete the form.
         </p>
         <Link
           href={`/i/${encodeURIComponent(token)}`}
-          className="mt-5 inline-flex rounded-full bg-primary-600 px-4 py-2 text-sm text-white"
+          className="mt-5 inline-flex rounded-sm bg-ink-600 px-4 py-2 text-sm font-medium text-white"
         >
           Review invitation
         </Link>
@@ -62,13 +63,18 @@ export default async function RegisterPage({
     : null;
 
   return (
-    <div className="space-y-6">
-      <DecisionCard>
-        <p className="text-xs uppercase tracking-[0.18em] text-accent-200">
+    <RouteDrawer
+      title={`Register for ${invitation.eventName}`}
+      description="Confirm or correct the details already associated with your invitation."
+      closeHref={`/i/${encodeURIComponent(token)}`}
+      size="lg"
+    >
+      <DecisionCard className="mb-6">
+        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-200">
           Registration
         </p>
-        <h1 className="mt-2 font-serif text-4xl">{invitation.eventName}</h1>
-        <p className="mt-2 text-primary-100">
+        <h1 className="mt-2 font-display text-4xl">{invitation.eventName}</h1>
+        <p className="mt-2 text-ink-100">
           Confirm or correct the details we already have from your invitation.
         </p>
       </DecisionCard>
@@ -88,6 +94,6 @@ export default async function RegisterPage({
           }}
         />
       </Card>
-    </div>
+    </RouteDrawer>
   );
 }

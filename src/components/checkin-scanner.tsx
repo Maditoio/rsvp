@@ -47,14 +47,14 @@ export function CheckInScanner({
   const [view, setView] = useState<CheckInView | null>(null);
   const [pending, start] = useTransition();
   const [cameraOn, setCameraOn] = useState(false);
-  const [cameraSupported, setCameraSupported] = useState(false);
+  const [cameraSupported] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      Boolean(getDetector() && navigator.mediaDevices?.getUserMedia),
+  );
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanning = useRef(false);
-
-  useEffect(() => {
-    setCameraSupported(Boolean(getDetector() && navigator.mediaDevices?.getUserMedia));
-  }, []);
 
   useEffect(() => {
     if (!cameraOn) {
@@ -180,7 +180,7 @@ export function CheckInScanner({
               {cameraOn ? "Stop camera" : "Scan with camera"}
             </Button>
           ) : (
-            <p className="self-center text-xs text-slate-500">
+            <p className="self-center text-xs text-gray-500">
               Camera QR scan is unavailable in this browser. Paste the token.
             </p>
           )}
@@ -188,22 +188,22 @@ export function CheckInScanner({
         {cameraOn ? (
           <video
             ref={videoRef}
-            className="mt-4 w-full rounded-xl bg-slate-900"
+            className="mt-4 w-full rounded-md bg-ink-900"
             playsInline
             muted
           />
         ) : null}
-        {error ? <p className="mt-3 text-sm text-error-500">{error}</p> : null}
+        {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
       </Card>
       <Card>
         {view ? (
           <div>
-            <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-accent-200">
-              <span className="h-2 w-2 rounded-full bg-accent-600" />
+            <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md border border-stone-200 bg-bronze-100">
+              <span className="h-2 w-2 rounded-full bg-bronze-500" />
             </div>
-            <p className="font-serif text-3xl text-slate-900">{view.name}</p>
-            <p className="mt-2 text-slate-600">{view.company || "Company not listed"}</p>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="font-display text-3xl text-ink-800">{view.name}</p>
+            <p className="mt-2 text-stone-700">{view.company || "Company not listed"}</p>
+            <p className="mt-1 text-sm text-stone-500">
               {view.category || "Uncategorised"}
             </p>
             <div className="mt-4">
@@ -214,7 +214,7 @@ export function CheckInScanner({
               )}
             </div>
             {view.alreadyCheckedIn ? (
-              <p className="mt-4 text-sm text-warning-500">
+              <p className="mt-4 text-sm text-warning">
                 Duplicate check-in blocked
                 {view.checkedInAt
                   ? ` · ${new Date(view.checkedInAt).toLocaleString()}`
@@ -233,7 +233,7 @@ export function CheckInScanner({
             )}
           </div>
         ) : (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-stone-500">
             Look up a token to see name, company, category, and check-in status
             only.
           </p>

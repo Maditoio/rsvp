@@ -6,8 +6,14 @@ export function Table({
   ...props
 }: HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
-      <table className={cn("w-full text-left text-sm text-slate-800", className)} {...props} />
+    <div className="overflow-x-auto rounded-md border border-stone-200 bg-stone-0">
+      <table
+        className={cn(
+          "w-full text-left text-[0.9375rem] text-ink-700",
+          className,
+        )}
+        {...props}
+      />
     </div>
   );
 }
@@ -19,7 +25,7 @@ export function Th({
   return (
     <th
       className={cn(
-        "px-5 py-3 text-xs font-medium uppercase tracking-wide text-slate-500",
+        "bg-stone-50 px-5 py-3 text-[0.8125rem] font-semibold uppercase tracking-[0.06em] text-stone-700",
         className,
       )}
       {...props}
@@ -31,5 +37,13 @@ export function Td({
   className,
   ...props
 }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn("px-5 py-3 align-middle", className)} {...props} />;
+  return (
+    <td
+      className={cn(
+        "h-11 border-b border-stone-100 px-5 align-middle text-stone-700",
+        className,
+      )}
+      {...props}
+    />
+  );
 }

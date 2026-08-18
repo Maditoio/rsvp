@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { createCategory } from "@/modules/events/actions";
 import { Button } from "@/components/ui/button";
+import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -16,29 +17,48 @@ export function CategoryForm({
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [open, setOpen] = useState(false);
 
   return (
-    <form
-      ref={formRef}
-      className="mt-4 flex max-w-md flex-col gap-3 sm:flex-row sm:items-end"
-      action={(formData) => {
-        setError(null);
-        start(async () => {
-          try {
-            await createCategory(orgSlug, eventId, formData);
-            formRef.current?.reset();
-          } catch (e) {
-            setError(e instanceof Error ? e.message : "Could not create category");
-          }
-        });
-      }}
-    >
-      <div className="flex-1">
-        <Label htmlFor="category-name">New category</Label>
-        <Input id="category-name" name="name" required placeholder="Delegate" />
+    <>
+      <div className="mt-4">
+        <Button type="button" onClick={() => setOpen(true)}>
+          Add category
+        </Button>
       </div>
-      <Button disabled={pending}>{pending ? "Adding…" : "Add category"}</Button>
-      {error ? <p className="text-sm text-error-500 sm:col-span-2">{error}</p> : null}
-    </form>
+      <Drawer
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Add invitation category"
+        description="Create a new per-event invitation category."
+        size="sm"
+      >
+        <form
+          ref={formRef}
+          className="space-y-4"
+          action={(formData) => {
+            setError(null);
+            start(async () => {
+              try {
+                await createCategory(orgSlug, eventId, formData);
+                formRef.current?.reset();
+                setOpen(false);
+              } catch (e) {
+                setError(e instanceof Error ? e.message : "Could not create category");
+              }
+            });
+          }}
+        >
+          <div>
+            <Label htmlFor="category-name">New category</Label>
+            <Input id="category-name" name="name" required placeholder="Delegate" />
+          </div>
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
+          <div className="flex justify-end">
+            <Button disabled={pending}>{pending ? "Adding…" : "Add category"}</Button>
+          </div>
+        </form>
+      </Drawer>
+    </>
   );
 }

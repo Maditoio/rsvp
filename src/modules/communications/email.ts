@@ -13,17 +13,17 @@ export async function sendInvitationEmail(input: {
 }) {
   const subject = `You're invited to ${input.eventName}`;
   const html = `
-    <div style="font-family:Georgia,serif;background:#C6DFB2;padding:32px">
-      <div style="max-width:560px;margin:auto;background:#3E3768;color:#ffffff;border-radius:20px;padding:32px">
-        <p style="letter-spacing:0.16em;text-transform:uppercase;font-size:12px;color:#E9D9F7">Invitation</p>
+    <div style="font-family:Georgia,serif;background:#F7F6FA;padding:32px">
+      <div style="max-width:560px;margin:auto;background:#423569;color:#ffffff;border-radius:20px;padding:32px">
+        <p style="letter-spacing:0.16em;text-transform:uppercase;font-size:12px;color:#E3C4F5">Invitation</p>
         <h1 style="font-size:28px;margin:8px 0 16px">You have been invited to ${escapeHtml(input.eventName)}</h1>
-        <p style="color:#D9D4EA">Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} would like you to attend.</p>
+        <p style="color:#C4BADF">Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} would like you to attend.</p>
         <p style="margin:28px 0">
-          <a href="${input.acceptUrl}" style="display:inline-block;background:#C6DFB2;color:#141224;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:600">
+          <a href="${input.acceptUrl}" style="display:inline-block;background:#F7F6FA;color:#130F22;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:600">
             View invitation
           </a>
         </p>
-        <p style="font-size:12px;color:#B3AAD5">This link is unique to you. Do not forward it.</p>
+        <p style="font-size:12px;color:#A190C8">This link is unique to you. Do not forward it.</p>
       </div>
     </div>
   `;

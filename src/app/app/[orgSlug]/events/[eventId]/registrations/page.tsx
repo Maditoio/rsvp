@@ -38,15 +38,15 @@ export default async function RegistrationsPage({
         current="Registrations"
         grants={ctx.grants}
       />
-      <h1 className="font-serif text-3xl text-slate-900">Registrations</h1>
-      <p className="mt-1 mb-6 text-sm text-slate-600">
+      <h1 className="font-display text-3xl text-gray-800">Registrations</h1>
+      <p className="mt-1 mb-6 text-sm text-gray-600">
         Invitation accepted is not registered. A registration response is created
         only after the invitee completes the form.
       </p>
       {responses.length === 0 ? (
         <Card>
-          <p className="text-slate-600">No registration responses yet.</p>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="text-gray-600">No registration responses yet.</p>
+          <p className="mt-2 text-sm text-gray-500">
             People who have accepted an invitation still need to register before
             they appear here.
           </p>
@@ -54,7 +54,7 @@ export default async function RegistrationsPage({
       ) : (
         <Table>
           <thead>
-            <tr className="border-b border-slate-100">
+            <tr className="border-b border-gray-100">
               <Th>Name</Th>
               <Th>Email</Th>
               <Th>Invitation</Th>
@@ -73,7 +73,7 @@ export default async function RegistrationsPage({
                   });
               const email = row.contact?.email ?? data.email ?? "—";
               return (
-                <tr key={row.id} className="border-b border-slate-50">
+                <tr key={row.id} className="border-b border-gray-50">
                   <Td>{name}</Td>
                   <Td>{email}</Td>
                   <Td>

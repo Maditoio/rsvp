@@ -6,18 +6,58 @@ import { hasPermission } from "@/lib/authz/permissions";
 import { eventCounts } from "@/modules/events/stats";
 import { EventSubnav } from "@/components/event-subnav";
 import { Card, DecisionCard } from "@/components/ui/card";
+import { StaffManagement } from "./staff-management";
 
 export default async function EventDashboardPage({
   params,
 }: PageProps<"/app/[orgSlug]/events/[eventId]">) {
   const { orgSlug, eventId } = await params;
   const ctx = await safe(() => requireEvent(orgSlug, eventId, "event.read"));
-  const event = await prisma.event.findFirst({
-    where: { id: eventId, organisationId: ctx.organisation.id },
-  });
+
+  const [event, counts, staff] = await Promise.all([
+    prisma.event.findFirst({
+      where: { id: eventId, organisationId: ctx.organisation.id },
+      select: {
+        id: true,
+        name: true,
+        venue: true,
+        timezone: true,
+      },
+    }),
+    eventCounts(ctx.organisation.id, eventId),
+    prisma.eventUser.findMany({
+      where: {
+        organisationId: ctx.organisation.id,
+        eventId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+    }),
+  ]);
+
   if (!event) return null;
-  const counts = await eventCounts(ctx.organisation.id, eventId);
   const canUpdate = hasPermission(ctx.grants, "event.update");
+
+  const orgRoles = new Map(
+    (
+      await prisma.organisationUser.findMany({
+        where: { organisationId: ctx.organisation.id },
+        select: {
+          userId: true,
+          role: true,
+        },
+      })
+    ).map((membership) => [membership.userId, membership.role]),
+  );
 
   const tiles = [
     ["Invited", counts.invited],
@@ -38,29 +78,50 @@ export default async function EventDashboardPage({
         grants={ctx.grants}
       />
       <DecisionCard>
-        <p className="text-xs uppercase tracking-[0.18em] text-accent-200">
+        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-200">
           Event
         </p>
-        <h1 className="mt-2 font-serif text-4xl">{event.name}</h1>
-        <p className="mt-2 text-primary-100">
+        <h1 className="mt-2 font-display text-4xl">{event.name}</h1>
+        <p className="mt-2 text-ink-100">
           {event.venue || "Venue TBC"} · {event.timezone}
         </p>
         {canUpdate ? (
           <Link
             href={`/app/${orgSlug}/events/${eventId}/edit`}
-            className="mt-4 inline-flex rounded-full bg-white/10 px-4 py-1.5 text-sm text-white hover:bg-white/20"
+            className="mt-4 inline-flex rounded-sm bg-white/10 px-4 py-1.5 text-sm text-white hover:bg-white/20"
           >
             Edit event
           </Link>
         ) : null}
       </DecisionCard>
+
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map(([label, value]) => (
           <Card key={label}>
-            <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-            <p className="mt-2 text-3xl font-medium text-slate-900">{value}</p>
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+              {label}
+            </p>
+            <p className="mt-2 text-3xl font-medium text-ink-800">{value}</p>
           </Card>
         ))}
+      </div>
+
+      <div className="mt-6">
+        <StaffManagement
+          orgSlug={orgSlug}
+          eventId={eventId}
+          canManage={canUpdate}
+          staff={staff.map((assignment) => ({
+            userId: assignment.user.id,
+            email: assignment.user.email,
+            firstName: assignment.user.firstName,
+            lastName: assignment.user.lastName,
+            role: assignment.role,
+            orgRole: orgRoles.get(assignment.user.id) ?? null,
+            assignedAt: assignment.createdAt.toLocaleDateString("en-GB"),
+            isCurrentUser: assignment.user.id === ctx.user.id,
+          }))}
+        />
       </div>
     </div>
   );

@@ -86,27 +86,27 @@ export function InvitationsPanel({
 
   return (
     <div className="space-y-6">
-      {error ? <p className="text-sm text-error-500">{error}</p> : null}
-      {message ? <p className="text-sm text-success-500">{message}</p> : null}
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
+      {message ? <p className="text-sm text-success">{message}</p> : null}
 
       <Card>
-        <h2 className="font-serif text-2xl text-slate-900">Create invitations</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <h2 className="font-display text-2xl text-gray-800">Create invitations</h2>
+        <p className="mt-1 text-sm text-gray-600">
           Contacts without an active invitation. Creating a draft is not the same
           as sending, and sending is not registration.
         </p>
         {uninvited.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-600">
+          <p className="mt-4 text-sm text-gray-600">
             Every contact already has an active invitation.
           </p>
         ) : (
           <>
             {canWrite ? (
               <div className="mt-4 flex flex-wrap items-end gap-3">
-                <label className="text-sm text-slate-700">
+                <label className="text-sm text-gray-700">
                   Category
                   <select
-                    className="mt-1 block rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                    className="mt-1 block rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
                   >
@@ -141,12 +141,12 @@ export function InvitationsPanel({
             <div className="mt-4">
               <Table>
                 <thead>
-                  <tr className="border-b border-slate-100">
+                  <tr className="border-b border-gray-100">
                     {canWrite ? (
                       <Th>
                         <input
                           type="checkbox"
-                          className="size-4 accent-slate-500"
+                          className="size-4 accent-gray-500"
                           checked={allUninvitedSelected}
                           onChange={() =>
                             setSelectedContacts(
@@ -166,12 +166,12 @@ export function InvitationsPanel({
                 </thead>
                 <tbody>
                   {uninvited.map((contact) => (
-                    <tr key={contact.id} className="border-b border-slate-50">
+                    <tr key={contact.id} className="border-b border-gray-50">
                       {canWrite ? (
                         <Td>
                           <input
                             type="checkbox"
-                            className="size-4 accent-slate-500"
+                            className="size-4 accent-gray-500"
                             checked={selectedContacts.includes(contact.id)}
                             onChange={() =>
                               setSelectedContacts((list) =>
@@ -196,7 +196,7 @@ export function InvitationsPanel({
 
       <div>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-serif text-2xl text-slate-900">Invitations</h2>
+          <h2 className="font-display text-2xl text-gray-800">Invitations</h2>
           {canWrite ? (
             <Button
               type="button"
@@ -222,7 +222,7 @@ export function InvitationsPanel({
         ) : (
           <Table>
             <thead>
-              <tr className="border-b border-slate-100">
+              <tr className="border-b border-gray-100">
                 {canWrite ? <Th /> : null}
                 <Th>Contact</Th>
                 <Th>Status</Th>
@@ -232,12 +232,12 @@ export function InvitationsPanel({
             </thead>
             <tbody>
               {invitations.map((invitation) => (
-                <tr key={invitation.id} className="border-b border-slate-50">
+                <tr key={invitation.id} className="border-b border-gray-50">
                   {canWrite ? (
                     <Td>
                       <input
                         type="checkbox"
-                        className="size-4 accent-slate-500"
+                        className="size-4 accent-gray-500"
                         checked={selectedInvites.includes(invitation.id)}
                         disabled={!SENDABLE.has(invitation.status)}
                         onChange={() =>
@@ -249,7 +249,7 @@ export function InvitationsPanel({
                   ) : null}
                   <Td>
                     <p>{displayName(invitation.contact)}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-gray-500">
                       {invitation.contact.email}
                     </p>
                   </Td>
@@ -263,7 +263,7 @@ export function InvitationsPanel({
                         <Button
                           type="button"
                           size="sm"
-                          variant="danger"
+                          variant="destructive"
                           disabled={pending}
                           onClick={() => {
                             if (!window.confirm("Cancel this invitation?")) return;

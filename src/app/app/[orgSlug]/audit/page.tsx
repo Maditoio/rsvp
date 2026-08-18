@@ -23,8 +23,8 @@ export default async function AuditPage({
 
   return (
     <div>
-      <h1 className="font-serif text-3xl text-slate-900">Audit logs</h1>
-      <p className="mt-1 mb-6 text-sm text-slate-600">
+      <h1 className="font-display text-3xl text-gray-800">Audit logs</h1>
+      <p className="mt-1 mb-6 text-sm text-gray-600">
         Invite, register, check-in and admin actions for this organisation.
       </p>
       {logs.length === 0 ? (
@@ -32,7 +32,7 @@ export default async function AuditPage({
       ) : (
         <Table>
           <thead>
-            <tr className="border-b border-slate-100">
+            <tr className="border-b border-gray-100">
               <Th>When</Th>
               <Th>Actor</Th>
               <Th>Action</Th>
@@ -42,15 +42,15 @@ export default async function AuditPage({
           </thead>
           <tbody>
             {logs.map((log) => (
-              <tr key={log.id} className="border-b border-slate-50">
-                <Td className="whitespace-nowrap text-slate-600">
+              <tr key={log.id} className="border-b border-gray-50">
+                <Td className="whitespace-nowrap text-gray-600">
                   {format(log.createdAt, "d MMM yyyy HH:mm")}
                 </Td>
                 <Td>
                   {log.user ? (
                     <>
                       <p>{displayName(log.user)}</p>
-                      <p className="text-xs text-slate-500">{log.user.email}</p>
+                      <p className="text-xs text-gray-500">{log.user.email}</p>
                     </>
                   ) : (
                     "—"
@@ -60,7 +60,7 @@ export default async function AuditPage({
                 <Td>
                   {log.resource}
                   {log.resourceId ? (
-                    <span className="block text-xs text-slate-400">
+                    <span className="block text-xs text-gray-400">
                       {log.resourceId}
                     </span>
                   ) : null}

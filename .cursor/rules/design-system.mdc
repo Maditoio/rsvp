@@ -1,0 +1,20 @@
+---
+description: UI must use the Delegate v3 ministerial design system
+globs: "**/*.{tsx,css}"
+alwaysApply: true
+---
+
+# Design system
+
+Use only tokens from [docs/design-system.md](docs/design-system.md). Map them in `src/app/globals.css` `@theme`.
+
+- Structure is monochrome: shared chrome, cards, buttons, and navigation use `ink` + `stone`, not saturated fills.
+- Canvas: `stone-50`. Surfaces: `stone-0`. Default borders: `stone-200`.
+- Accent color is sparse: use `bronze` for eyebrow labels, pending states, and at most one highlight per screen.
+- Success color is functional only: use `moss` for confirmed/success states, not general decoration.
+- Buttons and inputs use `radius-sm` (4px). Cards use `radius-md` (6px). No pill buttons or pill tags.
+- Status tags use the credential pattern: tinted background + 3px left bar + darker text, not filled pills.
+- Cards are flat at rest with `1px solid stone-200`. Shadows are reserved for floating UI only.
+- Fonts: Source Serif 4 for restrained display moments, Public Sans for UI/body, IBM Plex Mono for data.
+- Body text should generally sit on `stone-700`, headings on `ink-700`, muted text on `stone-500`.
+- Forms should feel formal and ministerial, not playful. Do not introduce off-palette colors or decorative flourishes.

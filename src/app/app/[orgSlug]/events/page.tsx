@@ -19,11 +19,11 @@ export default async function EventsPage({
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="font-serif text-3xl">Events</h1>
+        <h1 className="font-display text-3xl">Events</h1>
         {canCreate ? (
           <Link
             href={`/app/${orgSlug}/events/new`}
-            className="rounded-full bg-primary-600 px-4 py-2 text-sm text-white"
+            className="rounded-sm bg-ink-600 px-4 py-2 text-sm font-medium text-white"
           >
             New event
           </Link>
@@ -32,9 +32,9 @@ export default async function EventsPage({
       <div className="mt-6 space-y-3">
         {events.map((event) => (
           <Link key={event.id} href={`/app/${orgSlug}/events/${event.id}`}>
-            <Card className="hover:bg-slate-50">
+            <Card className="hover:bg-gray-50">
               <p className="font-medium">{event.name}</p>
-              <p className="text-sm text-slate-500">{event.slug}</p>
+              <p className="text-sm text-gray-500">{event.slug}</p>
             </Card>
           </Link>
         ))}

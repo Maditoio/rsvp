@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
-import { EventSubnav } from "@/components/event-subnav";
+import { RouteDrawer } from "@/components/ui/drawer";
 import { EventEditForm } from "./event-edit-form";
 
 export default async function EventEditPage({
@@ -24,14 +24,13 @@ export default async function EventEditPage({
   if (!event) return null;
 
   return (
-    <div>
-      <EventSubnav
-        orgSlug={orgSlug}
-        eventId={eventId}
-        current="Dashboard"
-        grants={ctx.grants}
-      />
+    <RouteDrawer
+      title="Edit event"
+      description="Update the event name, dates, venue, timezone, and descriptive details."
+      closeHref={`/app/${orgSlug}/events/${eventId}`}
+      size="lg"
+    >
       <EventEditForm orgSlug={orgSlug} eventId={eventId} event={event} />
-    </div>
+    </RouteDrawer>
   );
 }

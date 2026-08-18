@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { updateEvent } from "@/modules/events/actions";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,14 +38,8 @@ export function EventEditForm({
   const [pending, start] = useTransition();
 
   return (
-    <Card className="max-w-xl">
-      <h1 className="font-serif text-3xl text-slate-900">Edit event</h1>
-      <p className="mt-2 text-sm text-slate-600">
-        Name, dates, venue and timezone. Invitation status is independent of
-        these branding fields.
-      </p>
-      <form
-        className="mt-6 space-y-4"
+    <form
+      className="space-y-4"
         action={(formData) => {
           setError(null);
           start(async () => {
@@ -59,7 +52,7 @@ export function EventEditForm({
             }
           });
         }}
-      >
+    >
         <div>
           <Label htmlFor="name">Event name</Label>
           <Input id="name" name="name" required defaultValue={event.name} />
@@ -109,8 +102,8 @@ export function EventEditForm({
             defaultValue={event.description ?? ""}
           />
         </div>
-        {error ? <p className="text-sm text-error-500">{error}</p> : null}
-        <div className="flex gap-2">
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
+        <div className="flex justify-end gap-2">
           <Button disabled={pending}>{pending ? "Saving…" : "Save changes"}</Button>
           <Button
             type="button"
@@ -120,7 +113,6 @@ export function EventEditForm({
             Cancel
           </Button>
         </div>
-      </form>
-    </Card>
+    </form>
   );
 }

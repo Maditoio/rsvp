@@ -36,8 +36,8 @@ export default async function AttendeesPage({
         current="Attendees"
         grants={ctx.grants}
       />
-      <h1 className="font-serif text-3xl text-slate-900">Attendees</h1>
-      <p className="mt-1 mb-6 text-sm text-slate-600">
+      <h1 className="font-display text-3xl text-gray-800">Attendees</h1>
+      <p className="mt-1 mb-6 text-sm text-gray-600">
         Registered delegates for this event. An accepted invitation does not
         create an attendee record on its own.
       </p>
@@ -46,7 +46,7 @@ export default async function AttendeesPage({
       ) : (
         <Table>
           <thead>
-            <tr className="border-b border-slate-100">
+            <tr className="border-b border-gray-100">
               <Th>Name</Th>
               <Th>Email</Th>
               <Th>Company</Th>
@@ -58,7 +58,7 @@ export default async function AttendeesPage({
           </thead>
           <tbody>
             {attendees.map((attendee) => (
-              <tr key={attendee.id} className="border-b border-slate-50">
+              <tr key={attendee.id} className="border-b border-gray-50">
                 <Td>{displayName(attendee)}</Td>
                 <Td>{attendee.email}</Td>
                 <Td>{attendee.company ?? "—"}</Td>

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
 
 export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
   const router = useRouter();
@@ -15,13 +14,8 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
   const [pending, start] = useTransition();
 
   return (
-    <Card className="max-w-xl">
-      <h1 className="font-serif text-3xl">Create event</h1>
-      <p className="mt-2 text-sm text-slate-600">
-        Branding, invitations and check-in all hang off this record.
-      </p>
-      <form
-        className="mt-6 space-y-4"
+    <form
+      className="space-y-4"
         action={(formData) => {
           setError(null);
           start(async () => {
@@ -33,7 +27,7 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
             }
           });
         }}
-      >
+    >
         <div>
           <Label htmlFor="name">Event name</Label>
           <Input
@@ -77,9 +71,10 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
           <Label htmlFor="description">Description</Label>
           <Textarea id="description" name="description" />
         </div>
-        {error ? <p className="text-sm text-error-500">{error}</p> : null}
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
+      <div className="flex justify-end">
         <Button disabled={pending}>{pending ? "Saving…" : "Create event"}</Button>
-      </form>
-    </Card>
+      </div>
+    </form>
   );
 }

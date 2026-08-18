@@ -42,15 +42,15 @@ export default async function InviteesPage({
       />
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-3xl text-slate-900">Invitees</h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <h1 className="font-display text-3xl text-gray-800">Invitees</h1>
+          <p className="mt-1 text-sm text-gray-600">
             Contacts for this event. An invitee is not yet registered.
           </p>
         </div>
         {canImport ? (
           <Link
             href={`/app/${orgSlug}/events/${eventId}/invitees/import`}
-            className="rounded-full bg-primary-600 px-4 py-2 text-sm text-white"
+            className="rounded-sm bg-ink-600 px-4 py-2 text-sm font-medium text-white"
           >
             Import CSV / Excel
           </Link>
@@ -58,11 +58,11 @@ export default async function InviteesPage({
       </div>
       {contacts.length === 0 ? (
         <Card>
-          <p className="text-slate-600">No invitees yet.</p>
+          <p className="text-gray-600">No invitees yet.</p>
           {canImport ? (
             <Link
               href={`/app/${orgSlug}/events/${eventId}/invitees/import`}
-              className="mt-3 inline-block text-sm text-primary-600"
+              className="mt-3 inline-block text-sm text-ink-600"
             >
               Import a contact list
             </Link>
@@ -71,7 +71,7 @@ export default async function InviteesPage({
       ) : (
         <Table>
           <thead>
-            <tr className="border-b border-slate-100">
+            <tr className="border-b border-gray-100">
               <Th>Name</Th>
               <Th>Email</Th>
               <Th>Company</Th>
@@ -80,7 +80,7 @@ export default async function InviteesPage({
           </thead>
           <tbody>
             {contacts.map((contact) => (
-              <tr key={contact.id} className="border-b border-slate-50">
+              <tr key={contact.id} className="border-b border-gray-50">
                 <Td>{displayName(contact)}</Td>
                 <Td>{contact.email}</Td>
                 <Td>{contact.company ?? "—"}</Td>
@@ -88,7 +88,7 @@ export default async function InviteesPage({
                   {contact.invitations[0] ? (
                     <StatusBadge status={contact.invitations[0].status} />
                   ) : (
-                    <span className="text-slate-400">Not invited</span>
+                    <span className="text-gray-400">Not invited</span>
                   )}
                 </Td>
               </tr>

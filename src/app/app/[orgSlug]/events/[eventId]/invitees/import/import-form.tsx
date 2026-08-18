@@ -45,8 +45,8 @@ export function ContactImportForm({
   return (
     <div className="space-y-4">
       <Card className="max-w-xl">
-        <h1 className="font-serif text-3xl text-slate-900">Import invitees</h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <h1 className="font-display text-3xl text-gray-800">Import invitees</h1>
+        <p className="mt-2 text-sm text-gray-600">
           Upload a CSV or Excel file with first name, last name and email. Duplicate
           emails already on this event are reported and skipped.
         </p>
@@ -75,7 +75,7 @@ export function ContactImportForm({
               required
             />
           </div>
-          {error ? <p className="text-sm text-error-500">{error}</p> : null}
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
           <Button disabled={pending}>
             {pending ? "Reading…" : "Preview import"}
           </Button>
@@ -84,19 +84,19 @@ export function ContactImportForm({
 
       {preview ? (
         <Card>
-          <p className="text-sm text-slate-600">{preview.filename}</p>
+          <p className="text-sm text-gray-600">{preview.filename}</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-4">
             <Count label="Rows" value={preview.uploaded} />
             <Count label="Valid" value={preview.valid} />
             <Count label="New" value={preview.createCount} />
             <Count label="Duplicates" value={preview.duplicateCount} />
           </div>
-          <p className="mt-3 text-sm text-slate-600">
+          <p className="mt-3 text-sm text-gray-600">
             {preview.issues.length} invalid row
             {preview.issues.length === 1 ? "" : "s"}
           </p>
           {preview.issues.length > 0 ? (
-            <ul className="mt-3 max-h-40 overflow-auto text-sm text-slate-700">
+            <ul className="mt-3 max-h-40 overflow-auto text-sm text-gray-700">
               {preview.issues.slice(0, 40).map((issue) => (
                 <li key={`${issue.line}-${issue.reason}`}>
                   Line {issue.line}
@@ -108,14 +108,14 @@ export function ContactImportForm({
           ) : null}
           {preview.create.length > 0 ? (
             <div className="mt-4 max-h-48 overflow-auto text-sm">
-              <p className="mb-2 font-medium text-slate-800">Will create</p>
+              <p className="mb-2 font-medium text-gray-800">Will create</p>
               {preview.create.slice(0, 50).map((row) => (
-                <p key={row.email} className="text-slate-700">
+                <p key={row.email} className="text-gray-700">
                   {row.firstName} {row.lastName} · {row.email}
                 </p>
               ))}
               {preview.create.length > 50 ? (
-                <p className="text-slate-500">
+                <p className="text-gray-500">
                   and {preview.create.length - 50} more
                 </p>
               ) : null}
@@ -158,9 +158,9 @@ export function ContactImportForm({
 
 function Count({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl bg-slate-50 px-3 py-2">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-medium text-slate-900">{value}</p>
+    <div className="rounded-xl bg-gray-50 px-3 py-2">
+      <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
+      <p className="mt-1 text-2xl font-medium text-gray-800">{value}</p>
     </div>
   );
 }

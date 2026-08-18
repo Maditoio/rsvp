@@ -29,8 +29,8 @@ export default async function CategoriesPage({
         current="Categories"
         grants={ctx.grants}
       />
-      <h1 className="font-serif text-3xl text-slate-900">Invitation categories</h1>
-      <p className="mt-1 text-sm text-slate-600">
+      <h1 className="font-display text-3xl text-gray-800">Invitation categories</h1>
+      <p className="mt-1 text-sm text-gray-600">
         Categories are configured per event. They are not a hard-coded list of
         VIP / speaker / delegate labels.
       </p>
@@ -41,14 +41,14 @@ export default async function CategoriesPage({
         ) : (
           <Table>
             <thead>
-              <tr className="border-b border-slate-100">
+              <tr className="border-b border-gray-100">
                 <Th>Name</Th>
                 <Th>Invitations</Th>
               </tr>
             </thead>
             <tbody>
               {categories.map((category) => (
-                <tr key={category.id} className="border-b border-slate-50">
+                <tr key={category.id} className="border-b border-gray-50">
                   <Td className="font-medium">{category.name}</Td>
                   <Td>{category._count.invitations}</Td>
                 </tr>

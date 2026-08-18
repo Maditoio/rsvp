@@ -7,8 +7,8 @@ import { safe } from "@/lib/authz/safe";
 
 function statusTone(status: string) {
   if (status === "CHECKED_IN") return "success" as const;
-  if (status === "CONFIRMED") return "slate" as const;
-  if (status === "CANCELLED") return "error" as const;
+  if (status === "CONFIRMED") return "default" as const;
+  if (status === "CANCELLED") return "danger" as const;
   return "muted" as const;
 }
 
@@ -25,14 +25,14 @@ export default async function AttendeeHomePage() {
 
   return (
     <div>
-      <h1 className="font-serif text-4xl text-slate-900">My events</h1>
-      <p className="mt-2 text-slate-600">
+      <h1 className="font-display text-4xl text-gray-800">My events</h1>
+      <p className="mt-2 text-gray-600">
         Registration records linked to your signed-in account.
       </p>
       <div className="mt-8 space-y-3">
         {attendances.length === 0 ? (
           <Card>
-            <p className="text-slate-600">
+            <p className="text-gray-600">
               You are not registered for an event yet. Use the unique link from
               your invitation email — accepting is not the same as registering.
             </p>
@@ -40,13 +40,13 @@ export default async function AttendeeHomePage() {
         ) : (
           attendances.map((row) => (
             <Link key={row.id} href={`/me/events/${row.event.id}`}>
-              <Card className="hover:bg-slate-50">
+              <Card className="hover:bg-gray-50">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-lg font-medium text-slate-900">
+                    <p className="text-lg font-medium text-gray-800">
                       {row.event.name}
                     </p>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-gray-500">
                       {row.event.venue || "Venue TBC"} ·{" "}
                       {formatEventWindow(
                         row.event.startsAt,
@@ -66,9 +66,9 @@ export default async function AttendeeHomePage() {
       </div>
       <div className="mt-10 grid gap-3 sm:grid-cols-2">
         {["Matchmaking", "Meetings", "Agenda", "Privacy"].map((label) => (
-          <Card key={label} className="bg-secondary-100">
-            <p className="text-sm font-medium text-slate-500">{label}</p>
-            <p className="mt-1 text-sm text-slate-400">Available in a later phase.</p>
+          <Card key={label} className="bg-gray-100">
+            <p className="text-sm font-medium text-gray-500">{label}</p>
+            <p className="mt-1 text-sm text-gray-400">Available in a later phase.</p>
           </Card>
         ))}
       </div>

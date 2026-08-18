@@ -3,24 +3,24 @@ import { humanizeEnum } from "@/lib/utils";
 
 const TONE: Record<
   string,
-  "success" | "warning" | "error" | "muted" | "slate"
+  "success" | "warning" | "danger" | "muted" | "default"
 > = {
   DRAFT: "muted",
   SCHEDULED: "muted",
-  SENT: "slate",
-  DELIVERED: "slate",
-  OPENED: "slate",
+  SENT: "default",
+  DELIVERED: "default",
+  OPENED: "default",
   ACCEPTED: "success",
-  DECLINED: "error",
-  EXPIRED: "error",
+  DECLINED: "danger",
+  EXPIRED: "danger",
   BOUNCED: "warning",
-  CANCELLED: "error",
+  CANCELLED: "danger",
   NOT_STARTED: "muted",
   INCOMPLETE: "warning",
   COMPLETED: "success",
   CONFIRMED: "success",
-  WAITLISTED: "warning",
-  REGISTERED: "slate",
+  WAITLISTED: "muted",
+  REGISTERED: "default",
   CHECKED_IN: "success",
   NO_SHOW: "warning",
 };

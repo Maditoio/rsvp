@@ -60,13 +60,13 @@ export function RegistrationForm({
   if (qrDataUrl) {
     return (
       <div className="text-center">
-        <p className="text-xs uppercase tracking-[0.18em] text-accent-700">
+        <p className="text-xs uppercase tracking-[0.18em] text-bloom-700">
           Registered
         </p>
-        <h2 className="mt-2 font-serif text-3xl text-slate-900">
+        <h2 className="mt-2 font-display text-3xl text-gray-800">
           Your check-in code
         </h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
+        <p className="mx-auto mt-2 max-w-md text-sm text-gray-600">
           Accepting the invitation and registering are separate steps. This
           opaque code is for event-day check-in only — it does not contain your
           details.
@@ -77,12 +77,12 @@ export function RegistrationForm({
             label="Opaque attendance check-in code"
           />
         </div>
-        <p className="mt-4 text-sm text-slate-500">
+        <p className="mt-4 text-sm text-gray-500">
           Save a screenshot, or sign in to find it later under My event.
         </p>
         <Link
           href="/me"
-          className="mt-5 inline-flex rounded-full bg-primary-600 px-5 py-2.5 text-sm font-medium text-white"
+          className="mt-5 inline-flex rounded-sm bg-ink-600 px-5 py-2.5 text-sm font-medium text-white"
         >
           Open attendee portal
         </Link>
@@ -148,7 +148,7 @@ export function RegistrationForm({
         ))}
       </div>
       <TurnstileWidget siteKey={siteKey} onToken={onToken} />
-      {error ? <p className="text-sm text-error-500">{error}</p> : null}
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
       <Button disabled={pending}>
         {pending ? "Submitting…" : "Complete registration"}
       </Button>

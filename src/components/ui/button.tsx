@@ -2,8 +2,8 @@ import { cn } from "@/lib/utils";
 import type { ButtonHTMLAttributes } from "react";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "ghost" | "danger" | "slate";
-  size?: "sm" | "md";
+  variant?: "primary" | "secondary" | "ghost" | "destructive";
+  size?: "sm" | "md" | "lg";
 };
 
 export function Button({
@@ -17,14 +17,20 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center rounded-full font-medium transition disabled:opacity-50",
-        size === "sm" ? "px-3 py-1.5 text-sm" : "px-4 py-2 text-sm",
-        variant === "primary" && "bg-primary-600 text-white hover:bg-primary-500",
+        "inline-flex items-center justify-center rounded-sm border border-transparent font-semibold transition-colors duration-150 ease-out",
+        "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ink-700/12",
+        "disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-100 disabled:text-stone-400 disabled:hover:border-stone-200 disabled:hover:bg-stone-100",
+        size === "sm" && "h-8 px-3 text-[0.8125rem]",
+        size === "md" && "h-11 px-5 text-[0.9375rem]",
+        size === "lg" && "h-12 px-5 text-[0.9375rem]",
+        variant === "primary" &&
+          "bg-ink-700 text-white hover:bg-ink-800 active:bg-ink-900",
         variant === "secondary" &&
-          "bg-white text-slate-800 border border-slate-200 hover:bg-slate-50",
-        variant === "ghost" && "bg-transparent text-white/80 hover:bg-white/10",
-        variant === "danger" && "bg-error-500 text-white hover:opacity-90",
-        variant === "slate" && "bg-slate-500 text-white hover:bg-slate-600",
+          "border-stone-300 bg-transparent text-ink-700 hover:border-ink-400 hover:bg-stone-50 active:bg-stone-100",
+        variant === "ghost" &&
+          "text-stone-700 hover:bg-stone-100 active:bg-stone-200",
+        variant === "destructive" &&
+          "bg-danger text-white hover:bg-[#73261f] active:bg-[#5d1f19]",
         className,
       )}
       {...props}

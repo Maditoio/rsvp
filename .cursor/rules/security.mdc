@@ -1,0 +1,15 @@
+---
+description: Tenant isolation, tokens, field-level authz, and audit requirements
+alwaysApply: true
+---
+
+# Security
+
+Authorization chain: identity → organisation → event → role → resource → field. The frontend is not a security boundary.
+
+- Scope every tenant query with the session-derived `organisationId`.
+- Store hashes of invitation and QR tokens; never log raw tokens, passwords, or OAuth secrets.
+- Check-in staff responses include only name, company, category, check-in status.
+- Rate-limit auth, invitation accept, registration, QR scans, and sends.
+- Write audit logs for invite, register, check-in, admin, and export actions.
+- Public invite/register flows need bot protection (Turnstile) when configured.

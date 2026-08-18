@@ -6,12 +6,12 @@ export default function InvitationLayout({
   children,
 }: LayoutProps<"/i/[token]">) {
   return (
-    <div className="min-h-screen bg-secondary-300">
+    <div className="min-h-screen bg-stone-50">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-6 py-6">
-        <Link href="/" className="font-serif text-2xl text-primary-800">
+        <Link href="/" className="font-display text-2xl text-ink-800">
           Delegate
         </Link>
-        <span className="text-xs uppercase tracking-[0.18em] text-accent-700">
+        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-bronze-700">
           Invitation
         </span>
       </header>

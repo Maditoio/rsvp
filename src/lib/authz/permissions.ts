@@ -55,6 +55,7 @@ export const ORG_PERMISSIONS: Record<OrgRole, Permission[]> = {
     "checkin.perform",
     "reports.export",
     "audit.read",
+    "settings.manage",
   ],
 };
 

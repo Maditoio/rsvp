@@ -13,28 +13,28 @@ export default async function AttendeeProfilePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="font-serif text-4xl text-slate-900">My profile</h1>
+      <h1 className="font-display text-4xl text-gray-800">My profile</h1>
       <Card>
-        <p className="text-xs uppercase tracking-[0.18em] text-accent-700">
+        <p className="text-xs uppercase tracking-[0.18em] text-bloom-700">
           Name
         </p>
-        <p className="mt-2 font-serif text-3xl text-slate-900">
+        <p className="mt-2 font-display text-3xl text-gray-800">
           {displayName(user)}
         </p>
-        <p className="mt-4 text-sm text-slate-500">Company</p>
-        <p className="text-slate-800">
+        <p className="mt-4 text-sm text-gray-500">Company</p>
+        <p className="text-gray-800">
           {companies[0] || attendances[0]?.company || "Not provided yet"}
         </p>
         {attendances[0]?.jobTitle ? (
           <>
-            <p className="mt-4 text-sm text-slate-500">Role</p>
-            <p className="text-slate-800">{attendances[0].jobTitle}</p>
+            <p className="mt-4 text-sm text-gray-500">Role</p>
+            <p className="text-gray-800">{attendances[0].jobTitle}</p>
           </>
         ) : null}
       </Card>
-      <Card className="bg-secondary-100">
-        <p className="text-sm font-medium text-slate-500">Looking for / offering</p>
-        <p className="mt-1 text-sm text-slate-400">
+      <Card className="bg-gray-100">
+        <p className="text-sm font-medium text-gray-500">Looking for / offering</p>
+        <p className="mt-1 text-sm text-gray-400">
           Richer attendee profiles land in a later phase.
         </p>
       </Card>

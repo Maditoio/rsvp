@@ -10,6 +10,15 @@ import {
 } from "@/lib/authz/permissions";
 import { hasClerk } from "@/lib/utils";
 
+function platformAdminEmails() {
+  return new Set(
+    (process.env.PLATFORM_ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
 export type AuthContext = {
   user: User;
   organisation: Organisation;
@@ -34,26 +43,30 @@ export async function getCurrentUser(): Promise<User | null> {
   if (!email) {
     throw new AuthzError("Clerk user is missing an email address", 400);
   }
+  const normalizedEmail = email.trim().toLowerCase();
+  const shouldBePlatformAdmin = platformAdminEmails().has(normalizedEmail);
 
   const user = await prisma.user.upsert({
     where: { clerkUserId: userId },
     create: {
       clerkUserId: userId,
-      email,
+      email: normalizedEmail,
       firstName: clerk.firstName,
       lastName: clerk.lastName,
       imageUrl: clerk.imageUrl,
+      platformAdmin: shouldBePlatformAdmin,
     },
     update: {
-      email,
+      email: normalizedEmail,
       firstName: clerk.firstName,
       lastName: clerk.lastName,
       imageUrl: clerk.imageUrl,
+      platformAdmin: shouldBePlatformAdmin || undefined,
     },
   });
 
   await prisma.attendee.updateMany({
-    where: { email, userId: null },
+    where: { email: normalizedEmail, userId: null },
     data: { userId: user.id },
   });
 

@@ -11,20 +11,29 @@ export function AttendeeShell({ children }: { children: React.ReactNode }) {
   const later = ["Matchmaking", "Meetings", "Agenda", "Privacy"];
 
   return (
-    <div className="min-h-screen bg-secondary-300">
-      <header className="bg-primary-600 text-white">
+    <div className="min-h-screen bg-stone-50">
+      <header className="border-b border-stone-200 bg-stone-0">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-          <Link href="/me" className="font-serif text-2xl">
-            Delegate
-          </Link>
-          <nav className="hidden gap-4 text-sm text-primary-100 sm:flex">
+          <div>
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-bronze-600">
+              Attendee portal
+            </p>
+            <Link href="/me" className="mt-2 block font-display text-2xl text-ink-800">
+              Delegate
+            </Link>
+          </div>
+          <nav className="hidden gap-4 text-sm sm:flex">
             {items.map((item) => (
-              <Link key={item.href} href={item.href} className="hover:text-white">
+              <Link
+                key={item.href}
+                href={item.href}
+                className="rounded-sm border-l-[3px] border-transparent px-3 py-2 text-stone-700 hover:bg-stone-100 hover:text-ink-700"
+              >
                 {item.label}
               </Link>
             ))}
             {later.map((label) => (
-              <span key={label} className="text-primary-300">
+              <span key={label} className="px-3 py-2 text-stone-400">
                 {label}
               </span>
             ))}

@@ -13,39 +13,55 @@ export default function OnboardingPage() {
   const [pending, start] = useTransition();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-secondary-300 p-6">
-      <form
-        className="w-full max-w-md rounded-2xl bg-white p-8"
-        action={(formData) => {
-          setError(null);
-          start(async () => {
-            try {
-              const result = await createOrganisation(formData);
-              router.push(`/app/${result.slug}`);
-            } catch (e) {
-              setError(e instanceof Error ? e.message : "Could not create organisation");
-            }
-          });
-        }}
-      >
-        <p className="text-xs uppercase tracking-[0.18em] text-accent-700">
-          New organisation
-        </p>
-        <h1 className="mt-2 font-serif text-3xl text-slate-900">
-          Create your workspace
-        </h1>
-        <p className="mt-2 text-sm text-slate-600">
-          You can run multiple summits from one organisation account.
-        </p>
-        <div className="mt-6">
-          <Label htmlFor="name">Organisation name</Label>
-          <Input id="name" name="name" required placeholder="Africa Summit Group" />
+    <div className="min-h-screen bg-stone-50">
+      <div className="absolute inset-0 bg-ink-900/45" />
+      <div className="relative flex min-h-screen items-center px-6 py-10">
+        <div className="max-w-xl">
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+            New organisation
+          </p>
+          <h1 className="mt-2 font-display text-4xl text-ink-800">
+            Create your workspace
+          </h1>
+          <p className="mt-3 text-sm text-stone-700">
+            Set up the organisation that will own your events, teams, invitations,
+            registration, and check-in operations.
+          </p>
         </div>
-        {error ? <p className="mt-3 text-sm text-error-500">{error}</p> : null}
-        <Button className="mt-6 w-full" disabled={pending}>
-          {pending ? "Creating…" : "Create organisation"}
-        </Button>
-      </form>
+      </div>
+      <div className="absolute inset-y-0 right-0 flex w-full max-w-full flex-col bg-stone-0 shadow-lg sm:max-w-[480px] sm:rounded-l-lg">
+        <div className="border-b border-stone-200 px-6 py-6">
+          <h2 className="text-[1.125rem] font-semibold text-ink-700">
+            Organisation details
+          </h2>
+          <p className="mt-1 text-sm text-stone-700">
+            You can run multiple summits from one organisation account.
+          </p>
+        </div>
+        <form
+          className="flex-1 space-y-4 overflow-y-auto px-6 py-6"
+          action={(formData) => {
+            setError(null);
+            start(async () => {
+              try {
+                const result = await createOrganisation(formData);
+                router.push(`/app/${result.slug}`);
+              } catch (e) {
+                setError(e instanceof Error ? e.message : "Could not create organisation");
+              }
+            });
+          }}
+        >
+          <div>
+            <Label htmlFor="name">Organisation name</Label>
+            <Input id="name" name="name" required placeholder="Africa Summit Group" />
+          </div>
+          {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
+          <div className="flex justify-end">
+            <Button disabled={pending}>{pending ? "Creating…" : "Create organisation"}</Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

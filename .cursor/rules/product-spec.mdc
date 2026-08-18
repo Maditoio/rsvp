@@ -1,0 +1,14 @@
+---
+description: Source of truth for Delegate product behavior and architecture
+alwaysApply: true
+---
+
+# Product spec
+
+Before building or changing a feature, read [docs/product-spec.md](docs/product-spec.md) for that area.
+
+- This is a multi-tenant **event intelligence** platform, not a public RSVP form.
+- Invitation is not registration. Lifecycle: Invited → Accepted → Registered → Confirmed → Matchmaking → Meeting → Checked In.
+- Backend derives organisation from the authenticated user. Never trust client-supplied `organisationId`, roles, or event access.
+- Phase 1 only unless the user asks otherwise. Do not start with AI matchmaking.
+- Full schema and module boundaries exist from day one; unused Phase 2–4 tables stay stubbed.

@@ -19,10 +19,10 @@ export default async function OrgHomePage({
 
   return (
     <div>
-      <h1 className="font-serif text-4xl text-slate-900">
+      <h1 className="font-display text-4xl text-gray-800">
         {ctx.organisation.name}
       </h1>
-      <p className="mt-2 text-slate-600">
+      <p className="mt-2 text-gray-600">
         Manage multiple summits from one tenant. Every record belongs to this
         organisation.
       </p>
@@ -30,14 +30,14 @@ export default async function OrgHomePage({
         {canCreate ? (
           <Link
             href={`/app/${orgSlug}/events/new`}
-            className="rounded-full bg-primary-600 px-4 py-2 text-sm text-white"
+            className="rounded-sm bg-ink-600 px-4 py-2 text-sm font-medium text-white"
           >
             New event
           </Link>
         ) : null}
         <Link
           href={`/app/${orgSlug}/events`}
-          className="rounded-full bg-white px-4 py-2 text-sm text-slate-800"
+          className="rounded-sm bg-white border border-gray-300 px-4 py-2 text-sm font-medium text-gray-800"
         >
           All events
         </Link>
@@ -45,14 +45,14 @@ export default async function OrgHomePage({
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {events.length === 0 ? (
           <Card>
-            <p className="text-slate-600">No events yet. Create the first summit.</p>
+            <p className="text-gray-600">No events yet. Create the first summit.</p>
           </Card>
         ) : (
           events.map((event) => (
             <Link key={event.id} href={`/app/${orgSlug}/events/${event.id}`}>
-              <Card className="h-full hover:bg-slate-50">
+              <Card className="h-full hover:bg-gray-50">
                 <p className="text-lg font-medium">{event.name}</p>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-gray-500">
                   {event.venue || "Venue TBC"} · {event.timezone}
                 </p>
               </Card>

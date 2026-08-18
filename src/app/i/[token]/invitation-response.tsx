@@ -22,10 +22,10 @@ export function InvitationResponse({
   if (didDecline) {
     return (
       <div>
-        <p className="text-slate-700">
+        <p className="text-gray-700">
           You have declined this invitation. The organiser has been updated.
         </p>
-        <p className="mt-3 text-sm text-slate-500">
+        <p className="mt-3 text-sm text-gray-500">
           Declining is not the same as cancelling a registration — none was
           created.
         </p>
@@ -36,14 +36,14 @@ export function InvitationResponse({
   if (didAccept) {
     return (
       <div>
-        <p className="text-slate-700">
+        <p className="text-gray-700">
           {registered
             ? "You have accepted and completed registration."
             : "You have accepted. Registration is a separate step — complete it to receive your check-in code."}
         </p>
         <Link
           href={`/i/${encodeURIComponent(token)}/register`}
-          className="mt-5 inline-flex rounded-full bg-primary-600 px-5 py-2.5 text-sm font-medium text-white"
+          className="mt-5 inline-flex rounded-sm bg-ink-600 px-5 py-2.5 text-sm font-medium text-white"
         >
           {registered ? "View registration and QR" : "Continue to registration"}
         </Link>
@@ -53,11 +53,11 @@ export function InvitationResponse({
 
   return (
     <div>
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-gray-600">
         Accepting confirms your invitation. You still need to register
         afterwards.
       </p>
-      {error ? <p className="mt-3 text-sm text-error-500">{error}</p> : null}
+      {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
       <div className="mt-5 flex flex-wrap gap-3">
         <Button
           type="button"

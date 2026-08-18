@@ -19,11 +19,11 @@ export default async function CheckInPage({
         grants={ctx.grants}
       />
       <DecisionCard className="mb-6">
-        <p className="text-xs uppercase tracking-[0.18em] text-accent-200">
+        <p className="text-xs uppercase tracking-[0.18em] text-bloom-200">
           Check-in
         </p>
-        <h1 className="mt-2 font-serif text-4xl">Scan attendance tokens</h1>
-        <p className="mt-2 text-primary-100">
+        <h1 className="mt-2 font-display text-4xl">Scan attendance tokens</h1>
+        <p className="mt-2 text-ink-100">
           Paste or scan the opaque QR. Staff see only name, company, category
           and check-in status — never email, phone or notes.
         </p>

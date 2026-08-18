@@ -35,12 +35,12 @@ export function EventSubnav({
           key={item.label}
           href={"soon" in item && item.soon ? "#" : item.href}
           className={cn(
-            "rounded-full px-3 py-1.5 text-sm",
+            "rounded-sm border border-stone-200 border-l-[3px] px-3 py-2 text-sm transition-colors",
             current === item.label
-              ? "bg-slate-500 text-white"
+              ? "border-l-ink-700 bg-stone-100 text-ink-700 font-semibold"
               : "soon" in item && item.soon
-                ? "bg-secondary-100 text-slate-400"
-                : "bg-white text-slate-700 hover:bg-slate-50",
+                ? "border-l-stone-300 bg-stone-100 text-stone-400"
+                : "border-l-transparent bg-stone-0 text-stone-700 hover:bg-stone-100 hover:text-ink-700",
           )}
         >
           {item.label}

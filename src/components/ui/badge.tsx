@@ -3,21 +3,22 @@ import type { HTMLAttributes } from "react";
 
 export function Badge({
   className,
-  tone = "accent",
+  tone = "default",
   ...props
 }: HTMLAttributes<HTMLSpanElement> & {
-  tone?: "accent" | "slate" | "success" | "warning" | "error" | "muted";
+  tone?: "success" | "warning" | "danger" | "info" | "muted" | "accent" | "default";
 }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-        tone === "accent" && "bg-accent-200 text-accent-700",
-        tone === "slate" && "bg-slate-500 text-white",
-        tone === "success" && "bg-success-100 text-success-500",
-        tone === "warning" && "bg-warning-100 text-warning-500",
-        tone === "error" && "bg-error-100 text-error-500",
-        tone === "muted" && "bg-slate-100 text-slate-600",
+        "inline-flex h-6 items-center rounded-xs border-l-[3px] px-2.5 text-[0.8125rem] font-semibold",
+        tone === "success" && "border-l-moss-500 bg-moss-100 text-moss-600",
+        tone === "warning" && "border-l-bronze-500 bg-bronze-100 text-bronze-700",
+        tone === "danger" && "border-l-danger bg-danger-bg text-danger",
+        tone === "info" && "border-l-info bg-info-bg text-info",
+        tone === "muted" && "border-l-stone-400 bg-stone-100 text-stone-700",
+        tone === "accent" && "border-l-bronze-500 bg-bronze-100 text-bronze-700",
+        tone === "default" && "border-l-ink-400 bg-ink-50 text-ink-700",
         className,
       )}
       {...props}
