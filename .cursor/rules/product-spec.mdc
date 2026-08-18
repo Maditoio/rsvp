@@ -10,5 +10,6 @@ Before building or changing a feature, read [docs/product-spec.md](docs/product-
 - This is a multi-tenant **event intelligence** platform, not a public RSVP form.
 - Invitation is not registration. Lifecycle: Invited → Accepted → Registered → Confirmed → Matchmaking → Meeting → Checked In.
 - Backend derives organisation from the authenticated user. Never trust client-supplied `organisationId`, roles, or event access.
-- Phase 1 only unless the user asks otherwise. Do not start with AI matchmaking.
-- Full schema and module boundaries exist from day one; unused Phase 2–4 tables stay stubbed.
+- Phase 1 is complete. Phase 2 is in progress: configurable registration forms, public applications, sessions/agenda, attendee profiles, privacy, reminders, meeting requests/rooms, and basic (non-AI) matchmaking.
+- Do not start AI matchmaking, calendar sync, or Phase 3–4 work unless asked.
+- Never show more than one form on a page. Lists stay on the page; create/edit opens a single right-side drawer.

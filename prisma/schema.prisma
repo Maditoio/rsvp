@@ -94,6 +94,12 @@ enum DataRequestStatus {
   REJECTED
 }
 
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum FileKind {
   CONTACT_IMPORT
   EXPORT
@@ -168,6 +174,7 @@ model Organisation {
   files                   FileObject[]
   eventSettings           EventSettings[]
   eventUsers              EventUser[]
+  applications            EventApplication[]
 }
 
 model OrganisationUser {
@@ -231,6 +238,7 @@ model Event {
   auditLogs             AuditLog[]
   consents              Consent[]
   files                 FileObject[]
+  applications          EventApplication[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -247,6 +255,29 @@ model EventSettings {
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model EventApplication {
+  id             String            @id @default(cuid())
+  organisationId String
+  eventId        String
+  email          String
+  firstName      String
+  lastName       String
+  company        String?
+  jobTitle       String?
+  country        String?
+  message        String?
+  status         ApplicationStatus @default(PENDING)
+  invitationId   String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, email])
+  @@index([organisationId, eventId, status])
 }
 
 model EventUser {
@@ -396,6 +427,7 @@ model RegistrationForm {
   event        Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
   fields       RegistrationField[]
 
+  @@unique([eventId])
   @@index([organisationId, eventId])
 }
 
@@ -415,6 +447,7 @@ model RegistrationField {
   event        Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
   form         RegistrationForm @relation(fields: [formId], references: [id], onDelete: Cascade)
 
+  @@unique([formId, key])
   @@index([formId])
 }
 

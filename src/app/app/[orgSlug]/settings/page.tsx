@@ -5,6 +5,7 @@ import { requireOrg } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { Card } from "@/components/ui/card";
 import { MemberManagement } from "./member-management";
+import { OrgRename } from "./org-rename";
 
 export default async function OrgSettingsPage({
   params,
@@ -54,10 +55,19 @@ export default async function OrgSettingsPage({
       </div>
 
       <Card className="max-w-xl">
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
-          Organisation identity
-        </p>
-        <p className="mt-1 font-display text-2xl text-ink-800">{organisation.name}</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+              Organisation identity
+            </p>
+            <p className="mt-1 font-display text-2xl text-ink-800">{organisation.name}</p>
+          </div>
+          <OrgRename
+            orgSlug={orgSlug}
+            name={organisation.name}
+            canManage={canManage}
+          />
+        </div>
         <p className="mt-4 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
           Slug
         </p>

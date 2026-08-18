@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, DecisionCard } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AttendeeEventNav } from "@/components/attendee-event-nav";
 import { getMyAttendance } from "@/modules/attendees/actions";
 import { requireUser } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
@@ -16,6 +17,7 @@ export default async function AttendeeEventPage({
 
   return (
     <div className="space-y-6">
+      <AttendeeEventNav eventId={eventId} current="Overview" />
       <DecisionCard>
         <p className="text-xs uppercase tracking-[0.18em] text-bloom-200">
           My event
@@ -32,59 +34,53 @@ export default async function AttendeeEventPage({
       </DecisionCard>
       <Card>
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="font-display text-2xl text-gray-800">Registration</h2>
+          <h2 className="font-display text-2xl text-ink-800">Registration</h2>
           <Badge tone={attendance.status === "CHECKED_IN" ? "success" : "default"}>
             {attendance.status.replaceAll("_", " ")}
           </Badge>
         </div>
-        <dl className="mt-4 grid gap-3 sm:grid-cols-2 text-sm">
+        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           <div>
-            <dt className="text-gray-500">Name</dt>
-            <dd className="text-gray-800">
+            <dt className="text-stone-500">Name</dt>
+            <dd className="text-ink-800">
               {attendance.firstName} {attendance.lastName}
             </dd>
           </div>
           <div>
-            <dt className="text-gray-500">Company</dt>
-            <dd className="text-gray-800">{attendance.company || "—"}</dd>
+            <dt className="text-stone-500">Company</dt>
+            <dd className="text-ink-800">{attendance.company || "—"}</dd>
           </div>
           <div>
-            <dt className="text-gray-500">Category</dt>
-            <dd className="text-gray-800">{attendance.category?.name || "—"}</dd>
+            <dt className="text-stone-500">Category</dt>
+            <dd className="text-ink-800">{attendance.category?.name || "—"}</dd>
           </div>
           <div>
-            <dt className="text-gray-500">Form status</dt>
-            <dd className="text-gray-800">
+            <dt className="text-stone-500">Form status</dt>
+            <dd className="text-ink-800">
               {attendance.registration?.status ?? "COMPLETED"}
             </dd>
           </div>
         </dl>
         {checkedInAt ? (
-          <p className="mt-4 text-sm text-success">
+          <p className="mt-4 text-sm text-moss-600">
             Checked in {checkedInAt.toLocaleString()}
           </p>
         ) : null}
         <Link
           href={`/me/events/${eventId}/qr`}
-          className="mt-6 inline-flex rounded-sm bg-ink-600 px-4 py-2 text-sm font-medium text-white"
+          className="mt-6 inline-flex rounded-sm bg-ink-700 px-4 py-2 text-sm font-medium text-white"
         >
           Show my QR code
         </Link>
       </Card>
       {attendance.event.description ? (
         <Card>
-          <h2 className="font-display text-2xl text-gray-800">About</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm text-gray-600">
+          <h2 className="font-display text-2xl text-ink-800">About</h2>
+          <p className="mt-3 whitespace-pre-wrap text-sm text-stone-700">
             {attendance.event.description}
           </p>
         </Card>
       ) : null}
-      <Card className="bg-gray-100">
-        <p className="text-sm font-medium text-gray-500">Matchmaking</p>
-        <p className="mt-1 text-sm text-gray-400">
-          Profile matching and meetings are not enabled in this phase.
-        </p>
-      </Card>
     </div>
   );
 }

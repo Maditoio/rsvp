@@ -1,8 +1,9 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
-import { requireUser } from "@/lib/authz/require";
+import { requireOrg, requireUser } from "@/lib/authz/require";
 import { writeAudit } from "@/modules/audit/log";
 import { toSlug } from "@/lib/utils";
 
@@ -34,4 +35,26 @@ export async function createOrganisation(formData: FormData) {
   });
 
   return { slug: organisation.slug };
+}
+
+export async function renameOrganisation(orgSlug: string, formData: FormData) {
+  const ctx = await requireOrg(orgSlug, "settings.manage");
+  const name = orgSchema.parse({ name: String(formData.get("name") ?? "") }).name;
+
+  await prisma.organisation.update({
+    where: { id: ctx.organisation.id },
+    data: { name },
+  });
+
+  await writeAudit({
+    organisationId: ctx.organisation.id,
+    userId: ctx.user.id,
+    action: "organisation.rename",
+    resource: "organisation",
+    resourceId: ctx.organisation.id,
+    metadata: { name },
+  });
+
+  revalidatePath(`/app/${orgSlug}`);
+  revalidatePath(`/app/${orgSlug}/settings`);
 }

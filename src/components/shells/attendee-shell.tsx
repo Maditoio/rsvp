@@ -4,11 +4,10 @@ import { hasClerk } from "@/lib/utils";
 
 export function AttendeeShell({ children }: { children: React.ReactNode }) {
   const items = [
-    { href: "/me", label: "My event" },
+    { href: "/me", label: "My events" },
     { href: "/me/profile", label: "My profile" },
     { href: "/me/account", label: "Account" },
   ];
-  const later = ["Matchmaking", "Meetings", "Agenda", "Privacy"];
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -31,11 +30,6 @@ export function AttendeeShell({ children }: { children: React.ReactNode }) {
               >
                 {item.label}
               </Link>
-            ))}
-            {later.map((label) => (
-              <span key={label} className="px-3 py-2 text-stone-400">
-                {label}
-              </span>
             ))}
           </nav>
           {hasClerk() ? <UserButton /> : null}

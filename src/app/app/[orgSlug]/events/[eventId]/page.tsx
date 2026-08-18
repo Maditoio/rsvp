@@ -14,7 +14,8 @@ export default async function EventDashboardPage({
   const { orgSlug, eventId } = await params;
   const ctx = await safe(() => requireEvent(orgSlug, eventId, "event.read"));
 
-  const [event, counts, staff] = await Promise.all([
+  const canUpdate = hasPermission(ctx.grants, "event.update");
+  const [event, counts] = await Promise.all([
     prisma.event.findFirst({
       where: { id: eventId, organisationId: ctx.organisation.id },
       select: {
@@ -25,38 +26,41 @@ export default async function EventDashboardPage({
       },
     }),
     eventCounts(ctx.organisation.id, eventId),
-    prisma.eventUser.findMany({
-      where: {
-        organisationId: ctx.organisation.id,
-        eventId,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-      orderBy: [{ role: "asc" }, { createdAt: "asc" }],
-    }),
   ]);
 
   if (!event) return null;
-  const canUpdate = hasPermission(ctx.grants, "event.update");
 
-  const orgRoles = new Map(
-    (
-      await prisma.organisationUser.findMany({
-        where: { organisationId: ctx.organisation.id },
-        select: {
-          userId: true,
-          role: true,
+  const staff = canUpdate
+    ? await prisma.eventUser.findMany({
+        where: {
+          organisationId: ctx.organisation.id,
+          eventId,
         },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+        orderBy: [{ role: "asc" }, { createdAt: "asc" }],
       })
-    ).map((membership) => [membership.userId, membership.role]),
+    : [];
+  const orgRoles = new Map(
+    canUpdate
+      ? (
+          await prisma.organisationUser.findMany({
+            where: { organisationId: ctx.organisation.id },
+            select: {
+              userId: true,
+              role: true,
+            },
+          })
+        ).map((membership) => [membership.userId, membership.role])
+      : [],
   );
 
   const tiles = [
@@ -86,12 +90,20 @@ export default async function EventDashboardPage({
           {event.venue || "Venue TBC"} · {event.timezone}
         </p>
         {canUpdate ? (
-          <Link
-            href={`/app/${orgSlug}/events/${eventId}/edit`}
-            className="mt-4 inline-flex rounded-sm bg-white/10 px-4 py-1.5 text-sm text-white hover:bg-white/20"
-          >
-            Edit event
-          </Link>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href={`/app/${orgSlug}/events/${eventId}/edit`}
+              className="inline-flex rounded-sm bg-white/10 px-4 py-1.5 text-sm text-white hover:bg-white/20"
+            >
+              Edit event
+            </Link>
+            <Link
+              href={`/app/${orgSlug}/events/${eventId}/settings`}
+              className="inline-flex rounded-sm bg-white/10 px-4 py-1.5 text-sm text-white hover:bg-white/20"
+            >
+              Event settings
+            </Link>
+          </div>
         ) : null}
       </DecisionCard>
 
@@ -106,23 +118,25 @@ export default async function EventDashboardPage({
         ))}
       </div>
 
-      <div className="mt-6">
-        <StaffManagement
-          orgSlug={orgSlug}
-          eventId={eventId}
-          canManage={canUpdate}
-          staff={staff.map((assignment) => ({
-            userId: assignment.user.id,
-            email: assignment.user.email,
-            firstName: assignment.user.firstName,
-            lastName: assignment.user.lastName,
-            role: assignment.role,
-            orgRole: orgRoles.get(assignment.user.id) ?? null,
-            assignedAt: assignment.createdAt.toLocaleDateString("en-GB"),
-            isCurrentUser: assignment.user.id === ctx.user.id,
-          }))}
-        />
-      </div>
+      {canUpdate ? (
+        <div className="mt-6">
+          <StaffManagement
+            orgSlug={orgSlug}
+            eventId={eventId}
+            canManage={canUpdate}
+            staff={staff.map((assignment) => ({
+              userId: assignment.user.id,
+              email: assignment.user.email,
+              firstName: assignment.user.firstName,
+              lastName: assignment.user.lastName,
+              role: assignment.role,
+              orgRole: orgRoles.get(assignment.user.id) ?? null,
+              assignedAt: assignment.createdAt.toLocaleDateString("en-GB"),
+              isCurrentUser: assignment.user.id === ctx.user.id,
+            }))}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

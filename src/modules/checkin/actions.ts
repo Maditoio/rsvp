@@ -25,9 +25,17 @@ export async function lookupCheckIn(
       eventId,
       organisationId: ctx.organisation.id,
     },
-    include: {
-      category: true,
-      checkIns: { orderBy: { checkedInAt: "desc" }, take: 1 },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      company: true,
+      category: { select: { name: true } },
+      checkIns: {
+        orderBy: { checkedInAt: "desc" },
+        take: 1,
+        select: { checkedInAt: true },
+      },
     },
   });
 

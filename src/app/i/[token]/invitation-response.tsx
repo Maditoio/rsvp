@@ -22,10 +22,10 @@ export function InvitationResponse({
   if (didDecline) {
     return (
       <div>
-        <p className="text-gray-700">
+        <p className="text-stone-700">
           You have declined this invitation. The organiser has been updated.
         </p>
-        <p className="mt-3 text-sm text-gray-500">
+        <p className="mt-3 text-sm text-stone-500">
           Declining is not the same as cancelling a registration — none was
           created.
         </p>
@@ -36,7 +36,7 @@ export function InvitationResponse({
   if (didAccept) {
     return (
       <div>
-        <p className="text-gray-700">
+        <p className="text-stone-700">
           {registered
             ? "You have accepted and completed registration."
             : "You have accepted. Registration is a separate step — complete it to receive your check-in code."}
@@ -53,7 +53,7 @@ export function InvitationResponse({
 
   return (
     <div>
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-stone-700">
         Accepting confirms your invitation. You still need to register
         afterwards.
       </p>

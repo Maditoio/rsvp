@@ -180,7 +180,7 @@ export function CheckInScanner({
               {cameraOn ? "Stop camera" : "Scan with camera"}
             </Button>
           ) : (
-            <p className="self-center text-xs text-gray-500">
+            <p className="self-center text-xs text-stone-500">
               Camera QR scan is unavailable in this browser. Paste the token.
             </p>
           )}

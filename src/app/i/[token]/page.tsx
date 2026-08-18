@@ -13,13 +13,13 @@ export default async function InvitationPage({
   if (invitation.gate === "cancelled") {
     return (
       <Card>
-        <p className="text-xs uppercase tracking-[0.18em] text-danger">
+        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-danger">
           Cancelled
         </p>
-        <h1 className="mt-2 font-display text-3xl text-gray-800">
+        <h1 className="mt-2 font-display text-3xl text-ink-800">
           This invitation has been cancelled
         </h1>
-        <p className="mt-3 text-gray-600">
+        <p className="mt-3 text-stone-700">
           {invitation.eventName} is no longer available on this link. Contact{" "}
           {invitation.orgName} if you believe this is a mistake.
         </p>
@@ -30,13 +30,13 @@ export default async function InvitationPage({
   if (invitation.gate === "expired") {
     return (
       <Card>
-        <p className="text-xs uppercase tracking-[0.18em] text-warning">
+        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-warning">
           Expired
         </p>
-        <h1 className="mt-2 font-display text-3xl text-gray-800">
+        <h1 className="mt-2 font-display text-3xl text-ink-800">
           This invitation has expired
         </h1>
-        <p className="mt-3 text-gray-600">
+        <p className="mt-3 text-stone-700">
           The response window for {invitation.eventName} has closed. Ask the
           organiser to issue a new invitation if you still plan to attend.
         </p>
@@ -47,10 +47,10 @@ export default async function InvitationPage({
   if (invitation.gate === "declined") {
     return (
       <Card>
-        <h1 className="font-display text-3xl text-gray-800">
+        <h1 className="font-display text-3xl text-ink-800">
           You declined this invitation
         </h1>
-        <p className="mt-3 text-gray-600">
+        <p className="mt-3 text-stone-700">
           {invitation.eventName} will not hold a registration against this
           invitation.
         </p>
@@ -61,10 +61,10 @@ export default async function InvitationPage({
   if (invitation.gate === "not-ready") {
     return (
       <Card>
-        <h1 className="font-display text-3xl text-gray-800">
+        <h1 className="font-display text-3xl text-ink-800">
           This invitation is not active yet
         </h1>
-        <p className="mt-3 text-gray-600">
+        <p className="mt-3 text-stone-700">
           {invitation.eventName} has not released this invitation for a
           response.
         </p>
@@ -75,7 +75,7 @@ export default async function InvitationPage({
   return (
     <div className="space-y-6">
       <DecisionCard>
-        <p className="text-xs uppercase tracking-[0.18em] text-bloom-200">
+        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-200">
           {invitation.orgName}
         </p>
         <h1 className="mt-2 font-display text-4xl">{invitation.eventName}</h1>
@@ -84,8 +84,8 @@ export default async function InvitationPage({
         </p>
       </DecisionCard>
       <Card>
-        <p className="text-sm text-gray-500">Invited as</p>
-        <p className="mt-1 text-lg font-medium text-gray-800">
+        <p className="text-sm text-stone-500">Invited as</p>
+        <p className="mt-1 text-lg font-medium text-ink-800">
           {invitation.firstName} {invitation.lastName}
         </p>
         <div className="mt-6">

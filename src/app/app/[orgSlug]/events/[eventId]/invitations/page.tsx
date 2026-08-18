@@ -66,8 +66,8 @@ export default async function InvitationsPage({
         current="Invitations"
         grants={ctx.grants}
       />
-      <h1 className="mb-2 font-display text-3xl text-gray-800">Invitations</h1>
-      <p className="mb-6 text-sm text-gray-600">
+      <h1 className="mb-2 font-display text-3xl text-ink-800">Invitations</h1>
+      <p className="mb-6 text-sm text-stone-700">
         Invitation status is independent of registration. Accepted is not
         registered.
       </p>

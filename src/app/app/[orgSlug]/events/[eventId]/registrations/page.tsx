@@ -1,12 +1,14 @@
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
+import { hasPermission } from "@/lib/authz/permissions";
 import { EventSubnav } from "@/components/event-subnav";
 import { Card } from "@/components/ui/card";
 import { Table, Td, Th } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
 import { displayName } from "@/lib/utils";
 import { format } from "date-fns";
+import { RegistrationStatusActions } from "./registration-status-actions";
 
 type RegistrationData = {
   firstName?: string;
@@ -21,6 +23,7 @@ export default async function RegistrationsPage({
   const ctx = await safe(() =>
     requireEvent(orgSlug, eventId, "registrations.read"),
   );
+  const canWrite = hasPermission(ctx.grants, "registrations.write");
   const responses = await prisma.registrationResponse.findMany({
     where: { eventId, organisationId: ctx.organisation.id },
     include: {
@@ -38,15 +41,15 @@ export default async function RegistrationsPage({
         current="Registrations"
         grants={ctx.grants}
       />
-      <h1 className="font-display text-3xl text-gray-800">Registrations</h1>
-      <p className="mt-1 mb-6 text-sm text-gray-600">
+      <h1 className="font-display text-3xl text-ink-800">Registrations</h1>
+      <p className="mt-1 mb-6 text-sm text-stone-700">
         Invitation accepted is not registered. A registration response is created
         only after the invitee completes the form.
       </p>
       {responses.length === 0 ? (
         <Card>
-          <p className="text-gray-600">No registration responses yet.</p>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="text-stone-700">No registration responses yet.</p>
+          <p className="mt-2 text-sm text-stone-500">
             People who have accepted an invitation still need to register before
             they appear here.
           </p>
@@ -54,12 +57,13 @@ export default async function RegistrationsPage({
       ) : (
         <Table>
           <thead>
-            <tr className="border-b border-gray-100">
+            <tr className="border-b border-stone-200">
               <Th>Name</Th>
               <Th>Email</Th>
               <Th>Invitation</Th>
               <Th>Registration</Th>
               <Th>Submitted</Th>
+              {canWrite ? <Th>Actions</Th> : null}
             </tr>
           </thead>
           <tbody>
@@ -73,7 +77,7 @@ export default async function RegistrationsPage({
                   });
               const email = row.contact?.email ?? data.email ?? "—";
               return (
-                <tr key={row.id} className="border-b border-gray-50">
+                <tr key={row.id} className="border-b border-stone-100">
                   <Td>{name}</Td>
                   <Td>{email}</Td>
                   <Td>
@@ -87,6 +91,17 @@ export default async function RegistrationsPage({
                     <StatusBadge status={row.status} />
                   </Td>
                   <Td>{format(row.createdAt, "d MMM yyyy HH:mm")}</Td>
+                  {canWrite ? (
+                    <Td>
+                      <RegistrationStatusActions
+                        orgSlug={orgSlug}
+                        eventId={eventId}
+                        subjectId={row.id}
+                        kind="registration"
+                        status={row.status}
+                      />
+                    </Td>
+                  ) : null}
                 </tr>
               );
             })}

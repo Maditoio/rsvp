@@ -16,6 +16,8 @@ export type InvitationGate =
 
 export type PublicInvitation = {
   gate: Exclude<InvitationGate, "missing">;
+  organisationId: string;
+  eventId: string;
   eventName: string;
   orgName: string;
   venue: string | null;
@@ -72,6 +74,8 @@ export async function getPublicInvitation(
 
   return {
     gate,
+    organisationId: invitation.organisationId,
+    eventId: invitation.eventId,
     eventName: invitation.event.name,
     orgName: invitation.organisation.name,
     venue: invitation.event.venue,

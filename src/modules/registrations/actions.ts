@@ -10,15 +10,18 @@ import { rateLimit } from "@/lib/rate-limit";
 import { loadInvitationByToken } from "@/modules/invitations/store";
 import { opaqueQrDataUrl } from "@/lib/qr";
 import { invitationUsable } from "@/modules/invitations/lifecycle";
-import {
-  registrationSchema,
-  type RegistrationInput,
-} from "@/modules/registrations/schema";
 import { verifyTurnstile } from "@/lib/turnstile";
+import {
+  ensureDefaultRegistrationForm,
+  parseFormValues,
+  scalar,
+} from "@/modules/registrations/form";
+import { sendRegistrationConfirmationEmail } from "@/modules/communications/email";
+import { getAppUrl } from "@/lib/utils";
 
 export async function submitRegistration(
   rawToken: string,
-  data: RegistrationInput,
+  formData: FormData,
   turnstileToken?: string,
 ) {
   const limited = await rateLimit(`register:${rawToken.slice(0, 16)}`, 10, 60);
@@ -37,12 +40,23 @@ export async function submitRegistration(
     throw new Error("This invitation is no longer valid");
   }
 
-  const parsed = registrationSchema.parse(data);
+  const form = await ensureDefaultRegistrationForm(
+    invitation.organisationId,
+    invitation.eventId,
+  );
+  const parsed = parseFormValues(form.fields, formData);
+  const firstName = scalar(parsed, "firstName");
+  const lastName = scalar(parsed, "lastName");
+  const email = scalar(parsed, "email").toLowerCase();
+  if (!firstName || !lastName || !email) {
+    throw new Error("First name, last name and email are required.");
+  }
+
   const user = await getCurrentUser();
 
   const existing = await prisma.attendee.findUnique({
     where: {
-      eventId_email: { eventId: invitation.eventId, email: parsed.email },
+      eventId_email: { eventId: invitation.eventId, email },
     },
   });
   if (existing) {
@@ -76,13 +90,25 @@ export async function submitRegistration(
         qrTokenHash: qr.hash,
         attendanceTokenEnc: encryptSecret(qr.raw),
         status: "REGISTERED",
-        firstName: parsed.firstName,
-        lastName: parsed.lastName,
-        email: parsed.email,
-        phone: parsed.phone || null,
-        company: parsed.company || null,
-        jobTitle: parsed.jobTitle || null,
-        country: parsed.country || null,
+        firstName,
+        lastName,
+        email,
+        phone: scalar(parsed, "phone") || null,
+        company: scalar(parsed, "company") || null,
+        jobTitle: scalar(parsed, "jobTitle") || null,
+        country: scalar(parsed, "country") || null,
+        profile: {
+          create: {
+            organisationId: invitation.organisationId,
+            eventId: invitation.eventId,
+          },
+        },
+        privacy: {
+          create: {
+            organisationId: invitation.organisationId,
+            eventId: invitation.eventId,
+          },
+        },
       },
     });
 
@@ -98,6 +124,16 @@ export async function submitRegistration(
     resourceId: result.attendee.id,
     ip: (await headers()).get("x-forwarded-for"),
     metadata: { invitationId: invitation.id },
+  });
+
+  await sendRegistrationConfirmationEmail({
+    organisationId: invitation.organisationId,
+    eventId: invitation.eventId,
+    toEmail: email,
+    toName: `${firstName} ${lastName}`,
+    eventName: invitation.event.name,
+    orgName: invitation.organisation.name,
+    passUrl: `${getAppUrl()}/i/${rawToken}/register`,
   });
 
   return {

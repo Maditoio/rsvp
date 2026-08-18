@@ -7,6 +7,7 @@ import { requireEvent, requireOrg } from "@/lib/authz/require";
 import { writeAudit } from "@/modules/audit/log";
 import { toSlug } from "@/lib/utils";
 import { DEFAULT_CATEGORIES } from "@/modules/events/defaults";
+import { ensureDefaultRegistrationForm } from "@/modules/registrations/form";
 
 const eventSchema = z.object({
   name: z.string().min(2).max(160),
@@ -66,6 +67,8 @@ export async function createEvent(orgSlug: string, formData: FormData) {
     },
   });
 
+  await ensureDefaultRegistrationForm(ctx.organisation.id, event.id);
+
   await writeAudit({
     organisationId: ctx.organisation.id,
     eventId: event.id,
@@ -118,6 +121,74 @@ export async function updateEvent(
   });
 
   revalidatePath(`/app/${orgSlug}/events/${eventId}`);
+}
+
+const eventSettingsSchema = z.object({
+  invitationExpiryDays: z.coerce.number().int().min(1).max(365),
+  capacity: z
+    .string()
+    .optional()
+    .transform((value) => {
+      const trimmed = value?.trim() ?? "";
+      if (!trimmed) return null;
+      const parsed = Number(trimmed);
+      if (!Number.isInteger(parsed) || parsed < 1) {
+        throw new Error("Capacity must be a whole number of at least 1, or blank.");
+      }
+      return parsed;
+    }),
+  waitlistEnabled: z.boolean(),
+  allowPublicApplication: z.boolean(),
+});
+
+export async function updateEventSettings(
+  orgSlug: string,
+  eventId: string,
+  formData: FormData,
+) {
+  const ctx = await requireEvent(orgSlug, eventId, "event.update");
+  const input = eventSettingsSchema.parse({
+    invitationExpiryDays: formData.get("invitationExpiryDays"),
+    capacity: String(formData.get("capacity") ?? ""),
+    waitlistEnabled: formData.get("waitlistEnabled") === "on",
+    allowPublicApplication: formData.get("allowPublicApplication") === "on",
+  });
+
+  await prisma.eventSettings.upsert({
+    where: { eventId },
+    create: {
+      organisationId: ctx.organisation.id,
+      eventId,
+      invitationExpiryDays: input.invitationExpiryDays,
+      capacity: input.capacity,
+      waitlistEnabled: input.waitlistEnabled,
+      allowPublicApplication: input.allowPublicApplication,
+    },
+    update: {
+      invitationExpiryDays: input.invitationExpiryDays,
+      capacity: input.capacity,
+      waitlistEnabled: input.waitlistEnabled,
+      allowPublicApplication: input.allowPublicApplication,
+    },
+  });
+
+  await writeAudit({
+    organisationId: ctx.organisation.id,
+    eventId,
+    userId: ctx.user.id,
+    action: "event.settings.update",
+    resource: "event_settings",
+    resourceId: eventId,
+    metadata: {
+      invitationExpiryDays: input.invitationExpiryDays,
+      capacity: input.capacity,
+      waitlistEnabled: input.waitlistEnabled,
+      allowPublicApplication: input.allowPublicApplication,
+    },
+  });
+
+  revalidatePath(`/app/${orgSlug}/events/${eventId}`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/settings`);
 }
 
 export async function createCategory(

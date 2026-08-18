@@ -5,6 +5,7 @@ import { RouteDrawer } from "@/components/ui/drawer";
 import { getPublicInvitation } from "@/modules/invitations/public";
 import { getQrForInvitationHolder } from "@/modules/attendees/actions";
 import { turnstileSiteKey } from "@/lib/utils";
+import { ensureDefaultRegistrationForm } from "@/modules/registrations/form";
 import { RegistrationForm } from "./registration-form";
 
 export default async function RegisterPage({
@@ -22,10 +23,10 @@ export default async function RegisterPage({
   ) {
     return (
       <Card>
-        <h1 className="font-display text-3xl text-gray-800">
+        <h1 className="font-display text-3xl text-ink-800">
           Registration is not available
         </h1>
-        <p className="mt-3 text-gray-600">
+        <p className="mt-3 text-stone-700">
           This invitation cannot be used to register for {invitation.eventName}.
         </p>
         <Link
@@ -41,10 +42,10 @@ export default async function RegisterPage({
   if (!invitation.accepted) {
     return (
       <Card>
-        <h1 className="font-display text-3xl text-gray-800">
+        <h1 className="font-display text-3xl text-ink-800">
           Accept the invitation first
         </h1>
-        <p className="mt-3 text-gray-600">
+        <p className="mt-3 text-stone-700">
           Invitation is not registration. Accept your place at{" "}
           {invitation.eventName}, then return here to complete the form.
         </p>
@@ -61,6 +62,10 @@ export default async function RegisterPage({
   const existingQr = invitation.registered
     ? await getQrForInvitationHolder(token)
     : null;
+  const form = await ensureDefaultRegistrationForm(
+    invitation.organisationId,
+    invitation.eventId,
+  );
 
   return (
     <RouteDrawer
@@ -82,6 +87,7 @@ export default async function RegisterPage({
         <RegistrationForm
           token={token}
           siteKey={turnstileSiteKey()}
+          fields={form.fields}
           existingQr={existingQr}
           defaults={{
             firstName: invitation.firstName,

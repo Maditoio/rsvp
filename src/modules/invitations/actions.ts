@@ -78,6 +78,69 @@ export async function createInvitationsForContacts(
   return { created };
 }
 
+const RESENDABLE = new Set([
+  "SENT",
+  "DELIVERED",
+  "OPENED",
+  "BOUNCED",
+  "ACCEPTED",
+]);
+
+async function rotateTokenAndDeliver(input: {
+  organisationId: string;
+  eventId: string;
+  invitationId: string;
+  status: InvitationStatus;
+  toEmail: string;
+  toName: string;
+  eventName: string;
+  orgName: string;
+}) {
+  const token = generateOpaqueToken();
+  const markSent =
+    input.status === "DRAFT" ||
+    input.status === "SCHEDULED" ||
+    input.status === "BOUNCED";
+
+  await prisma.invitation.update({
+    where: { id: input.invitationId },
+    data: {
+      tokenHash: token.hash,
+      sentAt: new Date(),
+      ...(markSent ? { status: "SENT" as const } : {}),
+    },
+  });
+
+  const acceptUrl = `${getAppUrl()}/i/${token.raw}`;
+
+  if (process.env.INNGEST_EVENT_KEY) {
+    await inngest.send({
+      name: "invitation/send",
+      data: {
+        invitationId: input.invitationId,
+        organisationId: input.organisationId,
+        eventId: input.eventId,
+        toEmail: input.toEmail,
+        toName: input.toName,
+        eventName: input.eventName,
+        orgName: input.orgName,
+        acceptUrl,
+      },
+    });
+  } else {
+    await sendInvitationEmail({
+      organisationId: input.organisationId,
+      eventId: input.eventId,
+      invitationId: input.invitationId,
+      toEmail: input.toEmail,
+      toName: input.toName,
+      eventName: input.eventName,
+      orgName: input.orgName,
+      acceptUrl,
+    });
+  }
+}
+
 export async function sendInvitations(
   orgSlug: string,
   eventId: string,
@@ -113,40 +176,16 @@ export async function sendInvitations(
       continue;
     }
 
-    const token = generateOpaqueToken();
-    await prisma.invitation.update({
-      where: { id: invitation.id },
-      data: { tokenHash: token.hash, status: "SENT", sentAt: new Date() },
+    await rotateTokenAndDeliver({
+      organisationId: ctx.organisation.id,
+      eventId,
+      invitationId: invitation.id,
+      status: invitation.status,
+      toEmail: invitation.contact.email,
+      toName: `${invitation.contact.firstName} ${invitation.contact.lastName}`,
+      eventName: event.name,
+      orgName: ctx.organisation.name,
     });
-
-    const acceptUrl = `${getAppUrl()}/i/${token.raw}`;
-
-    if (process.env.INNGEST_EVENT_KEY) {
-      await inngest.send({
-        name: "invitation/send",
-        data: {
-          invitationId: invitation.id,
-          organisationId: ctx.organisation.id,
-          eventId,
-          toEmail: invitation.contact.email,
-          toName: `${invitation.contact.firstName} ${invitation.contact.lastName}`,
-          eventName: event.name,
-          orgName: ctx.organisation.name,
-          acceptUrl,
-        },
-      });
-    } else {
-      await sendInvitationEmail({
-        organisationId: ctx.organisation.id,
-        eventId,
-        invitationId: invitation.id,
-        toEmail: invitation.contact.email,
-        toName: `${invitation.contact.firstName} ${invitation.contact.lastName}`,
-        eventName: event.name,
-        orgName: ctx.organisation.name,
-        acceptUrl,
-      });
-    }
     sent += 1;
   }
 
@@ -184,6 +223,53 @@ export async function cancelInvitation(
     eventId,
     userId: ctx.user.id,
     action: "invitation.cancel",
+    resource: "invitation",
+    resourceId: invitationId,
+  });
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/invitations`);
+}
+
+export async function resendInvitation(
+  orgSlug: string,
+  eventId: string,
+  invitationId: string,
+) {
+  const ctx = await requireEvent(orgSlug, eventId, "invitations.write");
+  const limited = await rateLimit(`invite-send:${ctx.user.id}`, 30, 60);
+  if (!limited.success) {
+    throw new Error("Too many send attempts. Wait a minute and try again.");
+  }
+
+  const invitation = await prisma.invitation.findFirst({
+    where: { id: invitationId, eventId, organisationId: ctx.organisation.id },
+    include: { contact: true },
+  });
+  if (!invitation) throw new Error("Invitation not found");
+  if (!RESENDABLE.has(invitation.status)) {
+    throw new Error("This invitation cannot be resent");
+  }
+
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, organisationId: ctx.organisation.id },
+  });
+  if (!event) throw new Error("Event not found");
+
+  await rotateTokenAndDeliver({
+    organisationId: ctx.organisation.id,
+    eventId,
+    invitationId: invitation.id,
+    status: invitation.status,
+    toEmail: invitation.contact.email,
+    toName: `${invitation.contact.firstName} ${invitation.contact.lastName}`,
+    eventName: event.name,
+    orgName: ctx.organisation.name,
+  });
+
+  await writeAudit({
+    organisationId: ctx.organisation.id,
+    eventId,
+    userId: ctx.user.id,
+    action: "invitation.resend",
     resource: "invitation",
     resourceId: invitationId,
   });

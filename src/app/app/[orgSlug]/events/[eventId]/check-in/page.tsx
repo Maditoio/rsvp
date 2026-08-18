@@ -19,7 +19,7 @@ export default async function CheckInPage({
         grants={ctx.grants}
       />
       <DecisionCard className="mb-6">
-        <p className="text-xs uppercase tracking-[0.18em] text-bloom-200">
+        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-200">
           Check-in
         </p>
         <h1 className="mt-2 font-display text-4xl">Scan attendance tokens</h1>

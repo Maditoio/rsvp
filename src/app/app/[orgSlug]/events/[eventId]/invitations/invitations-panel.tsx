@@ -5,17 +5,26 @@ import { useRouter } from "next/navigation";
 import {
   cancelInvitation,
   createInvitationsForContacts,
+  resendInvitation,
   sendInvitations,
 } from "@/modules/invitations/actions";
 import { canTransition } from "@/modules/invitations/lifecycle";
 import { InvitationStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Table, Td, Th } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
 import { displayName } from "@/lib/utils";
 
 const SENDABLE = new Set(["DRAFT", "SCHEDULED", "BOUNCED"]);
+const RESENDABLE = new Set([
+  "SENT",
+  "DELIVERED",
+  "OPENED",
+  "BOUNCED",
+  "ACCEPTED",
+]);
 
 type InvitationRow = {
   id: string;
@@ -55,6 +64,8 @@ export function InvitationsPanel({
   const [categoryId, setCategoryId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<InvitationRow | null>(null);
   const [pending, start] = useTransition();
 
   const allUninvitedSelected =
@@ -71,15 +82,18 @@ export function InvitationsPanel({
     return list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
   }
 
-  function run(fn: () => Promise<void>) {
+  function run(key: string, fn: () => Promise<void>) {
     setError(null);
     setMessage(null);
+    setPendingKey(key);
     start(async () => {
       try {
         await fn();
         router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : "Action failed");
+      } finally {
+        setPendingKey(null);
       }
     });
   }
@@ -90,23 +104,23 @@ export function InvitationsPanel({
       {message ? <p className="text-sm text-success">{message}</p> : null}
 
       <Card>
-        <h2 className="font-display text-2xl text-gray-800">Create invitations</h2>
-        <p className="mt-1 text-sm text-gray-600">
+        <h2 className="font-display text-2xl text-ink-800">Create invitations</h2>
+        <p className="mt-1 text-sm text-stone-700">
           Contacts without an active invitation. Creating a draft is not the same
           as sending, and sending is not registration.
         </p>
         {uninvited.length === 0 ? (
-          <p className="mt-4 text-sm text-gray-600">
+          <p className="mt-4 text-sm text-stone-700">
             Every contact already has an active invitation.
           </p>
         ) : (
           <>
             {canWrite ? (
               <div className="mt-4 flex flex-wrap items-end gap-3">
-                <label className="text-sm text-gray-700">
+                <label className="text-sm text-stone-700">
                   Category
                   <select
-                    className="mt-1 block rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+                    className="mt-1 block h-10 rounded-sm border border-stone-300 bg-stone-0 px-3 text-sm text-ink-700"
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
                   >
@@ -122,7 +136,7 @@ export function InvitationsPanel({
                   type="button"
                   disabled={pending || selectedContacts.length === 0}
                   onClick={() =>
-                    run(async () => {
+                    run("create", async () => {
                       const result = await createInvitationsForContacts(
                         orgSlug,
                         eventId,
@@ -134,19 +148,19 @@ export function InvitationsPanel({
                     })
                   }
                 >
-                  Create invitations
+                  {pendingKey === "create" ? "Creating…" : "Create invitations"}
                 </Button>
               </div>
             ) : null}
             <div className="mt-4">
               <Table>
                 <thead>
-                  <tr className="border-b border-gray-100">
+                  <tr className="border-b border-stone-200">
                     {canWrite ? (
                       <Th>
                         <input
                           type="checkbox"
-                          className="size-4 accent-gray-500"
+                          className="size-4 accent-ink-700"
                           checked={allUninvitedSelected}
                           onChange={() =>
                             setSelectedContacts(
@@ -166,12 +180,12 @@ export function InvitationsPanel({
                 </thead>
                 <tbody>
                   {uninvited.map((contact) => (
-                    <tr key={contact.id} className="border-b border-gray-50">
+                    <tr key={contact.id} className="border-b border-stone-100">
                       {canWrite ? (
                         <Td>
                           <input
                             type="checkbox"
-                            className="size-4 accent-gray-500"
+                            className="size-4 accent-ink-700"
                             checked={selectedContacts.includes(contact.id)}
                             onChange={() =>
                               setSelectedContacts((list) =>
@@ -196,13 +210,13 @@ export function InvitationsPanel({
 
       <div>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-2xl text-gray-800">Invitations</h2>
+          <h2 className="font-display text-2xl text-ink-800">Invitations</h2>
           {canWrite ? (
             <Button
               type="button"
               disabled={pending || sendableSelected.length === 0}
               onClick={() =>
-                run(async () => {
+                run("send", async () => {
                   const result = await sendInvitations(
                     orgSlug,
                     eventId,
@@ -213,7 +227,7 @@ export function InvitationsPanel({
                 })
               }
             >
-              Send selected
+              {pendingKey === "send" ? "Sending…" : "Send selected"}
             </Button>
           ) : null}
         </div>
@@ -222,22 +236,22 @@ export function InvitationsPanel({
         ) : (
           <Table>
             <thead>
-              <tr className="border-b border-gray-100">
+              <tr className="border-b border-stone-200">
                 {canWrite ? <Th /> : null}
                 <Th>Contact</Th>
                 <Th>Status</Th>
                 <Th>Category</Th>
-                {canWrite ? <Th /> : null}
+                {canWrite ? <Th>Actions</Th> : null}
               </tr>
             </thead>
             <tbody>
               {invitations.map((invitation) => (
-                <tr key={invitation.id} className="border-b border-gray-50">
+                <tr key={invitation.id} className="border-b border-stone-100">
                   {canWrite ? (
                     <Td>
                       <input
                         type="checkbox"
-                        className="size-4 accent-gray-500"
+                        className="size-4 accent-ink-700"
                         checked={selectedInvites.includes(invitation.id)}
                         disabled={!SENDABLE.has(invitation.status)}
                         onChange={() =>
@@ -249,7 +263,7 @@ export function InvitationsPanel({
                   ) : null}
                   <Td>
                     <p>{displayName(invitation.contact)}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-stone-500">
                       {invitation.contact.email}
                     </p>
                   </Td>
@@ -259,27 +273,46 @@ export function InvitationsPanel({
                   <Td>{invitation.category?.name ?? "—"}</Td>
                   {canWrite ? (
                     <Td>
-                      {canTransition(invitation.status, InvitationStatus.CANCELLED) ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="destructive"
-                          disabled={pending}
-                          onClick={() => {
-                            if (!window.confirm("Cancel this invitation?")) return;
-                            run(async () => {
-                              await cancelInvitation(
-                                orgSlug,
-                                eventId,
-                                invitation.id,
-                              );
-                              setMessage("Invitation cancelled.");
-                            });
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                      ) : null}
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {RESENDABLE.has(invitation.status) ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={pending}
+                            onClick={() =>
+                              run(`resend-${invitation.id}`, async () => {
+                                await resendInvitation(
+                                  orgSlug,
+                                  eventId,
+                                  invitation.id,
+                                );
+                                setMessage(
+                                  `Invitation resent to ${invitation.contact.email}.`,
+                                );
+                              })
+                            }
+                          >
+                            {pendingKey === `resend-${invitation.id}`
+                              ? "Resending…"
+                              : "Resend"}
+                          </Button>
+                        ) : null}
+                        {canTransition(
+                          invitation.status,
+                          InvitationStatus.CANCELLED,
+                        ) ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            disabled={pending}
+                            onClick={() => setCancelTarget(invitation)}
+                          >
+                            Cancel
+                          </Button>
+                        ) : null}
+                      </div>
                     </Td>
                   ) : null}
                 </tr>
@@ -288,6 +321,29 @@ export function InvitationsPanel({
           </Table>
         )}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(cancelTarget)}
+        onClose={() => (pending ? undefined : setCancelTarget(null))}
+        title="Cancel this invitation"
+        description={
+          cancelTarget
+            ? `This invalidates the unique link for ${displayName(cancelTarget.contact)}. They will not be able to accept or register with it.`
+            : "This invalidates the unique invitation link."
+        }
+        confirmLabel="Cancel invitation"
+        cancelLabel="Keep invitation"
+        destructive
+        pending={pending}
+        onConfirm={() => {
+          if (!cancelTarget) return;
+          run(`cancel-${cancelTarget.id}`, async () => {
+            await cancelInvitation(orgSlug, eventId, cancelTarget.id);
+            setCancelTarget(null);
+            setMessage("Invitation cancelled.");
+          });
+        }}
+      />
     </div>
   );
 }
