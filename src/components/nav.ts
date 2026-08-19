@@ -6,13 +6,13 @@ import {
   ChartColumn,
   ClipboardList,
   Handshake,
-  Inbox,
   LayoutDashboard,
   Mail,
   Megaphone,
   QrCode,
   ScrollText,
   Settings,
+  SlidersHorizontal,
   Tags,
   UserCheck,
   Users,
@@ -20,14 +20,6 @@ import {
 import { hasPermission, type Permission } from "@/lib/authz/permissions";
 
 export type NavIcon = LucideIcon;
-
-export type EventNavItem = {
-  href: string;
-  label: string;
-  permission: Permission;
-  icon: NavIcon;
-  exact?: boolean;
-};
 
 export type OrgNavItem = {
   href: string;
@@ -37,10 +29,24 @@ export type OrgNavItem = {
   show: boolean;
 };
 
-export function orgNav(
+export type EventNavItem = {
+  href: string;
+  label: string;
+  permission: Permission;
+  icon: NavIcon;
+  exact?: boolean;
+};
+
+export type EventNavGroup = {
+  label: string;
+  items: EventNavItem[];
+};
+
+/* ── Rail 1: Organisation nav ── */
+
+export function orgPrimaryNav(
   orgSlug: string,
   grants?: Permission[],
-  orgRole?: "OWNER" | "ADMIN" | null,
 ): OrgNavItem[] {
   return [
     {
@@ -57,12 +63,6 @@ export function orgNav(
       show: !grants || hasPermission(grants, "event.read"),
     },
     {
-      href: `/app/${orgSlug}/settings`,
-      label: "Settings",
-      icon: Settings,
-      show: orgRole != null,
-    },
-    {
       href: `/app/${orgSlug}/audit`,
       label: "Audit logs",
       icon: ScrollText,
@@ -71,64 +71,93 @@ export function orgNav(
   ].filter((item) => item.show);
 }
 
-export function eventNav(orgSlug: string, eventId: string): EventNavItem[] {
+export function orgFooterNav(
+  orgSlug: string,
+  orgRole?: "OWNER" | "ADMIN" | null,
+): OrgNavItem[] {
+  return [
+    {
+      href: `/app/${orgSlug}/settings`,
+      label: "Settings",
+      icon: Settings,
+      show: orgRole != null,
+    },
+  ].filter((item) => item.show);
+}
+
+/* ── Rail 2: Event panel grouped nav ── */
+
+export function eventNavGroups(
+  orgSlug: string,
+  eventId: string,
+): EventNavGroup[] {
   const base = `/app/${orgSlug}/events/${eventId}`;
   return [
     {
-      href: base,
-      label: "Dashboard",
-      permission: "event.read",
-      icon: LayoutDashboard,
-      exact: true,
-    },
-    { href: `${base}/invitees`, label: "Invitees", permission: "invitees.read", icon: Users },
-    {
-      href: `${base}/invitations`,
-      label: "Invitations",
-      permission: "invitations.read",
-      icon: Mail,
+      label: "Setup",
+      items: [
+        { href: base, label: "Overview", permission: "event.read", icon: LayoutDashboard, exact: true },
+        { href: `${base}/registration-form`, label: "Form builder", permission: "event.read", icon: ClipboardList },
+        { href: `${base}/categories`, label: "Categories", permission: "invitations.read", icon: Tags },
+      ],
     },
     {
-      href: `${base}/categories`,
-      label: "Categories",
-      permission: "invitations.read",
-      icon: Tags,
+      label: "Guests",
+      items: [
+        { href: `${base}/invitees`, label: "Invitees", permission: "invitees.read", icon: Users },
+        { href: `${base}/invitations`, label: "Invitations", permission: "invitations.read", icon: Mail },
+        { href: `${base}/applications`, label: "Applications", permission: "invitations.read", icon: ClipboardList },
+        { href: `${base}/registrations`, label: "Registrations", permission: "registrations.read", icon: UserCheck },
+        { href: `${base}/attendees`, label: "Attendees", permission: "attendees.read", icon: BadgeCheck },
+      ],
     },
     {
-      href: `${base}/applications`,
-      label: "Applications",
-      permission: "invitations.read",
-      icon: Inbox,
+      label: "Event day",
+      items: [
+        { href: `${base}/check-in`, label: "Check-in", permission: "checkin.perform", icon: QrCode },
+        { href: `${base}/agenda`, label: "Agenda", permission: "event.read", icon: CalendarDays },
+        { href: `${base}/meetings`, label: "Meetings", permission: "event.read", icon: Handshake },
+      ],
     },
     {
-      href: `${base}/registration-form`,
-      label: "Form",
-      permission: "event.read",
-      icon: ClipboardList,
+      label: "Communications & data",
+      items: [
+        { href: `${base}/communications`, label: "Communications", permission: "invitations.write", icon: Megaphone },
+        { href: `${base}/reports`, label: "Reports", permission: "reports.export", icon: ChartColumn },
+      ],
     },
-    {
-      href: `${base}/registrations`,
-      label: "Registrations",
-      permission: "registrations.read",
-      icon: UserCheck,
-    },
-    {
-      href: `${base}/attendees`,
-      label: "Attendees",
-      permission: "attendees.read",
-      icon: BadgeCheck,
-    },
-    { href: `${base}/agenda`, label: "Agenda", permission: "event.read", icon: CalendarDays },
-    { href: `${base}/meetings`, label: "Meetings", permission: "event.read", icon: Handshake },
-    {
-      href: `${base}/communications`,
-      label: "Communications",
-      permission: "invitations.write",
-      icon: Megaphone,
-    },
-    { href: `${base}/check-in`, label: "Check-in", permission: "checkin.perform", icon: QrCode },
-    { href: `${base}/settings`, label: "Settings", permission: "event.update", icon: Settings },
-    { href: `${base}/reports`, label: "Reports", permission: "reports.export", icon: ChartColumn },
+  ];
+}
+
+export function eventSettingsItem(
+  orgSlug: string,
+  eventId: string,
+): EventNavItem {
+  return {
+    href: `/app/${orgSlug}/events/${eventId}/settings`,
+    label: "Event settings",
+    permission: "event.update",
+    icon: SlidersHorizontal,
+  };
+}
+
+/** Flat list for backward compat (e.g. mobile drawer). */
+export function eventNav(orgSlug: string, eventId: string): EventNavItem[] {
+  const groups = eventNavGroups(orgSlug, eventId);
+  const items = groups.flatMap((g) => g.items);
+  items.push(eventSettingsItem(orgSlug, eventId));
+  return items;
+}
+
+/** Keep legacy orgNav for backward compat. */
+export function orgNav(
+  orgSlug: string,
+  grants?: Permission[],
+  orgRole?: "OWNER" | "ADMIN" | null,
+): OrgNavItem[] {
+  return [
+    ...orgPrimaryNav(orgSlug, grants),
+    ...orgFooterNav(orgSlug, orgRole),
   ];
 }
 

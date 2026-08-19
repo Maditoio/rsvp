@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { getAppUrl } from "@/lib/utils";
+import { urlQrDataUrl } from "@/lib/qr";
 import { EventSettingsForm } from "./event-settings-form";
 
 export default async function EventSettingsPage({
@@ -19,17 +20,25 @@ export default async function EventSettingsPage({
   });
   if (!event) return null;
 
+  const applyUrl = `${getAppUrl()}/a/${orgSlug}/${event.slug}`;
+  const allowPublicApplication =
+    event.settings?.allowPublicApplication ?? false;
+  const applyQr = allowPublicApplication
+    ? await urlQrDataUrl(applyUrl)
+    : null;
+
   return (
     <div>
       <EventSettingsForm
         orgSlug={orgSlug}
         eventId={eventId}
-        applyUrl={`${getAppUrl()}/a/${orgSlug}/${event.slug}`}
+        applyUrl={applyUrl}
+        applyQrDataUrl={applyQr}
         settings={{
           invitationExpiryDays: event.settings?.invitationExpiryDays ?? 30,
           capacity: event.settings?.capacity ?? null,
           waitlistEnabled: event.settings?.waitlistEnabled ?? false,
-          allowPublicApplication: event.settings?.allowPublicApplication ?? false,
+          allowPublicApplication,
           aiInsightsEnabled: event.settings?.aiInsightsEnabled ?? false,
         }}
       />

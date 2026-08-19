@@ -42,7 +42,7 @@ export default async function OrgSettingsPage({
   const canManage = ctx.user.platformAdmin || hasPermission(ctx.grants, "settings.manage");
 
   return (
-    <div className="space-y-6">
+    <div className="flex-1 space-y-6 p-6 md:p-10">
       <div className="max-w-3xl">
         <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
           Organisation governance

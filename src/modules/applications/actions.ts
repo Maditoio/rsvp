@@ -10,6 +10,7 @@ import { generateOpaqueToken } from "@/lib/crypto/tokens";
 import { rateLimit } from "@/lib/rate-limit";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { getAppUrl } from "@/lib/utils";
+import { isCountryName } from "@/lib/countries";
 import {
   sendApplicationDecisionEmail,
   sendInvitationEmail,
@@ -21,7 +22,14 @@ const applySchema = z.object({
   email: z.string().email().transform((value) => value.toLowerCase()),
   company: z.string().max(160).optional().or(z.literal("")),
   jobTitle: z.string().max(160).optional().or(z.literal("")),
-  country: z.string().max(80).optional().or(z.literal("")),
+  country: z
+    .string()
+    .max(80)
+    .refine((v) => v === "" || isCountryName(v), {
+      message: "Select a country from the list",
+    })
+    .optional()
+    .or(z.literal("")),
   message: z.string().max(1000).optional().or(z.literal("")),
 });
 

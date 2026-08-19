@@ -12,3 +12,16 @@ export async function opaqueQrDataUrl(token: string) {
     },
   });
 }
+
+/** QR data URL for a public URL (apply page, landing page, etc.). */
+export async function urlQrDataUrl(url: string) {
+  return QRCode.toDataURL(url, {
+    errorCorrectionLevel: "M",
+    margin: 2,
+    width: 200,
+    color: {
+      dark: "#1F2937",
+      light: "#ffffff",
+    },
+  });
+}

@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Menu, Plug, UserRound, X } from "lucide-react";
+import { Menu, Plug, UserRound, X } from "lucide-react";
 import { hasPermission, type Permission } from "@/lib/authz/permissions";
 import {
   eventNav,
@@ -13,58 +13,22 @@ import {
 } from "@/components/nav";
 import { NavLink } from "@/components/nav-link";
 import { useEventNav } from "@/components/shells/event-nav-scope";
-import { cn } from "@/lib/utils";
 
-const EVENT_NAV_OPEN_KEY = "delegate.event-nav-open";
-const eventNavOpenListeners = new Set<() => void>();
-
-function subscribeEventNavOpen(listener: () => void) {
-  eventNavOpenListeners.add(listener);
-  return () => {
-    eventNavOpenListeners.delete(listener);
-  };
-}
-
-function getEventNavOpenSnapshot() {
-  return window.localStorage.getItem(EVENT_NAV_OPEN_KEY) !== "0";
-}
-
-function getEventNavOpenServerSnapshot() {
-  return true;
-}
-
-function usePersistedEventNavOpen() {
-  const open = useSyncExternalStore(
-    subscribeEventNavOpen,
-    getEventNavOpenSnapshot,
-    getEventNavOpenServerSnapshot,
-  );
-
-  const toggle = useCallback(() => {
-    window.localStorage.setItem(EVENT_NAV_OPEN_KEY, open ? "0" : "1");
-    eventNavOpenListeners.forEach((listener) => listener());
-  }, [open]);
-
-  return [open, toggle] as const;
-}
-
-function OrganiserNavList({
+/** Flat list used only for the mobile/small-screen drawer. */
+function MobileNavList({
   orgSlug,
   grants,
   orgRole,
   onNavigate,
-  className,
 }: {
   orgSlug: string;
   grants?: Permission[];
   orgRole?: "OWNER" | "ADMIN" | null;
   onNavigate?: () => void;
-  className?: string;
 }) {
   const pathname = usePathname();
   const { event } = useEventNav();
   const eventId = parseOrganiserEventId(pathname, orgSlug);
-  const [eventOpen, toggleEventOpen] = usePersistedEventNavOpen();
   const orgItems = orgNav(orgSlug, grants, orgRole);
   const eventGrants = event?.eventId === eventId ? event.grants : grants;
   const eventItems = eventId
@@ -74,7 +38,7 @@ function OrganiserNavList({
     : [];
 
   return (
-    <nav className={cn("flex flex-1 flex-col gap-1", className)} onClick={onNavigate}>
+    <nav className="flex flex-1 flex-col gap-1" onClick={onNavigate}>
       {orgItems.map((item) => (
         <NavLink
           key={item.href}
@@ -85,90 +49,28 @@ function OrganiserNavList({
         />
       ))}
 
-      {eventId ? (
-        <div className="mt-6">
-          <button
-            type="button"
-            aria-expanded={eventOpen}
-            onClick={(eventClick) => {
-              eventClick.stopPropagation();
-              toggleEventOpen();
-            }}
-            className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-stone-500 hover:bg-stone-100 hover:text-ink-700"
-          >
-            <span>Event</span>
-            <ChevronDown
-              className={cn(
-                "size-4 shrink-0 transition-transform",
-                !eventOpen && "-rotate-90",
-              )}
-              strokeWidth={1.75}
-              aria-hidden
+      {eventItems.length > 0 && (
+        <div className="mt-4">
+          <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-400">
+            {event?.eventName ?? "Event"}
+          </p>
+          {eventItems.map((item) => (
+            <NavLink
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              icon={item.icon}
+              active={isNavActive(pathname, item.href, item.exact)}
             />
-          </button>
-          {event?.eventName ? (
-            <p className="truncate px-3 pb-2 text-xs text-stone-500">{event.eventName}</p>
-          ) : null}
-          {eventOpen
-            ? eventItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  href={item.href}
-                  label={item.label}
-                  icon={item.icon}
-                  nested
-                  active={isNavActive(pathname, item.href, item.exact)}
-                />
-              ))
-            : null}
+          ))}
         </div>
-      ) : null}
+      )}
 
-      <p className="mt-6 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500">
-        Coming later
-      </p>
-      <span className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-stone-400">
+      <span className="mt-4 flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-stone-400">
         <Plug className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
         Integrations
       </span>
     </nav>
-  );
-}
-
-export function OrganiserSidebar({
-  orgName,
-  orgSlug,
-  grants,
-  orgRole,
-}: {
-  orgName: string;
-  orgSlug: string;
-  grants?: Permission[];
-  orgRole?: "OWNER" | "ADMIN" | null;
-}) {
-  return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-stone-200 bg-stone-0 p-6 md:flex">
-      <div>
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-bronze-600">
-          Organisation workspace
-        </p>
-        <Link
-          href={`/app/${orgSlug}`}
-          className="mt-2 block font-display text-[1.625rem] text-ink-800"
-        >
-          Bizcon RSVP
-        </Link>
-        <p className="mt-1 text-sm text-stone-500">{orgName}</p>
-      </div>
-      <OrganiserNavList className="mt-10" orgSlug={orgSlug} grants={grants} orgRole={orgRole} />
-      <Link
-        href="/me"
-        className="mt-6 flex items-center gap-2 text-sm text-stone-700 hover:text-ink-700"
-      >
-        <UserRound className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
-        Attendee portal
-      </Link>
-    </aside>
   );
 }
 
@@ -217,7 +119,7 @@ export function OrganiserMobileNav({
       </div>
       {open ? (
         <div className="mt-4 border-t border-stone-200 pt-4 md:hidden">
-          <OrganiserNavList
+          <MobileNavList
             orgSlug={orgSlug}
             grants={grants}
             orgRole={orgRole}

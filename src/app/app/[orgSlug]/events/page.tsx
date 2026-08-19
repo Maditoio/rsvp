@@ -17,7 +17,7 @@ export default async function EventsPage({
   });
 
   return (
-    <div>
+    <div className="flex-1 p-6 md:p-10">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl">Events</h1>
         {canCreate ? (

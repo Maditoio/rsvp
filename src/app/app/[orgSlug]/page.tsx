@@ -18,7 +18,7 @@ export default async function OrgHomePage({
   });
 
   return (
-    <div>
+    <div className="flex-1 p-6 md:p-10">
       <h1 className="font-display text-4xl text-gray-800">
         {ctx.organisation.name}
       </h1>

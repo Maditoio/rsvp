@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
 import { TurnstileWidget } from "@/components/turnstile";
+import { COUNTRIES } from "@/lib/countries";
 
 export function PublicApplyForm({
   orgSlug,
@@ -92,7 +94,14 @@ export function PublicApplyForm({
       </div>
       <div>
         <Label htmlFor="country">Country</Label>
-        <Input id="country" name="country" />
+        <Select id="country" name="country">
+          <option value="">Select a country</option>
+          {COUNTRIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </Select>
       </div>
       <div>
         <Label htmlFor="message">Why you wish to attend</Label>

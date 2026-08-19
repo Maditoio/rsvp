@@ -4,7 +4,10 @@ import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
 import { eventCounts } from "@/modules/events/stats";
+import { getAppUrl } from "@/lib/utils";
+import { urlQrDataUrl } from "@/lib/qr";
 import { Card, DecisionCard } from "@/components/ui/card";
+import { ApplyQrBadge } from "./apply-url-card";
 import { StaffManagement } from "./staff-management";
 
 export default async function EventDashboardPage({
@@ -20,14 +23,21 @@ export default async function EventDashboardPage({
       select: {
         id: true,
         name: true,
+        slug: true,
         venue: true,
         timezone: true,
+        settings: { select: { allowPublicApplication: true } },
       },
     }),
     eventCounts(ctx.organisation.id, eventId),
   ]);
 
   if (!event) return null;
+
+  const applyUrl = event.settings?.allowPublicApplication
+    ? `${getAppUrl()}/a/${orgSlug}/${event.slug}`
+    : null;
+  const applyQr = applyUrl ? await urlQrDataUrl(applyUrl) : null;
 
   const staff = canUpdate
     ? await prisma.eventUser.findMany({
@@ -75,29 +85,36 @@ export default async function EventDashboardPage({
   return (
     <div>
       <DecisionCard>
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-200">
-          Event
-        </p>
-        <h1 className="mt-2 font-display text-4xl">{event.name}</h1>
-        <p className="mt-2 text-ink-100">
-          {event.venue || "Venue TBC"} · {event.timezone}
-        </p>
-        {canUpdate ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Link
-              href={`/app/${orgSlug}/events/${eventId}/edit`}
-              className="inline-flex rounded-sm bg-white/10 px-4 py-1.5 text-sm text-white hover:bg-white/20"
-            >
-              Edit event
-            </Link>
-            <Link
-              href={`/app/${orgSlug}/events/${eventId}/settings`}
-              className="inline-flex rounded-sm bg-white/10 px-4 py-1.5 text-sm text-white hover:bg-white/20"
-            >
-              Event settings
-            </Link>
+        <div className="flex items-start justify-between gap-6">
+          <div>
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-200">
+              Event
+            </p>
+            <h1 className="mt-2 font-display text-4xl">{event.name}</h1>
+            <p className="mt-2 text-ink-100">
+              {event.venue || "Venue TBC"} · {event.timezone}
+            </p>
+            {canUpdate ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link
+                  href={`/app/${orgSlug}/events/${eventId}/edit`}
+                  className="inline-flex rounded-sm bg-white/10 px-4 py-1.5 text-sm text-white hover:bg-white/20"
+                >
+                  Edit event
+                </Link>
+                <Link
+                  href={`/app/${orgSlug}/events/${eventId}/settings`}
+                  className="inline-flex rounded-sm bg-white/10 px-4 py-1.5 text-sm text-white hover:bg-white/20"
+                >
+                  Event settings
+                </Link>
+              </div>
+            ) : null}
           </div>
-        ) : null}
+          {applyQr ? (
+            <ApplyQrBadge dataUrl={applyQr} eventName={event.name} />
+          ) : null}
+        </div>
       </DecisionCard>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

@@ -22,7 +22,7 @@ export default async function AuditPage({
   });
 
   return (
-    <div>
+    <div className="flex-1 p-6 md:p-10">
       <h1 className="font-display text-3xl text-gray-800">Audit logs</h1>
       <p className="mt-1 mb-6 text-sm text-gray-600">
         Invite, register, check-in and admin actions for this organisation.
