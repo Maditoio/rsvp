@@ -9,28 +9,37 @@ export default async function InviteesPage({
 }: PageProps<"/app/[orgSlug]/events/[eventId]/invitees">) {
   const { orgSlug, eventId } = await params;
   const ctx = await safe(() => requireEvent(orgSlug, eventId, "invitees.read"));
-  const contacts = await prisma.contact.findMany({
-    where: { eventId, organisationId: ctx.organisation.id },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      company: true,
-      invitations: {
-        orderBy: { createdAt: "desc" as const },
-        take: 1,
-        select: { status: true },
+  const [contacts, categories] = await Promise.all([
+    prisma.contact.findMany({
+      where: { eventId, organisationId: ctx.organisation.id },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        company: true,
+        invitations: {
+          orderBy: { createdAt: "desc" as const },
+          take: 1,
+          select: { status: true, category: { select: { id: true, name: true } } },
+        },
       },
-    },
-    orderBy: { lastName: "asc" },
-  });
+      orderBy: { lastName: "asc" },
+    }),
+    prisma.invitationCategory.findMany({
+      where: { eventId, organisationId: ctx.organisation.id },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
 
   return (
     <InviteesPanel
       orgSlug={orgSlug}
       eventId={eventId}
       canWrite={hasPermission(ctx.grants, "invitees.write")}
+      canInvite={hasPermission(ctx.grants, "invitations.write")}
+      categories={categories}
       contacts={contacts.map((contact) => ({
         id: contact.id,
         firstName: contact.firstName,
@@ -38,6 +47,8 @@ export default async function InviteesPage({
         email: contact.email,
         company: contact.company,
         invitationStatus: contact.invitations[0]?.status ?? null,
+        categoryId: contact.invitations[0]?.category?.id ?? null,
+        categoryName: contact.invitations[0]?.category?.name ?? null,
       }))}
     />
   );

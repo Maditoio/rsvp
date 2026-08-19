@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
+import { Send } from "lucide-react";
 import { createContact } from "@/modules/contacts/actions";
+import { createInvitationsForContacts } from "@/modules/invitations/actions";
 import {
   contactCreateFieldErrors,
   contactCreateFromFormData,
@@ -28,7 +30,11 @@ type InviteeRow = {
   email: string;
   company: string | null;
   invitationStatus: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
 };
+
+type CategoryOption = { id: string; name: string };
 
 type FieldErrors = Partial<Record<keyof ContactCreateInput, string>>;
 
@@ -45,12 +51,16 @@ export function InviteesPanel({
   orgSlug,
   eventId,
   contacts,
+  categories,
   canWrite,
+  canInvite,
 }: {
   orgSlug: string;
   eventId: string;
   contacts: InviteeRow[];
+  categories: CategoryOption[];
   canWrite: boolean;
+  canInvite: boolean;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -59,7 +69,48 @@ export function InviteesPanel({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [filterCategoryId, setFilterCategoryId] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [bulkCategoryId, setBulkCategoryId] = useState("");
   const importHref = `/app/${orgSlug}/events/${eventId}/invitees/import`;
+
+  const filteredContacts = useMemo(
+    () =>
+      filterCategoryId
+        ? contacts.filter((c) => c.categoryId === filterCategoryId)
+        : contacts,
+    [contacts, filterCategoryId],
+  );
+
+  const uninvitedSelected = useMemo(
+    () => filteredContacts.filter((c) => selected.includes(c.id) && !c.invitationStatus),
+    [filteredContacts, selected],
+  );
+
+  const allFilteredSelected =
+    filteredContacts.length > 0 && filteredContacts.every((c) => selected.includes(c.id));
+
+  function toggleOne(id: string) {
+    setSelected((list) =>
+      list.includes(id) ? list.filter((x) => x !== id) : [...list, id],
+    );
+  }
+
+  function toggleAll() {
+    if (allFilteredSelected) {
+      const ids = new Set(filteredContacts.map((c) => c.id));
+      setSelected((list) => list.filter((x) => !ids.has(x)));
+    } else {
+      setSelected((list) => {
+        const existing = new Set(list);
+        const next = [...list];
+        for (const c of filteredContacts) {
+          if (!existing.has(c.id)) next.push(c.id);
+        }
+        return next;
+      });
+    }
+  }
 
   function openDrawer() {
     setError(null);
@@ -115,33 +166,115 @@ export function InviteesPanel({
           ) : null}
         </Card>
       ) : (
-        <Table>
-          <thead>
-            <tr>
-              <Th>Name</Th>
-              <Th>Email</Th>
-              <Th>Company</Th>
-              <Th>Invitation</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {contacts.map((contact) => (
-              <tr key={contact.id}>
-                <Td>{displayName(contact)}</Td>
-                <Td>{contact.email}</Td>
-                <Td>{contact.company ?? "—"}</Td>
-                <Td>
-                  {contact.invitationStatus ? (
-                    <StatusBadge status={contact.invitationStatus} />
-                  ) : (
-                    <span className="text-stone-500">Not invited</span>
-                  )}
-                </Td>
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <select
+              className="h-9 rounded-sm border border-stone-300 bg-stone-0 px-3 text-sm text-ink-700"
+              value={filterCategoryId}
+              onChange={(e) => setFilterCategoryId(e.target.value)}
+            >
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            {canInvite && uninvitedSelected.length > 0 ? (
+              <div className="flex items-center gap-2">
+                <select
+                  className="h-9 rounded-sm border border-stone-300 bg-stone-0 px-3 text-sm text-ink-700"
+                  value={bulkCategoryId}
+                  onChange={(e) => setBulkCategoryId(e.target.value)}
+                >
+                  <option value="">No category</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => {
+                    setError(null);
+                    setNotice(null);
+                    start(async () => {
+                      try {
+                        const result = await createInvitationsForContacts(
+                          orgSlug,
+                          eventId,
+                          uninvitedSelected.map((c) => c.id),
+                          bulkCategoryId || undefined,
+                        );
+                        setSelected([]);
+                        setNotice(`Created ${result.created} invitation(s).`);
+                        router.refresh();
+                      } catch (e) {
+                        setError(e instanceof Error ? e.message : "Bulk invite failed");
+                      }
+                    });
+                  }}
+                >
+                  <Send className="mr-1.5 size-4" />
+                  {pending
+                    ? "Creating…"
+                    : `Send invitation to ${uninvitedSelected.length} selected`}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+          <Table>
+            <thead>
+              <tr>
+                <Th>
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-ink-700"
+                    checked={allFilteredSelected}
+                    onChange={toggleAll}
+                    aria-label="Select all visible invitees"
+                  />
+                </Th>
+                <Th>Name</Th>
+                <Th>Email</Th>
+                <Th>Company</Th>
+                <Th>Category</Th>
+                <Th>Invitation</Th>
               </tr>
-            ))}
-          </tbody>
-        </Table>
+            </thead>
+            <tbody>
+              {filteredContacts.map((contact) => (
+                <tr key={contact.id}>
+                  <Td>
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-ink-700"
+                      checked={selected.includes(contact.id)}
+                      onChange={() => toggleOne(contact.id)}
+                      aria-label={`Select ${contact.email}`}
+                    />
+                  </Td>
+                  <Td>{displayName(contact)}</Td>
+                  <Td>{contact.email}</Td>
+                  <Td>{contact.company ?? "—"}</Td>
+                  <Td>{contact.categoryName ?? "—"}</Td>
+                  <Td>
+                    {contact.invitationStatus ? (
+                      <StatusBadge status={contact.invitationStatus} />
+                    ) : (
+                      <span className="text-stone-500">Not invited</span>
+                    )}
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </>
       )}
+
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
 
       <Drawer
         open={open}

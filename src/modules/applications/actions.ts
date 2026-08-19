@@ -156,9 +156,18 @@ export async function decideApplication(
       },
     });
 
-    const settings = await prisma.eventSettings.findUnique({ where: { eventId } });
+    let expiryDays = 30;
+    try {
+      const settings = await prisma.eventSettings.findUnique({
+        where: { eventId },
+        select: { invitationExpiryDays: true },
+      });
+      expiryDays = settings?.invitationExpiryDays ?? 30;
+    } catch {
+      // Gracefully fall back if columns are mid-migration
+    }
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + (settings?.invitationExpiryDays ?? 30));
+    expiresAt.setDate(expiresAt.getDate() + expiryDays);
     const token = generateOpaqueToken();
     const invitation = await prisma.invitation.create({
       data: {

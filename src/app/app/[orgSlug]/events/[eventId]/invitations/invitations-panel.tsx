@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { RotateCw, Send, XCircle } from "lucide-react";
 import {
   cancelInvitation,
   createInvitationsForContacts,
@@ -13,6 +14,7 @@ import { InvitationStatus } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Drawer } from "@/components/ui/drawer";
 import { Table, Td, Th } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
 import { displayName } from "@/lib/utils";
@@ -30,7 +32,7 @@ type InvitationRow = {
   id: string;
   status: InvitationStatus;
   contact: { firstName: string; lastName: string; email: string };
-  category: { name: string } | null;
+  category: { id: string; name: string } | null;
 };
 
 type UninvitedRow = {
@@ -62,20 +64,30 @@ export function InvitationsPanel({
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [selectedInvites, setSelectedInvites] = useState<string[]>([]);
   const [categoryId, setCategoryId] = useState("");
+  const [filterCategoryId, setFilterCategoryId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<InvitationRow | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [pending, start] = useTransition();
+
+  const filteredInvitations = useMemo(
+    () =>
+      filterCategoryId
+        ? invitations.filter((row) => row.category?.id === filterCategoryId)
+        : invitations,
+    [invitations, filterCategoryId],
+  );
 
   const allUninvitedSelected =
     uninvited.length > 0 && selectedContacts.length === uninvited.length;
   const sendableSelected = useMemo(
     () =>
-      invitations.filter(
+      filteredInvitations.filter(
         (row) => selectedInvites.includes(row.id) && SENDABLE.has(row.status),
       ),
-    [invitations, selectedInvites],
+    [filteredInvitations, selectedInvites],
   );
 
   function toggle(list: string[], id: string) {
@@ -101,137 +113,60 @@ export function InvitationsPanel({
   return (
     <div className="space-y-6">
       {error ? <p className="text-sm text-danger">{error}</p> : null}
-      {message ? <p className="text-sm text-success">{message}</p> : null}
-
-      <Card>
-        <h2 className="font-display text-2xl text-ink-800">Create invitations</h2>
-        <p className="mt-1 text-sm text-stone-700">
-          Contacts without an active invitation. Creating a draft is not the same
-          as sending, and sending is not registration.
-        </p>
-        {uninvited.length === 0 ? (
-          <p className="mt-4 text-sm text-stone-700">
-            Every contact already has an active invitation.
-          </p>
-        ) : (
-          <>
-            {canWrite ? (
-              <div className="mt-4 flex flex-wrap items-end gap-3">
-                <label className="text-sm text-stone-700">
-                  Category
-                  <select
-                    className="mt-1 block h-10 rounded-sm border border-stone-300 bg-stone-0 px-3 text-sm text-ink-700"
-                    value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
-                  >
-                    <option value="">None</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <Button
-                  type="button"
-                  disabled={pending || selectedContacts.length === 0}
-                  onClick={() =>
-                    run("create", async () => {
-                      const result = await createInvitationsForContacts(
-                        orgSlug,
-                        eventId,
-                        selectedContacts,
-                        categoryId || undefined,
-                      );
-                      setSelectedContacts([]);
-                      setMessage(`Created ${result.created} invitation(s).`);
-                    })
-                  }
-                >
-                  {pendingKey === "create" ? "Creating…" : "Create invitations"}
-                </Button>
-              </div>
-            ) : null}
-            <div className="mt-4">
-              <Table>
-                <thead>
-                  <tr className="border-b border-stone-200">
-                    {canWrite ? (
-                      <Th>
-                        <input
-                          type="checkbox"
-                          className="size-4 accent-ink-700"
-                          checked={allUninvitedSelected}
-                          onChange={() =>
-                            setSelectedContacts(
-                              allUninvitedSelected
-                                ? []
-                                : uninvited.map((c) => c.id),
-                            )
-                          }
-                          aria-label="Select all uninvited"
-                        />
-                      </Th>
-                    ) : null}
-                    <Th>Name</Th>
-                    <Th>Email</Th>
-                    <Th>Company</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {uninvited.map((contact) => (
-                    <tr key={contact.id} className="border-b border-stone-100">
-                      {canWrite ? (
-                        <Td>
-                          <input
-                            type="checkbox"
-                            className="size-4 accent-ink-700"
-                            checked={selectedContacts.includes(contact.id)}
-                            onChange={() =>
-                              setSelectedContacts((list) =>
-                                toggle(list, contact.id),
-                              )
-                            }
-                            aria-label={`Select ${contact.email}`}
-                          />
-                        </Td>
-                      ) : null}
-                      <Td>{displayName(contact)}</Td>
-                      <Td>{contact.email}</Td>
-                      <Td>{contact.company ?? "—"}</Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-          </>
-        )}
-      </Card>
+      {message ? <p className="text-sm text-moss-600">{message}</p> : null}
 
       <div>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-2xl text-ink-800">Invitations</h2>
-          {canWrite ? (
-            <Button
-              type="button"
-              disabled={pending || sendableSelected.length === 0}
-              onClick={() =>
-                run("send", async () => {
-                  const result = await sendInvitations(
-                    orgSlug,
-                    eventId,
-                    sendableSelected.map((row) => row.id),
-                  );
-                  setSelectedInvites([]);
-                  setMessage(`Sent ${result.sent} invitation(s).`);
-                })
-              }
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              className="h-9 rounded-sm border border-stone-300 bg-stone-0 px-3 text-sm text-ink-700"
+              value={filterCategoryId}
+              onChange={(e) => setFilterCategoryId(e.target.value)}
             >
-              {pendingKey === "send" ? "Sending…" : "Send selected"}
-            </Button>
-          ) : null}
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            {canWrite ? (
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={pending || sendableSelected.length === 0}
+                  onClick={() =>
+                    run("send", async () => {
+                      const result = await sendInvitations(
+                        orgSlug,
+                        eventId,
+                        sendableSelected.map((row) => row.id),
+                      );
+                      setSelectedInvites([]);
+                      setMessage(`Sent ${result.sent} invitation(s).`);
+                    })
+                  }
+                >
+                  {pendingKey === "send"
+                    ? "Sending…"
+                    : `Send ${sendableSelected.length > 0 ? `${sendableSelected.length} ` : ""}selected`}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setDrawerOpen(true);
+                  }}
+                >
+                  New invitation
+                </Button>
+              </>
+            ) : null}
+          </div>
         </div>
-        {invitations.length === 0 ? (
+        {filteredInvitations.length === 0 ? (
           <Card>No invitations yet.</Card>
         ) : (
           <Table>
@@ -241,11 +176,11 @@ export function InvitationsPanel({
                 <Th>Contact</Th>
                 <Th>Status</Th>
                 <Th>Category</Th>
-                {canWrite ? <Th>Actions</Th> : null}
+                {canWrite ? <Th /> : null}
               </tr>
             </thead>
             <tbody>
-              {invitations.map((invitation) => (
+              {filteredInvitations.map((invitation) => (
                 <tr key={invitation.id} className="border-b border-stone-100">
                   {canWrite ? (
                     <Td>
@@ -273,13 +208,13 @@ export function InvitationsPanel({
                   <Td>{invitation.category?.name ?? "—"}</Td>
                   {canWrite ? (
                     <Td>
-                      <div className="flex flex-wrap justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1">
                         {RESENDABLE.has(invitation.status) ? (
-                          <Button
+                          <button
                             type="button"
-                            size="sm"
-                            variant="secondary"
+                            title="Resend invitation"
                             disabled={pending}
+                            className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700 disabled:opacity-50"
                             onClick={() =>
                               run(`resend-${invitation.id}`, async () => {
                                 await resendInvitation(
@@ -293,24 +228,22 @@ export function InvitationsPanel({
                               })
                             }
                           >
-                            {pendingKey === `resend-${invitation.id}`
-                              ? "Resending…"
-                              : "Resend"}
-                          </Button>
+                            <RotateCw className="size-4" />
+                          </button>
                         ) : null}
                         {canTransition(
                           invitation.status,
                           InvitationStatus.CANCELLED,
                         ) ? (
-                          <Button
+                          <button
                             type="button"
-                            size="sm"
-                            variant="destructive"
+                            title="Cancel invitation"
                             disabled={pending}
+                            className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-danger disabled:opacity-50"
                             onClick={() => setCancelTarget(invitation)}
                           >
-                            Cancel
-                          </Button>
+                            <XCircle className="size-4" />
+                          </button>
                         ) : null}
                       </div>
                     </Td>
@@ -321,6 +254,104 @@ export function InvitationsPanel({
           </Table>
         )}
       </div>
+
+      <Drawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title="Create invitations"
+        description="Contacts without an active invitation. Creating a draft is not the same as sending, and sending is not registration."
+      >
+        {uninvited.length === 0 ? (
+          <p className="text-sm text-stone-700">
+            Every contact already has an active invitation.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <label className="text-sm text-stone-700">
+              Category
+              <select
+                className="mt-1 block h-10 w-full rounded-sm border border-stone-300 bg-stone-0 px-3 text-sm text-ink-700"
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+              >
+                <option value="">None</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Table>
+              <thead>
+                <tr className="border-b border-stone-200">
+                  <Th>
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-ink-700"
+                      checked={allUninvitedSelected}
+                      onChange={() =>
+                        setSelectedContacts(
+                          allUninvitedSelected
+                            ? []
+                            : uninvited.map((c) => c.id),
+                        )
+                      }
+                      aria-label="Select all uninvited"
+                    />
+                  </Th>
+                  <Th>Name</Th>
+                  <Th>Email</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {uninvited.map((contact) => (
+                  <tr key={contact.id} className="border-b border-stone-100">
+                    <Td>
+                      <input
+                        type="checkbox"
+                        className="size-4 accent-ink-700"
+                        checked={selectedContacts.includes(contact.id)}
+                        onChange={() =>
+                          setSelectedContacts((list) =>
+                            toggle(list, contact.id),
+                          )
+                        }
+                        aria-label={`Select ${contact.email}`}
+                      />
+                    </Td>
+                    <Td>{displayName(contact)}</Td>
+                    <Td>{contact.email}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                disabled={pending || selectedContacts.length === 0}
+                onClick={() =>
+                  run("create", async () => {
+                    const result = await createInvitationsForContacts(
+                      orgSlug,
+                      eventId,
+                      selectedContacts,
+                      categoryId || undefined,
+                    );
+                    setSelectedContacts([]);
+                    setDrawerOpen(false);
+                    setMessage(`Created ${result.created} invitation(s).`);
+                  })
+                }
+              >
+                {pendingKey === "create"
+                  ? "Creating…"
+                  : `Create ${selectedContacts.length > 0 ? `${selectedContacts.length} ` : ""}invitation(s)`}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Drawer>
 
       <ConfirmDialog
         open={Boolean(cancelTarget)}

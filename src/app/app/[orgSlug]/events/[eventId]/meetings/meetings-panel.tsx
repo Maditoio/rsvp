@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Calendar, Clock } from "lucide-react";
 import { saveMeetingRoom, assignMeetingSlot, autoScheduleSingle, autoScheduleAll } from "@/modules/meetings/actions";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
@@ -149,11 +150,11 @@ export function MeetingsPanel({
                       <Td>
                         <div className="flex items-center gap-1">
                           {!row.when ? (
-                            <Button
+                            <button
                               type="button"
-                              size="sm"
-                              variant="secondary"
+                              title="Auto-schedule"
                               disabled={pending}
+                              className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700 disabled:opacity-50"
                               onClick={() => {
                                 setError(null);
                                 const fd = new FormData();
@@ -168,21 +169,21 @@ export function MeetingsPanel({
                                 });
                               }}
                             >
-                              Auto
-                            </Button>
+                              <Calendar className="size-4" />
+                            </button>
                           ) : null}
-                          <Button
+                          <button
                             type="button"
-                            size="sm"
-                            variant="secondary"
+                            title="Assign room and time"
+                            className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700"
                             onClick={() => {
                               setAssignTarget(row);
                               setError(null);
                               setAssignOpen(true);
                             }}
                           >
-                            Assign
-                          </Button>
+                            <Clock className="size-4" />
+                          </button>
                         </div>
                       </Td>
                     ) : null}

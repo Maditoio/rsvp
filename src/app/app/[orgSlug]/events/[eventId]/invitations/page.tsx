@@ -26,7 +26,7 @@ export default async function InvitationsPage({
         id: true,
         status: true,
         contact: { select: { firstName: true, lastName: true, email: true } },
-        category: { select: { name: true } },
+        category: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -59,8 +59,11 @@ export default async function InvitationsPage({
 
   return (
     <div>
-      <h1 className="mb-2 font-display text-3xl text-ink-800">Invitations</h1>
-      <p className="mb-6 text-sm text-stone-700">
+      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        Communications
+      </p>
+      <h1 className="mt-1 font-display text-3xl text-ink-800">Invitations</h1>
+      <p className="mt-1 mb-6 text-sm text-stone-700">
         Invitation status is independent of registration. Accepted is not
         registered.
       </p>

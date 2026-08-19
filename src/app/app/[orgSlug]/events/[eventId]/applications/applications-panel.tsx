@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Eye } from "lucide-react";
 import { decideApplication } from "@/modules/applications/actions";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
@@ -87,18 +88,18 @@ export function ApplicationsPanel({
               <Td className="text-stone-700">{row.createdAt}</Td>
               {canDecide ? (
                 <Td>
-                  <Button
+                  <button
                     type="button"
-                    size="sm"
-                    variant="secondary"
+                    title="Review application"
+                    className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700"
                     onClick={() => {
                       setCurrent(row);
                       setError(null);
                       setOpen(true);
                     }}
                   >
-                    Review
-                  </Button>
+                    <Eye className="size-4" />
+                  </button>
                 </Td>
               ) : null}
             </tr>

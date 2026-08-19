@@ -2,13 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Check, XCircle } from "lucide-react";
 import {
   cancelAttendeeRegistration,
   cancelRegistration,
   confirmAttendeeRegistration,
   confirmRegistration,
 } from "@/modules/registrations/organiser-actions";
-import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Intent = "confirm" | "cancel";
@@ -69,27 +69,28 @@ export function RegistrationStatusActions({
 
   return (
     <div className="flex flex-col items-end gap-2">
-      <div className="flex flex-wrap justify-end gap-2">
+      <div className="flex items-center justify-end gap-1">
         {canConfirm ? (
-          <Button
+          <button
             type="button"
-            size="sm"
+            title="Confirm registration"
             disabled={pending}
+            className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700 disabled:opacity-50"
             onClick={() => setIntent("confirm")}
           >
-            Confirm
-          </Button>
+            <Check className="size-4" />
+          </button>
         ) : null}
         {canCancel ? (
-          <Button
+          <button
             type="button"
-            size="sm"
-            variant="destructive"
+            title="Cancel registration"
             disabled={pending}
+            className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-danger disabled:opacity-50"
             onClick={() => setIntent("cancel")}
           >
-            Cancel
-          </Button>
+            <XCircle className="size-4" />
+          </button>
         ) : null}
       </div>
       {error ? <p className="text-xs text-danger">{error}</p> : null}

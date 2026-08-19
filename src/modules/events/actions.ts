@@ -173,15 +173,24 @@ export async function updateEventSettings(
     eventEndTime: input.eventEndTime,
   };
 
-  await prisma.eventSettings.upsert({
-    where: { eventId },
-    create: {
-      organisationId: ctx.organisation.id,
-      eventId,
-      ...settingsData,
-    },
-    update: settingsData,
-  });
+  try {
+    await prisma.eventSettings.upsert({
+      where: { eventId },
+      create: {
+        organisationId: ctx.organisation.id,
+        eventId,
+        ...settingsData,
+      },
+      update: settingsData,
+    });
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("does not exist")) {
+      throw new Error(
+        "A database update is in progress. Please try again in a moment.",
+      );
+    }
+    throw new Error("Something went wrong. Please try again.");
+  }
 
   await writeAudit({
     organisationId: ctx.organisation.id,
