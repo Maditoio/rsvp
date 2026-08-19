@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Table, Td, Th } from "@/components/ui/table";
 import { humanizeEnum } from "@/lib/utils";
 
@@ -259,16 +260,16 @@ export function MeetingsPanel({
             {rooms.length > 0 ? (
               <div>
                 <Label htmlFor="assign-roomId">Room</Label>
-                <select
+                <Select
                   id="assign-roomId"
                   name="roomId"
-                  className="mt-1 block w-full rounded-sm border border-stone-200 bg-stone-0 px-3 py-2 text-sm text-ink-800"
+                  className="mt-1"
                 >
                   <option value="">No room</option>
                   {rooms.map((room) => (
                     <option key={room.id} value={room.id}>{room.name}</option>
                   ))}
-                </select>
+                </Select>
               </div>
             ) : null}
             <div>

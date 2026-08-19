@@ -6,8 +6,8 @@ import { Eye } from "lucide-react";
 import { decideApplication } from "@/modules/applications/actions";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
-import { Badge } from "@/components/ui/badge";
 import { Table, Td, Th } from "@/components/ui/table";
+import { StatusBadge } from "@/components/status-badge";
 import { displayName, humanizeEnum } from "@/lib/utils";
 
 type ApplicationRow = {
@@ -73,17 +73,7 @@ export function ApplicationsPanel({
                 {[row.jobTitle, row.company].filter(Boolean).join(" · ") || "—"}
               </Td>
               <Td>
-                <Badge
-                  tone={
-                    row.status === "APPROVED"
-                      ? "success"
-                      : row.status === "REJECTED"
-                        ? "danger"
-                        : "warning"
-                  }
-                >
-                  {humanizeEnum(row.status)}
-                </Badge>
+                <StatusBadge status={row.status} />
               </Td>
               <Td className="text-stone-700">{row.createdAt}</Td>
               {canDecide ? (

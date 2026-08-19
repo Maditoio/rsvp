@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Drawer } from "@/components/ui/drawer";
+import { Select } from "@/components/ui/select";
 import { Table, Td, Th } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
 import { displayName } from "@/lib/utils";
@@ -119,8 +120,8 @@ export function InvitationsPanel({
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-2xl text-ink-800">Invitations</h2>
           <div className="flex flex-wrap items-center gap-2">
-            <select
-              className="h-9 rounded-sm border border-stone-300 bg-stone-0 px-3 text-sm text-ink-700"
+            <Select
+              className="h-9 w-auto px-3 text-sm"
               value={filterCategoryId}
               onChange={(e) => setFilterCategoryId(e.target.value)}
             >
@@ -130,7 +131,7 @@ export function InvitationsPanel({
                   {c.name}
                 </option>
               ))}
-            </select>
+            </Select>
             {canWrite ? (
               <>
                 <Button
@@ -269,8 +270,8 @@ export function InvitationsPanel({
           <div className="space-y-4">
             <label className="text-sm text-stone-700">
               Category
-              <select
-                className="mt-1 block h-10 w-full rounded-sm border border-stone-300 bg-stone-0 px-3 text-sm text-ink-700"
+              <Select
+                className="mt-1"
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
               >
@@ -280,7 +281,7 @@ export function InvitationsPanel({
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <Table>
               <thead>

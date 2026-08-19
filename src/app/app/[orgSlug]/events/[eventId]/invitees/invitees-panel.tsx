@@ -168,8 +168,8 @@ export function InviteesPanel({
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <select
-              className="h-9 rounded-sm border border-stone-300 bg-stone-0 px-3 text-sm text-ink-700"
+            <Select
+              className="h-9 w-auto px-3 text-sm"
               value={filterCategoryId}
               onChange={(e) => setFilterCategoryId(e.target.value)}
             >
@@ -179,11 +179,11 @@ export function InviteesPanel({
                   {c.name}
                 </option>
               ))}
-            </select>
+            </Select>
             {canInvite && uninvitedSelected.length > 0 ? (
               <div className="flex items-center gap-2">
-                <select
-                  className="h-9 rounded-sm border border-stone-300 bg-stone-0 px-3 text-sm text-ink-700"
+                <Select
+                  className="h-9 w-auto px-3 text-sm"
                   value={bulkCategoryId}
                   onChange={(e) => setBulkCategoryId(e.target.value)}
                 >
@@ -193,7 +193,7 @@ export function InviteesPanel({
                       {c.name}
                     </option>
                   ))}
-                </select>
+                </Select>
                 <Button
                   type="button"
                   disabled={pending}

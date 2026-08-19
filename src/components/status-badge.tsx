@@ -23,6 +23,9 @@ const TONE: Record<
   REGISTERED: "default",
   CHECKED_IN: "success",
   NO_SHOW: "warning",
+  PENDING: "warning",
+  APPROVED: "success",
+  REJECTED: "danger",
 };
 
 export function StatusBadge({ status }: { status: string }) {
