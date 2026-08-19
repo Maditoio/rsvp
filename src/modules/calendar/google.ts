@@ -19,7 +19,13 @@ function getClientSecret() {
   return secret;
 }
 
-export function getGoogleAuthUrl(redirectUri: string, state: string): string {
+/** Fixed redirect URI — register exactly this URL in Google Cloud Console. */
+export function getGoogleRedirectUri(appUrl: string) {
+  return `${appUrl.replace(/\/$/, "")}/api/auth/google/callback`;
+}
+
+export function getGoogleAuthUrl(appUrl: string, state: string): string {
+  const redirectUri = getGoogleRedirectUri(appUrl);
   const params = new URLSearchParams({
     client_id: getClientId(),
     redirect_uri: redirectUri,
@@ -39,7 +45,8 @@ const tokenResponseSchema = z.object({
   token_type: z.string(),
 });
 
-export async function exchangeGoogleCode(code: string, redirectUri: string) {
+export async function exchangeGoogleCode(code: string, appUrl: string) {
+  const redirectUri = getGoogleRedirectUri(appUrl);
   const res = await fetch(GOOGLE_TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },

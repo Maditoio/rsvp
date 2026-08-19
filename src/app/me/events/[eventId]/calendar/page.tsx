@@ -28,9 +28,8 @@ export default async function CalendarPage({
     select: { id: true, provider: true, expiresAt: true },
   });
 
-  const redirectUri = `${getAppUrl()}/me/events/${eventId}/calendar/callback`;
-  const state = eventId;
-  const googleAuthUrl = getGoogleAuthUrl(redirectUri, state);
+  const appUrl = getAppUrl();
+  const googleAuthUrl = getGoogleAuthUrl(appUrl, eventId);
 
   return (
     <div className="space-y-6">

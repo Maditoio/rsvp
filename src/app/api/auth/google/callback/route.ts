@@ -5,35 +5,37 @@ import { exchangeGoogleCode } from "@/modules/calendar/google";
 import { writeAudit } from "@/modules/audit/log";
 import { getAppUrl } from "@/lib/utils";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ eventId: string }> },
-) {
-  const { eventId } = await params;
-  const user = await requireUser();
-
+export async function GET(request: NextRequest) {
+  const appUrl = getAppUrl();
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const error = url.searchParams.get("error");
+  const eventId = url.searchParams.get("state")?.trim() ?? "";
 
-  const calendarUrl = `${getAppUrl()}/me/events/${eventId}/calendar`;
+  const fallbackUrl = eventId
+    ? `${appUrl}/me/events/${eventId}/calendar`
+    : `${appUrl}/me`;
 
-  if (error || !code) {
-    return NextResponse.redirect(`${calendarUrl}?error=access_denied`);
+  if (!eventId) {
+    return NextResponse.redirect(`${fallbackUrl}?error=invalid_state`);
   }
 
-  const redirectUri = `${getAppUrl()}/me/events/${eventId}/calendar/callback`;
+  if (error || !code) {
+    return NextResponse.redirect(`${fallbackUrl}?error=access_denied`);
+  }
 
   try {
-    const tokens = await exchangeGoogleCode(code, redirectUri);
+    const user = await requireUser();
 
     const attendee = await prisma.attendee.findFirst({
       where: { eventId, userId: user.id },
       select: { organisationId: true },
     });
     if (!attendee) {
-      return NextResponse.redirect(`${calendarUrl}?error=not_registered`);
+      return NextResponse.redirect(`${fallbackUrl}?error=not_registered`);
     }
+
+    const tokens = await exchangeGoogleCode(code, appUrl);
 
     const existing = await prisma.calendarConnection.findFirst({
       where: { userId: user.id, provider: "google" },
@@ -71,8 +73,8 @@ export async function GET(
       metadata: { provider: "google" },
     });
 
-    return NextResponse.redirect(calendarUrl);
+    return NextResponse.redirect(fallbackUrl);
   } catch {
-    return NextResponse.redirect(`${calendarUrl}?error=exchange_failed`);
+    return NextResponse.redirect(`${fallbackUrl}?error=exchange_failed`);
   }
 }
