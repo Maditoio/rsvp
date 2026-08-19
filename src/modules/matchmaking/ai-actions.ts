@@ -29,11 +29,11 @@ export async function getAiInsight(eventId: string, targetAttendeeId: string) {
     select: { aiInsightsEnabled: true },
   });
   if (!settings?.aiInsightsEnabled) {
-    throw new Error("AI insights are not enabled for this event");
+    throw new Error("AI insights are not enabled for this event.");
   }
 
   if (!me.privacy?.aiInsightsOptIn) {
-    throw new Error("You have not opted in to AI insights");
+    throw new Error("Enable AI insights in your privacy settings first.");
   }
 
   const target = await prisma.attendee.findFirst({
@@ -47,7 +47,7 @@ export async function getAiInsight(eventId: string, targetAttendeeId: string) {
   if (!target) throw new Error("Attendee not found");
 
   if (!target.privacy?.aiInsightsOptIn) {
-    throw new Error("This attendee has not opted in to AI insights");
+    throw new Error("This attendee has not enabled AI insights.");
   }
 
   const rl = await rateLimit(`ai-insight:${me.id}`, 20, 3600);

@@ -70,10 +70,24 @@ export async function rankedDirectory(eventId: string): Promise<RankedDirectory>
   });
   if (!me) throw new AuthzError("You are not registered for this event", 403);
 
+  const existingRequests = await prisma.meetingRequest.findMany({
+    where: {
+      eventId,
+      status: { in: ["PENDING", "ACCEPTED"] },
+      OR: [{ requesterId: me.id }, { targetId: me.id }],
+    },
+    select: { requesterId: true, targetId: true },
+  });
+  const excludedIds = new Set(
+    existingRequests.map((r) =>
+      r.requesterId === me.id ? r.targetId : r.requesterId,
+    ),
+  );
+
   const others = await prisma.attendee.findMany({
     where: forOrganisation(me.organisationId, {
       eventId,
-      id: { not: me.id },
+      id: { not: me.id, notIn: [...excludedIds] },
     }),
     include: directoryInclude,
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
