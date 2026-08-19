@@ -80,6 +80,9 @@ export default async function EventDashboardPage({
     ["Declined", counts.declined],
     ["Pending", counts.pending],
     ["Checked in", counts.checkedIn],
+    ["Matchmaking profiles", counts.matchmakingEnabled],
+    ["Meetings scheduled", counts.meetingsScheduled],
+    ["Meeting requests", counts.meetingRequestsPending],
   ] as const;
 
   return (

@@ -6,6 +6,9 @@ import { prisma } from "@/lib/db/prisma";
 import { requireEvent, requireUser } from "@/lib/authz/require";
 import { writeAudit } from "@/modules/audit/log";
 import { AuthzError } from "@/lib/db/tenant";
+import { rateLimit } from "@/lib/rate-limit";
+import { syncCalendarForMeeting } from "@/modules/calendar/sync";
+import { autoScheduleMeeting } from "@/modules/meetings/scheduler";
 
 async function myAttendee(eventId: string) {
   const user = await requireUser();
@@ -23,6 +26,26 @@ export async function requestMeeting(eventId: string, formData: FormData) {
     String(formData.get("message") ?? ""),
   );
   if (targetId === requester.id) throw new Error("You cannot request a meeting with yourself.");
+
+  const limited = await rateLimit(`meeting-req:${requester.id}`, 10, 60);
+  if (!limited.success) throw new Error("Too many requests. Please wait before trying again.");
+
+  const pendingCount = await prisma.meetingRequest.count({
+    where: { eventId, requesterId: requester.id, status: "PENDING" },
+  });
+  if (pendingCount >= 20) {
+    throw new Error(
+      "You have too many pending meeting requests. Wait for responses before sending more.",
+    );
+  }
+
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const dailyCount = await prisma.meetingRequest.count({
+    where: { eventId, requesterId: requester.id, createdAt: { gte: oneDayAgo } },
+  });
+  if (dailyCount >= 50) {
+    throw new Error("Daily meeting request limit reached. Try again tomorrow.");
+  }
 
   const target = await prisma.attendee.findFirst({
     where: { id: targetId, eventId, organisationId: requester.organisationId },
@@ -77,15 +100,41 @@ export async function respondToMeeting(eventId: string, formData: FormData) {
       data: { status: "DECLINED" },
     });
   } else {
-    await prisma.$transaction(async (tx) => {
+    const roomId = String(formData.get("roomId") ?? "").trim() || null;
+    const startsAtRaw = String(formData.get("startsAt") ?? "").trim();
+    const endsAtRaw = String(formData.get("endsAt") ?? "").trim();
+    const startsAt = startsAtRaw ? new Date(startsAtRaw) : null;
+    const endsAt = endsAtRaw ? new Date(endsAtRaw) : null;
+
+    if (startsAt && endsAt && endsAt <= startsAt) {
+      throw new Error("End time must be after start time");
+    }
+
+    if (roomId && startsAt && endsAt) {
+      const conflict = await prisma.meeting.findFirst({
+        where: {
+          roomId,
+          eventId,
+          status: { not: "CANCELLED" },
+          startsAt: { lt: endsAt },
+          endsAt: { gt: startsAt },
+        },
+      });
+      if (conflict) throw new Error("This room is already booked for the selected time");
+    }
+
+    const meeting = await prisma.$transaction(async (tx) => {
       await tx.meetingRequest.update({
         where: { id: request.id },
         data: { status: "ACCEPTED" },
       });
-      const meeting = await tx.meeting.create({
+      const m = await tx.meeting.create({
         data: {
           organisationId: attendee.organisationId,
           eventId,
+          roomId,
+          startsAt,
+          endsAt,
           status: "SCHEDULED",
         },
       });
@@ -94,20 +143,82 @@ export async function respondToMeeting(eventId: string, formData: FormData) {
           {
             organisationId: attendee.organisationId,
             eventId,
-            meetingId: meeting.id,
+            meetingId: m.id,
             attendeeId: request.requesterId,
           },
           {
             organisationId: attendee.organisationId,
             eventId,
-            meetingId: meeting.id,
+            meetingId: m.id,
             attendeeId: request.targetId,
           },
         ],
       });
+      return m;
     });
+
+    const shouldAutoSchedule = !startsAt && !endsAt && String(formData.get("autoSchedule") ?? "") === "on";
+    if (shouldAutoSchedule) {
+      try {
+        await autoScheduleMeeting(eventId, meeting.id);
+      } catch { /* non-blocking */ }
+    }
+
+    if (meeting.startsAt && meeting.endsAt) {
+      try {
+        await syncCalendarForMeeting(meeting.id);
+      } catch { /* calendar failures must not block (spec §105-106) */ }
+    }
   }
   revalidatePath(`/me/events/${eventId}/meetings`);
+}
+
+export async function assignMeetingSlot(orgSlug: string, eventId: string, formData: FormData) {
+  const ctx = await requireEvent(orgSlug, eventId, "event.update");
+  const meetingId = z.string().min(1).parse(String(formData.get("meetingId") ?? ""));
+  const roomId = String(formData.get("roomId") ?? "").trim() || null;
+  const startsAtRaw = String(formData.get("startsAt") ?? "").trim();
+  const endsAtRaw = String(formData.get("endsAt") ?? "").trim();
+  const startsAt = startsAtRaw ? new Date(startsAtRaw) : null;
+  const endsAt = endsAtRaw ? new Date(endsAtRaw) : null;
+
+  if (startsAt && endsAt && endsAt <= startsAt) {
+    throw new Error("End time must be after start time");
+  }
+
+  const meeting = await prisma.meeting.findFirst({
+    where: { id: meetingId, eventId, organisationId: ctx.organisation.id },
+  });
+  if (!meeting) throw new Error("Meeting not found");
+
+  if (roomId && startsAt && endsAt) {
+    const conflict = await prisma.meeting.findFirst({
+      where: {
+        id: { not: meetingId },
+        roomId,
+        eventId,
+        status: { not: "CANCELLED" },
+        startsAt: { lt: endsAt },
+        endsAt: { gt: startsAt },
+      },
+    });
+    if (conflict) throw new Error("This room is already booked for the selected time");
+  }
+
+  await prisma.meeting.update({
+    where: { id: meetingId },
+    data: { roomId, startsAt, endsAt },
+  });
+
+  await writeAudit({
+    organisationId: ctx.organisation.id,
+    eventId,
+    userId: ctx.user.id,
+    action: "meeting.assign_slot",
+    resource: "meeting",
+    resourceId: meetingId,
+  });
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/meetings`);
 }
 
 export async function saveMeetingRoom(orgSlug: string, eventId: string, formData: FormData) {
@@ -131,4 +242,71 @@ export async function saveMeetingRoom(orgSlug: string, eventId: string, formData
     resource: "meeting_room",
   });
   revalidatePath(`/app/${orgSlug}/events/${eventId}/meetings`);
+}
+
+export async function autoScheduleSingle(orgSlug: string, eventId: string, formData: FormData) {
+  const ctx = await requireEvent(orgSlug, eventId, "event.update");
+  const meetingId = z.string().min(1).parse(String(formData.get("meetingId") ?? ""));
+
+  const meeting = await prisma.meeting.findFirst({
+    where: { id: meetingId, eventId, organisationId: ctx.organisation.id },
+  });
+  if (!meeting) throw new Error("Meeting not found");
+
+  const slot = await autoScheduleMeeting(eventId, meetingId);
+  if (!slot) throw new Error("No available slots found");
+
+  try {
+    await syncCalendarForMeeting(meetingId);
+  } catch { /* non-blocking */ }
+
+  await writeAudit({
+    organisationId: ctx.organisation.id,
+    eventId,
+    userId: ctx.user.id,
+    action: "meeting.auto_schedule",
+    resource: "meeting",
+    resourceId: meetingId,
+  });
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/meetings`);
+}
+
+export async function autoScheduleAll(orgSlug: string, eventId: string) {
+  const ctx = await requireEvent(orgSlug, eventId, "event.update");
+
+  const unscheduled = await prisma.meeting.findMany({
+    where: {
+      eventId,
+      organisationId: ctx.organisation.id,
+      status: "SCHEDULED",
+      startsAt: null,
+    },
+    select: { id: true },
+  });
+
+  let scheduled = 0;
+  let failed = 0;
+
+  for (const m of unscheduled) {
+    const slot = await autoScheduleMeeting(eventId, m.id);
+    if (slot) {
+      scheduled++;
+      try {
+        await syncCalendarForMeeting(m.id);
+      } catch { /* non-blocking */ }
+    } else {
+      failed++;
+    }
+  }
+
+  await writeAudit({
+    organisationId: ctx.organisation.id,
+    eventId,
+    userId: ctx.user.id,
+    action: "meeting.auto_schedule_all",
+    resource: "meeting",
+    metadata: { scheduled, failed, total: unscheduled.length },
+  });
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/meetings`);
+  return { scheduled, failed, total: unscheduled.length };
 }

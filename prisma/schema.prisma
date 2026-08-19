@@ -253,6 +253,9 @@ model EventSettings {
   capacity               Int?
   waitlistEnabled        Boolean @default(false)
   aiInsightsEnabled      Boolean @default(false)
+  meetingDurationMinutes Int     @default(15)
+  eventStartTime         String  @default("09:00")
+  eventEndTime           String  @default("18:00")
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -560,6 +563,7 @@ model Session {
   startsAt       DateTime?
   endsAt         DateTime?
   location       String?
+  capacity       Int?
 
   organisation  Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event         Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -604,6 +608,7 @@ model MatchScore {
   candidateId     String
   score           Float
   reasons         Json?
+  aiInsight       String?
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { writeAudit } from "@/modules/audit/log";
 import { generateOpaqueToken } from "@/lib/crypto/tokens";
+import { rateLimit } from "@/lib/rate-limit";
 import { getAppUrl } from "@/lib/utils";
 import { sendReminderEmail } from "@/modules/communications/email";
 
@@ -15,6 +16,10 @@ export async function sendEventReminders(
   formData: FormData,
 ) {
   const ctx = await requireEvent(orgSlug, eventId, "invitations.write");
+
+  const limited = await rateLimit(`reminders:${eventId}`, 3, 3600);
+  if (!limited.success) throw new Error("Reminder limit reached. Try again later.");
+
   const audience = z.enum(["unaccepted", "unregistered"]).parse(
     String(formData.get("audience") ?? ""),
   );

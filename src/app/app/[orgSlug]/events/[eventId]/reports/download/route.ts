@@ -2,7 +2,9 @@ import { AuthzError } from "@/lib/db/tenant";
 import { redirect } from "next/navigation";
 import {
   exportAttendeesCsv,
+  exportCheckinsCsv,
   exportInviteesCsv,
+  exportMeetingsCsv,
 } from "@/modules/reports/export";
 
 export async function GET(
@@ -12,15 +14,19 @@ export async function GET(
   const { orgSlug, eventId } = await ctx.params;
   const kind = new URL(request.url).searchParams.get("kind");
 
-  if (kind !== "attendees" && kind !== "invitees") {
+  const validKinds = ["attendees", "invitees", "checkins", "meetings"] as const;
+  if (!validKinds.includes(kind as (typeof validKinds)[number])) {
     return new Response("Unknown export kind", { status: 400 });
   }
 
   try {
-    const csv =
-      kind === "attendees"
-        ? await exportAttendeesCsv(orgSlug, eventId)
-        : await exportInviteesCsv(orgSlug, eventId);
+    const exporters = {
+      attendees: exportAttendeesCsv,
+      invitees: exportInviteesCsv,
+      checkins: exportCheckinsCsv,
+      meetings: exportMeetingsCsv,
+    };
+    const csv = await exporters[kind as keyof typeof exporters](orgSlug, eventId);
     const filename = `${kind}-${eventId}.csv`;
     return new Response(`\uFEFF${csv}`, {
       headers: {

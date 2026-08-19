@@ -19,6 +19,7 @@ type SessionRow = {
   endsAt: string;
   startsAtValue: string;
   endsAtValue: string;
+  capacity: number | null;
   registrations: number;
 };
 
@@ -100,7 +101,10 @@ export function AgendaPanel({
                   {row.endsAt ? ` – ${row.endsAt}` : ""}
                 </Td>
                 <Td>{row.location || "—"}</Td>
-                <Td>{row.registrations}</Td>
+                <Td>
+                  {row.registrations}
+                  {row.capacity !== null ? ` / ${row.capacity}` : ""}
+                </Td>
                 {canManage ? (
                   <Td>
                     <Button
@@ -160,6 +164,17 @@ export function AgendaPanel({
           <div>
             <Label htmlFor="location">Location</Label>
             <Input id="location" name="location" defaultValue={editing?.location ?? ""} />
+          </div>
+          <div>
+            <Label htmlFor="capacity">Capacity</Label>
+            <Input
+              id="capacity"
+              name="capacity"
+              type="number"
+              min="1"
+              placeholder="Unlimited"
+              defaultValue={editing?.capacity ?? ""}
+            />
           </div>
           <div>
             <Label htmlFor="startsAt">Starts</Label>

@@ -9,6 +9,9 @@ export async function eventCounts(organisationId: string, eventId: string) {
     registered,
     confirmed,
     checkedIn,
+    matchmakingEnabled,
+    meetingsScheduled,
+    meetingRequestsPending,
   ] = await Promise.all([
     prisma.invitation.count({
       where: {
@@ -35,6 +38,13 @@ export async function eventCounts(organisationId: string, eventId: string) {
       where: { organisationId, eventId, status: "CONFIRMED" },
     }),
     prisma.checkIn.count({ where: { organisationId, eventId } }),
+    prisma.matchmakingProfile.count({ where: { organisationId, eventId } }),
+    prisma.meeting.count({
+      where: { organisationId, eventId, status: "SCHEDULED" },
+    }),
+    prisma.meetingRequest.count({
+      where: { organisationId, eventId, status: "PENDING" },
+    }),
   ]);
 
   return {
@@ -45,5 +55,8 @@ export async function eventCounts(organisationId: string, eventId: string) {
     registered,
     confirmed,
     checkedIn,
+    matchmakingEnabled,
+    meetingsScheduled,
+    meetingRequestsPending,
   };
 }

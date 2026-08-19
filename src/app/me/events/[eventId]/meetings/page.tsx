@@ -25,6 +25,12 @@ export default async function AttendeeMeetingsPage({
     select: { firstName: true, lastName: true, company: true },
   } as const;
 
+  const rooms = await prisma.meetingRoom.findMany({
+    where: { eventId, organisationId: attendee.organisationId },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+
   const [incoming, outgoing, meetings] = await Promise.all([
     prisma.meetingRequest.findMany({
       where: {
@@ -52,6 +58,7 @@ export default async function AttendeeMeetingsPage({
         participants: { some: { attendeeId: attendee.id } },
       },
       include: {
+        room: { select: { name: true } },
         participants: {
           include: {
             attendee: { select: { firstName: true, lastName: true } },
@@ -76,6 +83,7 @@ export default async function AttendeeMeetingsPage({
       </div>
       <AttendeeMeetingsPanel
         eventId={eventId}
+        rooms={rooms}
         incoming={incoming.map((row) => ({
           id: row.id,
           status: row.status,
@@ -96,6 +104,7 @@ export default async function AttendeeMeetingsPage({
           id: row.id,
           status: row.status,
           when: row.startsAt?.toLocaleString("en-GB") ?? "",
+          room: row.room?.name ?? null,
           participants: row.participants
             .map((participant) => displayName(participant.attendee))
             .join(" · "),

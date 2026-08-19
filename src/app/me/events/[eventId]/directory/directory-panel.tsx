@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { requestMeeting } from "@/modules/meetings/actions";
+import { getAiInsight } from "@/modules/matchmaking/ai-actions";
 import { AiInsightTeaser } from "@/components/matchmaking/ai-insight-teaser";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
@@ -40,6 +41,73 @@ export type DirectoryPerson = {
   matchmakingEnabled: boolean;
   matchmakingEligible: boolean;
 };
+
+function AiInsightCard({
+  eventId,
+  targetId,
+  eventAiEnabled = false,
+  attendeeOptIn = false,
+}: {
+  eventId: string;
+  targetId: string;
+  eventAiEnabled?: boolean;
+  attendeeOptIn?: boolean;
+}) {
+  const [insight, setInsight] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!eventAiEnabled) {
+    return (
+      <AiInsightTeaser eventId={eventId} eventAiEnabled={false} attendeeOptIn={attendeeOptIn} />
+    );
+  }
+  if (!attendeeOptIn) {
+    return (
+      <AiInsightTeaser eventId={eventId} eventAiEnabled={true} attendeeOptIn={false} />
+    );
+  }
+
+  if (insight) {
+    return (
+      <div className="rounded-md border border-stone-200 bg-stone-0 px-3 py-2">
+        <Badge tone="accent">AI insight</Badge>
+        <p className="mt-2 text-sm text-stone-700">{insight}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-md border border-stone-200 bg-stone-0 px-3 py-2">
+      <Badge tone="accent">AI insight</Badge>
+      {error ? (
+        <p className="mt-2 text-xs text-danger">{error}</p>
+      ) : null}
+      <div className="mt-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={loading}
+          onClick={async () => {
+            setLoading(true);
+            setError(null);
+            try {
+              const result = await getAiInsight(eventId, targetId);
+              setInsight(result.insight);
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Could not generate insight");
+            } finally {
+              setLoading(false);
+            }
+          }}
+        >
+          {loading ? "Generating…" : "Get AI insight"}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function bandTone(band: MatchBand): "success" | "default" | "muted" {
   if (band === "strong") return "success";
@@ -125,8 +193,9 @@ function PersonCard({
           ) : null}
           {recommended ? (
             <div className="mt-3">
-              <AiInsightTeaser
+              <AiInsightCard
                 eventId={eventId}
+                targetId={person.id}
                 eventAiEnabled={eventAiEnabled}
                 attendeeOptIn={attendeeOptIn}
               />

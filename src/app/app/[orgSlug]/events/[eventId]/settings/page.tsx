@@ -40,6 +40,9 @@ export default async function EventSettingsPage({
           waitlistEnabled: event.settings?.waitlistEnabled ?? false,
           allowPublicApplication,
           aiInsightsEnabled: event.settings?.aiInsightsEnabled ?? false,
+          meetingDurationMinutes: event.settings?.meetingDurationMinutes ?? 15,
+          eventStartTime: event.settings?.eventStartTime ?? "09:00",
+          eventEndTime: event.settings?.eventEndTime ?? "18:00",
         }}
       />
     </div>

@@ -30,6 +30,7 @@ export default async function AgendaPage({
           endsAt: row.endsAt?.toLocaleString("en-GB") ?? "",
           startsAtValue: row.startsAt?.toISOString() ?? "",
           endsAtValue: row.endsAt?.toISOString() ?? "",
+          capacity: row.capacity,
           registrations: row._count.registrations,
         }))}
       />

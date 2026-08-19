@@ -5,6 +5,8 @@ import { useState, useTransition } from "react";
 import { respondToMeeting } from "@/modules/meetings/actions";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, Td, Th } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { displayName, humanizeEnum } from "@/lib/utils";
@@ -18,20 +20,25 @@ type RequestRow = {
   createdAt: string;
 };
 
+type RoomOption = { id: string; name: string };
+
 type MeetingRow = {
   id: string;
   status: string;
   when: string;
+  room: string | null;
   participants: string;
 };
 
 export function AttendeeMeetingsPanel({
   eventId,
+  rooms = [],
   incoming,
   outgoing,
   meetings,
 }: {
   eventId: string;
+  rooms?: RoomOption[];
   incoming: RequestRow[];
   outgoing: RequestRow[];
   meetings: MeetingRow[];
@@ -144,6 +151,7 @@ export function AttendeeMeetingsPanel({
               <thead>
                 <tr>
                   <Th>Participants</Th>
+                  <Th>Room</Th>
                   <Th>When</Th>
                   <Th>Status</Th>
                 </tr>
@@ -152,6 +160,7 @@ export function AttendeeMeetingsPanel({
                 {meetings.map((row) => (
                   <tr key={row.id}>
                     <Td>{row.participants}</Td>
+                    <Td>{row.room || "—"}</Td>
                     <Td>{row.when || "—"}</Td>
                     <Td>{humanizeEnum(row.status)}</Td>
                   </tr>
@@ -214,6 +223,43 @@ export function AttendeeMeetingsPanel({
                 />
                 Decline
               </label>
+            </div>
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+              Optional scheduling
+            </p>
+            <label className="flex items-start gap-3 text-sm text-ink-700">
+              <input
+                type="checkbox"
+                name="autoSchedule"
+                value="on"
+                className="mt-1 size-4 accent-ink-700"
+              />
+              <span>Auto-schedule (find the first available slot)</span>
+            </label>
+            {rooms.length > 0 ? (
+              <div>
+                <Label htmlFor="roomId">Room</Label>
+                <select
+                  id="roomId"
+                  name="roomId"
+                  className="mt-1 block w-full rounded-sm border border-stone-200 bg-stone-0 px-3 py-2 text-sm text-ink-800"
+                >
+                  <option value="">No room</option>
+                  {rooms.map((room) => (
+                    <option key={room.id} value={room.id}>{room.name}</option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="startsAt">Start</Label>
+                <Input id="startsAt" name="startsAt" type="datetime-local" />
+              </div>
+              <div>
+                <Label htmlFor="endsAt">End</Label>
+                <Input id="endsAt" name="endsAt" type="datetime-local" />
+              </div>
             </div>
             {error ? <p className="text-sm text-danger">{error}</p> : null}
             <div className="flex justify-end">

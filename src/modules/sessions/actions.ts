@@ -14,6 +14,7 @@ const sessionSchema = z.object({
   location: z.string().max(160).optional().or(z.literal("")),
   startsAt: z.string().optional().or(z.literal("")),
   endsAt: z.string().optional().or(z.literal("")),
+  capacity: z.string().optional().or(z.literal("")),
 });
 
 function parseDate(value?: string) {
@@ -31,7 +32,12 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
     location: String(formData.get("location") ?? ""),
     startsAt: String(formData.get("startsAt") ?? ""),
     endsAt: String(formData.get("endsAt") ?? ""),
+    capacity: String(formData.get("capacity") ?? ""),
   });
+
+  const capacityValue = input.capacity
+    ? z.coerce.number().int().positive().parse(input.capacity)
+    : null;
 
   const data = {
     organisationId: ctx.organisation.id,
@@ -41,6 +47,7 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
     location: input.location || null,
     startsAt: parseDate(input.startsAt),
     endsAt: parseDate(input.endsAt),
+    capacity: capacityValue,
   };
 
   if (input.sessionId) {
@@ -60,6 +67,7 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
         location: data.location,
         startsAt: data.startsAt,
         endsAt: data.endsAt,
+        capacity: data.capacity,
       },
     });
   } else {
@@ -116,6 +124,14 @@ export async function toggleMySession(eventId: string, formData: FormData) {
   if (existing) {
     await prisma.sessionRegistration.delete({ where: { id: existing.id } });
   } else {
+    if (session.capacity !== null) {
+      const count = await prisma.sessionRegistration.count({
+        where: { sessionId },
+      });
+      if (count >= session.capacity) {
+        throw new Error("This session is full.");
+      }
+    }
     await prisma.sessionRegistration.create({
       data: {
         organisationId: attendee.organisationId,

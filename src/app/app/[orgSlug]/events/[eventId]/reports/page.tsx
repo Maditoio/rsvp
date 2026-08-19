@@ -17,8 +17,8 @@ export default async function ReportsPage({
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <h2 className="font-medium text-gray-800">Invitees</h2>
-          <p className="mt-1 text-sm text-gray-600">
+          <h2 className="font-medium text-ink-700">Invitees</h2>
+          <p className="mt-1 text-sm text-stone-700">
             Contacts for this event with their latest invitation status.
           </p>
           <a
@@ -29,8 +29,8 @@ export default async function ReportsPage({
           </a>
         </Card>
         <Card>
-          <h2 className="font-medium text-gray-800">Attendees</h2>
-          <p className="mt-1 text-sm text-gray-600">
+          <h2 className="font-medium text-ink-700">Attendees</h2>
+          <p className="mt-1 text-sm text-stone-700">
             Registered attendees. Invitation accepted does not appear here until
             they register.
           </p>
@@ -39,6 +39,30 @@ export default async function ReportsPage({
             className="mt-4 inline-flex rounded-sm bg-ink-600 px-4 py-2 text-sm font-medium text-white"
           >
             Download attendees CSV
+          </a>
+        </Card>
+        <Card>
+          <h2 className="font-medium text-ink-700">Check-ins</h2>
+          <p className="mt-1 text-sm text-stone-700">
+            Attendees who have checked in, with timestamps.
+          </p>
+          <a
+            href={`${base}?kind=checkins`}
+            className="mt-4 inline-flex rounded-sm bg-ink-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Download check-ins CSV
+          </a>
+        </Card>
+        <Card>
+          <h2 className="font-medium text-ink-700">Meetings</h2>
+          <p className="mt-1 text-sm text-stone-700">
+            Meeting requests and scheduled meetings between attendees.
+          </p>
+          <a
+            href={`${base}?kind=meetings`}
+            className="mt-4 inline-flex rounded-sm bg-ink-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Download meetings CSV
           </a>
         </Card>
       </div>

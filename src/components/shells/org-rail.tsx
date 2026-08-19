@@ -188,7 +188,7 @@ export function OrgRail({
     <aside
       className={cn(
         "relative hidden h-screen shrink-0 flex-col border-r border-stone-200 bg-stone-0 transition-[width] duration-[220ms] ease-out md:flex motion-reduce:transition-none",
-        collapsed ? "w-16 overflow-hidden" : "w-[220px] overflow-y-auto",
+        collapsed ? "w-16 overflow-hidden" : "w-[220px] overflow-y-auto overflow-x-hidden",
       )}
       style={{ willChange: "width" }}
     >
@@ -223,7 +223,7 @@ export function OrgRail({
       </div>
 
       {/* Primary nav */}
-      <nav className="flex flex-1 flex-col gap-1 p-3">
+      <nav className="flex min-w-0 flex-1 flex-col gap-1 p-3">
         {primary.map((item) => (
           <NavLink
             key={item.href}

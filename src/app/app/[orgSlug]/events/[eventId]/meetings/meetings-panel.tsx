@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { saveMeetingRoom } from "@/modules/meetings/actions";
+import { saveMeetingRoom, assignMeetingSlot, autoScheduleSingle, autoScheduleAll } from "@/modules/meetings/actions";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
@@ -34,7 +34,10 @@ export function MeetingsPanel({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignTarget, setAssignTarget] = useState<MeetingRow | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [bulkResult, setBulkResult] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   return (
@@ -51,17 +54,47 @@ export function MeetingsPanel({
           </p>
         </div>
         {canManage ? (
-          <Button
-            type="button"
-            onClick={() => {
-              setError(null);
-              setOpen(true);
-            }}
-          >
-            Add room
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={pending}
+              onClick={() => {
+                setError(null);
+                setBulkResult(null);
+                start(async () => {
+                  try {
+                    const result = await autoScheduleAll(orgSlug, eventId);
+                    setBulkResult(
+                      `${result.scheduled} of ${result.total} meetings scheduled.${result.failed > 0 ? ` ${result.failed} could not be scheduled (no available slots).` : ""}`,
+                    );
+                    router.refresh();
+                  } catch (e) {
+                    setError(e instanceof Error ? e.message : "Auto-schedule failed");
+                  }
+                });
+              }}
+            >
+              {pending ? "Scheduling…" : "Auto-schedule all"}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setOpen(true);
+              }}
+            >
+              Add room
+            </Button>
+          </div>
         ) : null}
       </div>
+
+      {bulkResult ? (
+        <p className="rounded-md border border-moss-200 bg-moss-50 px-3 py-2 text-sm text-moss-800">
+          {bulkResult}
+        </p>
+      ) : null}
 
       <div>
         <h2 className="font-display text-xl text-ink-800">Rooms</h2>
@@ -102,6 +135,7 @@ export function MeetingsPanel({
                   <Th>Room</Th>
                   <Th>When</Th>
                   <Th>Status</Th>
+                  {canManage ? <Th></Th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -111,6 +145,47 @@ export function MeetingsPanel({
                     <Td>{row.room || "—"}</Td>
                     <Td>{row.when || "—"}</Td>
                     <Td>{humanizeEnum(row.status)}</Td>
+                    {canManage ? (
+                      <Td>
+                        <div className="flex items-center gap-1">
+                          {!row.when ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              disabled={pending}
+                              onClick={() => {
+                                setError(null);
+                                const fd = new FormData();
+                                fd.set("meetingId", row.id);
+                                start(async () => {
+                                  try {
+                                    await autoScheduleSingle(orgSlug, eventId, fd);
+                                    router.refresh();
+                                  } catch (e) {
+                                    setError(e instanceof Error ? e.message : "Auto-schedule failed");
+                                  }
+                                });
+                              }}
+                            >
+                              Auto
+                            </Button>
+                          ) : null}
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setAssignTarget(row);
+                              setError(null);
+                              setAssignOpen(true);
+                            }}
+                          >
+                            Assign
+                          </Button>
+                        </div>
+                      </Td>
+                    ) : null}
                   </tr>
                 ))}
               </tbody>
@@ -154,6 +229,61 @@ export function MeetingsPanel({
             <Button disabled={pending}>{pending ? "Saving…" : "Add room"}</Button>
           </div>
         </form>
+      </Drawer>
+
+      <Drawer
+        open={assignOpen}
+        onClose={() => setAssignOpen(false)}
+        title="Assign room and time"
+        description={assignTarget ? `Schedule ${assignTarget.participants}` : undefined}
+        size="sm"
+      >
+        {assignTarget ? (
+          <form
+            className="space-y-4"
+            action={(formData) => {
+              setError(null);
+              start(async () => {
+                try {
+                  await assignMeetingSlot(orgSlug, eventId, formData);
+                  setAssignOpen(false);
+                  router.refresh();
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Could not assign slot");
+                }
+              });
+            }}
+          >
+            <input type="hidden" name="meetingId" value={assignTarget.id} />
+            {rooms.length > 0 ? (
+              <div>
+                <Label htmlFor="assign-roomId">Room</Label>
+                <select
+                  id="assign-roomId"
+                  name="roomId"
+                  className="mt-1 block w-full rounded-sm border border-stone-200 bg-stone-0 px-3 py-2 text-sm text-ink-800"
+                >
+                  <option value="">No room</option>
+                  {rooms.map((room) => (
+                    <option key={room.id} value={room.id}>{room.name}</option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+            <div>
+              <Label htmlFor="assign-startsAt">Start</Label>
+              <Input id="assign-startsAt" name="startsAt" type="datetime-local" />
+            </div>
+            <div>
+              <Label htmlFor="assign-endsAt">End</Label>
+              <Input id="assign-endsAt" name="endsAt" type="datetime-local" />
+            </div>
+            {error ? <p className="text-sm text-danger">{error}</p> : null}
+            <div className="flex justify-end">
+              <Button disabled={pending}>{pending ? "Saving…" : "Assign"}</Button>
+            </div>
+          </form>
+        ) : null}
       </Drawer>
     </div>
   );

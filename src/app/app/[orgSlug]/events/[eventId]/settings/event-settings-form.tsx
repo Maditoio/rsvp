@@ -26,6 +26,9 @@ export function EventSettingsForm({
     waitlistEnabled: boolean;
     allowPublicApplication: boolean;
     aiInsightsEnabled: boolean;
+    meetingDurationMinutes: number;
+    eventStartTime: string;
+    eventEndTime: string;
   };
 }) {
   const router = useRouter();
@@ -144,6 +147,44 @@ export function EventSettingsForm({
             </span>
           </span>
         </label>
+
+        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500 pt-2">
+          Scheduling
+        </p>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <Label htmlFor="meetingDurationMinutes">Meeting duration (min)</Label>
+            <Input
+              id="meetingDurationMinutes"
+              name="meetingDurationMinutes"
+              type="number"
+              min={5}
+              max={120}
+              required
+              defaultValue={settings.meetingDurationMinutes}
+            />
+          </div>
+          <div>
+            <Label htmlFor="eventStartTime">Day starts</Label>
+            <Input
+              id="eventStartTime"
+              name="eventStartTime"
+              type="time"
+              required
+              defaultValue={settings.eventStartTime}
+            />
+          </div>
+          <div>
+            <Label htmlFor="eventEndTime">Day ends</Label>
+            <Input
+              id="eventEndTime"
+              name="eventEndTime"
+              type="time"
+              required
+              defaultValue={settings.eventEndTime}
+            />
+          </div>
+        </div>
 
         <div>
           <Label htmlFor="applyUrl">Public apply URL</Label>

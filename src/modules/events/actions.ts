@@ -140,6 +140,9 @@ const eventSettingsSchema = z.object({
   waitlistEnabled: z.boolean(),
   allowPublicApplication: z.boolean(),
   aiInsightsEnabled: z.boolean(),
+  meetingDurationMinutes: z.coerce.number().int().min(5).max(120),
+  eventStartTime: z.string().regex(/^\d{2}:\d{2}$/),
+  eventEndTime: z.string().regex(/^\d{2}:\d{2}$/),
 });
 
 export async function updateEventSettings(
@@ -154,6 +157,9 @@ export async function updateEventSettings(
     waitlistEnabled: formData.get("waitlistEnabled") === "on",
     allowPublicApplication: formData.get("allowPublicApplication") === "on",
     aiInsightsEnabled: formData.get("aiInsightsEnabled") === "on",
+    meetingDurationMinutes: formData.get("meetingDurationMinutes"),
+    eventStartTime: String(formData.get("eventStartTime") ?? "09:00"),
+    eventEndTime: String(formData.get("eventEndTime") ?? "18:00"),
   });
 
   const settingsData = {
@@ -162,6 +168,9 @@ export async function updateEventSettings(
     waitlistEnabled: input.waitlistEnabled,
     allowPublicApplication: input.allowPublicApplication,
     aiInsightsEnabled: input.aiInsightsEnabled,
+    meetingDurationMinutes: input.meetingDurationMinutes,
+    eventStartTime: input.eventStartTime,
+    eventEndTime: input.eventEndTime,
   };
 
   await prisma.eventSettings.upsert({
