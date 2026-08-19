@@ -39,6 +39,7 @@ export function MeetingsPanel({
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignTarget, setAssignTarget] = useState<MeetingRow | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [bulkResult, setBulkResult] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -64,12 +65,21 @@ export function MeetingsPanel({
               onClick={() => {
                 setError(null);
                 setBulkResult(null);
+                setWarning(null);
                 start(async () => {
                   try {
                     const result = await autoScheduleAll(orgSlug, eventId);
-                    setBulkResult(
-                      `${result.scheduled} of ${result.total} meetings scheduled.${result.failed > 0 ? ` ${result.failed} could not be scheduled (no available slots).` : ""}`,
-                    );
+                    const parts = [
+                      `${result.scheduled} of ${result.total} meetings scheduled.`,
+                      result.failed > 0
+                        ? `${result.failed} could not be scheduled.`
+                        : null,
+                      result.error ?? null,
+                      result.calendarWarnings.length > 0
+                        ? result.calendarWarnings.join(" ")
+                        : null,
+                    ].filter(Boolean);
+                    setBulkResult(parts.join(" "));
                     router.refresh();
                   } catch (e) {
                     setError(e instanceof Error ? e.message : "Auto-schedule failed");
@@ -91,6 +101,12 @@ export function MeetingsPanel({
           </div>
         ) : null}
       </div>
+
+      {warning ? (
+        <p className="rounded-md border border-bronze-200 bg-bronze-50 px-3 py-2 text-sm text-bronze-800">
+          {warning}
+        </p>
+      ) : null}
 
       {bulkResult ? (
         <p className="rounded-md border border-moss-200 bg-moss-50 px-3 py-2 text-sm text-moss-800">
@@ -158,11 +174,15 @@ export function MeetingsPanel({
                               className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700 disabled:opacity-50"
                               onClick={() => {
                                 setError(null);
+                                setWarning(null);
                                 const fd = new FormData();
                                 fd.set("meetingId", row.id);
                                 start(async () => {
                                   try {
-                                    await autoScheduleSingle(orgSlug, eventId, fd);
+                                    const result = await autoScheduleSingle(orgSlug, eventId, fd);
+                                    if (result.calendarWarning) {
+                                      setWarning(result.calendarWarning);
+                                    }
                                     router.refresh();
                                   } catch (e) {
                                     setError(e instanceof Error ? e.message : "Auto-schedule failed");
@@ -245,9 +265,13 @@ export function MeetingsPanel({
             className="space-y-4"
             action={(formData) => {
               setError(null);
+              setWarning(null);
               start(async () => {
                 try {
-                  await assignMeetingSlot(orgSlug, eventId, formData);
+                  const result = await assignMeetingSlot(orgSlug, eventId, formData);
+                  if (result.calendarWarning) {
+                    setWarning(result.calendarWarning);
+                  }
                   setAssignOpen(false);
                   router.refresh();
                 } catch (e) {

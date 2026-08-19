@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { prisma } from "@/lib/db/prisma";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
@@ -93,4 +95,74 @@ export async function refreshGoogleToken(refreshToken: string) {
     accessToken: data.access_token,
     expiresAt: new Date(Date.now() + data.expires_in * 1000),
   };
+}
+
+export interface CalendarConnectionRecord {
+  id: string;
+  accessTokenEnc: string;
+  refreshTokenEnc: string | null;
+  expiresAt: Date | null;
+  provider: string;
+}
+
+export async function getValidGoogleAccessToken(
+  connection: CalendarConnectionRecord,
+): Promise<string> {
+  if (connection.expiresAt && connection.expiresAt > new Date(Date.now() + 60_000)) {
+    return connection.accessTokenEnc;
+  }
+  if (!connection.refreshTokenEnc) {
+    throw new Error("Google Calendar access expired. Reconnect your calendar.");
+  }
+  const refreshed = await refreshGoogleToken(connection.refreshTokenEnc);
+  await prisma.calendarConnection.update({
+    where: { id: connection.id },
+    data: {
+      accessTokenEnc: refreshed.accessToken,
+      expiresAt: refreshed.expiresAt,
+    },
+  });
+  return refreshed.accessToken;
+}
+
+const freeBusyResponseSchema = z.object({
+  calendars: z.record(
+    z.string(),
+    z.object({
+      busy: z.array(
+        z.object({
+          start: z.string(),
+          end: z.string(),
+        }),
+      ),
+    }),
+  ),
+});
+
+export async function fetchGoogleFreeBusy(
+  accessToken: string,
+  timeMin: Date,
+  timeMax: Date,
+): Promise<{ start: Date; end: Date }[]> {
+  const res = await fetch(`${GOOGLE_CALENDAR_API}/freeBusy`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      timeMin: timeMin.toISOString(),
+      timeMax: timeMax.toISOString(),
+      items: [{ id: "primary" }],
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Google Calendar free/busy check failed: ${res.status} ${text}`);
+  }
+
+  const data = freeBusyResponseSchema.parse(await res.json());
+  const busy = data.calendars.primary?.busy ?? [];
+  return busy.map((b) => ({ start: new Date(b.start), end: new Date(b.end) }));
 }

@@ -47,10 +47,16 @@ export function AttendeeMeetingsPanel({
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState<RequestRow | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   return (
     <div className="space-y-8">
+      {warning ? (
+        <p className="rounded-md border border-bronze-200 bg-bronze-50 px-3 py-2 text-sm text-bronze-800">
+          {warning}
+        </p>
+      ) : null}
       <section>
         <h2 className="font-display text-xl text-ink-800">Incoming requests</h2>
         {incoming.length === 0 ? (
@@ -182,9 +188,13 @@ export function AttendeeMeetingsPanel({
             className="space-y-4"
             action={(formData) => {
               setError(null);
+              setWarning(null);
               start(async () => {
                 try {
-                  await respondToMeeting(eventId, formData);
+                  const result = await respondToMeeting(eventId, formData);
+                  if (result.calendarWarning) {
+                    setWarning(result.calendarWarning);
+                  }
                   setOpen(false);
                   router.refresh();
                 } catch (e) {

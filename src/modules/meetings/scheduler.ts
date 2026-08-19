@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/db/prisma";
+import {
+  loadGoogleBusyByAttendee,
+  slotFreeOnGoogleCalendars,
+} from "@/modules/calendar/conflicts";
 
 const BUFFER_MINUTES = 5;
 
@@ -33,6 +37,13 @@ function blocksOverlap(a: TimeBlock, b: TimeBlock): boolean {
   return a.start < b.end && b.start < a.end;
 }
 
+export class AutoScheduleError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AutoScheduleError";
+  }
+}
+
 export async function findAvailableSlots(
   eventId: string,
   attendeeIdA: string,
@@ -45,14 +56,20 @@ export async function findAvailableSlots(
   });
   if (!event || !event.startsAt || !event.endsAt) return [];
 
+  const attendeeIds = [attendeeIdA, attendeeIdB];
+
+  const googleBusyByAttendee = await loadGoogleBusyByAttendee(
+    attendeeIds,
+    event.startsAt,
+    event.endsAt,
+  );
+
   const durationMinutes =
     options?.durationMinutes ?? event.settings?.meetingDurationMinutes ?? 15;
   const eventStartTime = event.settings?.eventStartTime ?? "09:00";
   const eventEndTime = event.settings?.eventEndTime ?? "18:00";
   const startMinutes = parseTimeToMinutes(eventStartTime);
   const endMinutes = parseTimeToMinutes(eventEndTime);
-
-  const attendeeIds = [attendeeIdA, attendeeIdB];
 
   const [existingMeetings, sessionRegs, rooms] = await Promise.all([
     prisma.meeting.findMany({
@@ -143,8 +160,14 @@ export async function findAvailableSlots(
 
       const aFree = !busyBlocksA.some((b) => blocksOverlap(candidate, b));
       const bFree = !busyBlocksB.some((b) => blocksOverlap(candidate, b));
+      const googleFree = slotFreeOnGoogleCalendars(
+        googleBusyByAttendee,
+        attendeeIdA,
+        attendeeIdB,
+        candidate,
+      );
 
-      if (aFree && bFree) {
+      if (aFree && bFree && googleFree) {
         for (const room of rooms) {
           const rBusy = roomBusy.get(room.id) ?? [];
           const roomFree = !rBusy.some((b) => blocksOverlap(candidate, b));
@@ -178,13 +201,39 @@ export async function autoScheduleMeeting(
     include: { participants: { select: { attendeeId: true } } },
   });
 
-  if (!meeting || meeting.participants.length < 2) return null;
-  if (meeting.startsAt && meeting.endsAt) return null;
+  if (!meeting || meeting.participants.length < 2) {
+    throw new AutoScheduleError("Meeting must have two participants to schedule.");
+  }
+  if (meeting.startsAt && meeting.endsAt) {
+    throw new AutoScheduleError("This meeting already has a scheduled time.");
+  }
 
   const [a, b] = meeting.participants;
+
+  const rooms = await prisma.meetingRoom.count({
+    where: { eventId, organisationId: meeting.organisationId },
+  });
+  if (rooms === 0) {
+    throw new AutoScheduleError(
+      "Add at least one meeting room before auto-scheduling.",
+    );
+  }
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { startsAt: true, endsAt: true },
+  });
+  if (!event?.startsAt || !event?.endsAt) {
+    throw new AutoScheduleError("Set the event start and end dates before auto-scheduling.");
+  }
+
   const slots = await findAvailableSlots(eventId, a.attendeeId, b.attendeeId);
 
-  if (slots.length === 0) return null;
+  if (slots.length === 0) {
+    throw new AutoScheduleError(
+      "No available slots found. Check meeting rooms, event hours, existing meetings, agenda sessions, and Google Calendar availability.",
+    );
+  }
 
   const slot = slots[0];
   await prisma.meeting.update({

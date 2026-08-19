@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/db/prisma";
-import { refreshGoogleToken } from "./google";
+import {
+  getValidGoogleAccessToken,
+  type CalendarConnectionRecord,
+} from "./google";
 
 /**
  * Microsoft Graph integration patterns (future implementation):
@@ -13,31 +16,7 @@ import { refreshGoogleToken } from "./google";
 
 const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3";
 
-interface CalendarConnectionRecord {
-  id: string;
-  accessTokenEnc: string;
-  refreshTokenEnc: string | null;
-  expiresAt: Date | null;
-  provider: string;
-}
-
-async function getValidAccessToken(connection: CalendarConnectionRecord): Promise<string> {
-  if (connection.expiresAt && connection.expiresAt > new Date(Date.now() + 60_000)) {
-    return connection.accessTokenEnc;
-  }
-  if (!connection.refreshTokenEnc) {
-    throw new Error("No refresh token available and access token expired");
-  }
-  const refreshed = await refreshGoogleToken(connection.refreshTokenEnc);
-  await prisma.calendarConnection.update({
-    where: { id: connection.id },
-    data: {
-      accessTokenEnc: refreshed.accessToken,
-      expiresAt: refreshed.expiresAt,
-    },
-  });
-  return refreshed.accessToken;
-}
+export type { CalendarConnectionRecord };
 
 interface MeetingInfo {
   id: string;
@@ -54,51 +33,108 @@ interface AttendeeInfo {
   lastName: string;
 }
 
+export type CalendarSyncResult = {
+  synced: number;
+  skipped: number;
+  warnings: string[];
+};
+
+function formatSyncWarnings(warnings: string[]): string | undefined {
+  if (warnings.length === 0) return undefined;
+  return warnings.join(" ");
+}
+
 export async function createCalendarEvent(
   meeting: MeetingInfo,
   attendees: AttendeeInfo[],
   connection: CalendarConnectionRecord,
   eventName: string,
   roomName?: string | null,
-): Promise<string | null> {
-  if (connection.provider !== "google") return null;
+): Promise<{ externalId: string } | { error: string }> {
+  if (connection.provider !== "google") {
+    return { error: "Only Google Calendar sync is supported." };
+  }
 
-  const accessToken = await getValidAccessToken(connection);
-  const otherNames = attendees.map((a) => `${a.firstName} ${a.lastName}`).join(", ");
-
-  const body = {
-    summary: `${eventName} — Meeting with ${otherNames}`,
-    location: roomName || meeting.location || undefined,
-    start: { dateTime: meeting.startsAt.toISOString() },
-    end: { dateTime: meeting.endsAt.toISOString() },
-    attendees: attendees.map((a) => ({ email: a.email })),
-  };
-
-  const res = await fetch(`${GOOGLE_CALENDAR_API}/calendars/primary/events`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
+  const existing = await prisma.calendarEvent.findFirst({
+    where: { meetingId: meeting.id, connectionId: connection.id },
+    select: { id: true, externalId: true },
   });
 
-  if (!res.ok) return null;
+  try {
+    const accessToken = await getValidGoogleAccessToken(connection);
+    const otherNames = attendees.map((a) => `${a.firstName} ${a.lastName}`).join(", ");
 
-  const data = await res.json();
-  const externalId = data.id as string;
+    const body = {
+      summary: `${eventName} — Meeting with ${otherNames}`,
+      location: roomName || meeting.location || undefined,
+      start: { dateTime: meeting.startsAt.toISOString() },
+      end: { dateTime: meeting.endsAt.toISOString() },
+      attendees: attendees.map((a) => ({ email: a.email })),
+    };
 
-  await prisma.calendarEvent.create({
-    data: {
-      organisationId: meeting.organisationId,
-      eventId: meeting.eventId,
-      meetingId: meeting.id,
-      connectionId: connection.id,
-      externalId,
-    },
-  });
+    if (existing?.externalId) {
+      const res = await fetch(
+        `${GOOGLE_CALENDAR_API}/calendars/primary/events/${existing.externalId}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        },
+      );
+      if (!res.ok) {
+        const text = await res.text();
+        return {
+          error: `Could not update Google Calendar event (${res.status}). ${text.slice(0, 120)}`,
+        };
+      }
+      return { externalId: existing.externalId };
+    }
 
-  return externalId;
+    const res = await fetch(`${GOOGLE_CALENDAR_API}/calendars/primary/events`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      return {
+        error: `Could not create Google Calendar event (${res.status}). ${text.slice(0, 120)}`,
+      };
+    }
+
+    const data = await res.json();
+    const externalId = data.id as string;
+
+    if (existing) {
+      await prisma.calendarEvent.update({
+        where: { id: existing.id },
+        data: { externalId },
+      });
+    } else {
+      await prisma.calendarEvent.create({
+        data: {
+          organisationId: meeting.organisationId,
+          eventId: meeting.eventId,
+          meetingId: meeting.id,
+          connectionId: connection.id,
+          externalId,
+        },
+      });
+    }
+
+    return { externalId };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Google Calendar sync failed";
+    return { error: message };
+  }
 }
 
 export async function updateCalendarEvent(
@@ -109,27 +145,31 @@ export async function updateCalendarEvent(
 ): Promise<boolean> {
   if (connection.provider !== "google") return false;
 
-  const accessToken = await getValidAccessToken(connection);
+  try {
+    const accessToken = await getValidGoogleAccessToken(connection);
 
-  const body = {
-    start: { dateTime: meeting.startsAt.toISOString() },
-    end: { dateTime: meeting.endsAt.toISOString() },
-    location: roomName || meeting.location || undefined,
-  };
+    const body = {
+      start: { dateTime: meeting.startsAt.toISOString() },
+      end: { dateTime: meeting.endsAt.toISOString() },
+      location: roomName || meeting.location || undefined,
+    };
 
-  const res = await fetch(
-    `${GOOGLE_CALENDAR_API}/calendars/primary/events/${externalId}`,
-    {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const res = await fetch(
+      `${GOOGLE_CALENDAR_API}/calendars/primary/events/${externalId}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    },
-  );
+    );
 
-  return res.ok;
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function deleteCalendarEvent(
@@ -138,26 +178,43 @@ export async function deleteCalendarEvent(
 ): Promise<boolean> {
   if (connection.provider !== "google") return false;
 
-  const accessToken = await getValidAccessToken(connection);
+  try {
+    const accessToken = await getValidGoogleAccessToken(connection);
 
-  const res = await fetch(
-    `${GOOGLE_CALENDAR_API}/calendars/primary/events/${externalId}`,
-    {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${accessToken}` },
-    },
-  );
+    const res = await fetch(
+      `${GOOGLE_CALENDAR_API}/calendars/primary/events/${externalId}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
 
-  return res.ok || res.status === 404 || res.status === 410;
+    return res.ok || res.status === 404 || res.status === 410;
+  } catch {
+    return false;
+  }
 }
 
-export async function syncCalendarForMeeting(meetingId: string) {
+export async function syncCalendarForMeeting(
+  meetingId: string,
+): Promise<CalendarSyncResult> {
+  const warnings: string[] = [];
+  let synced = 0;
+  let skipped = 0;
+
   const meeting = await prisma.meeting.findUnique({
     where: { id: meetingId },
     include: {
       participants: {
         include: {
-          attendee: { select: { email: true, firstName: true, lastName: true, userId: true } },
+          attendee: {
+            select: {
+              email: true,
+              firstName: true,
+              lastName: true,
+              userId: true,
+            },
+          },
         },
       },
       room: { select: { name: true } },
@@ -165,17 +222,49 @@ export async function syncCalendarForMeeting(meetingId: string) {
     },
   });
 
-  if (!meeting || !meeting.startsAt || !meeting.endsAt) return;
+  if (!meeting || !meeting.startsAt || !meeting.endsAt) {
+    return {
+      synced: 0,
+      skipped: 0,
+      warnings: ["Meeting has no scheduled time, so calendars were not updated."],
+    };
+  }
 
-  const userIds = meeting.participants
-    .map((p) => p.attendee.userId)
+  const participants = meeting.participants.map((p) => p.attendee);
+  const linked = participants.filter((a) => a.userId);
+  const unlinked = participants.filter((a) => !a.userId);
+
+  for (const attendee of unlinked) {
+    skipped += 1;
+    warnings.push(
+      `${attendee.firstName} ${attendee.lastName} is not linked to a signed-in account, so their calendar could not be updated.`,
+    );
+  }
+
+  const userIds = linked
+    .map((a) => a.userId)
     .filter((id): id is string => id !== null);
 
-  if (userIds.length === 0) return;
+  if (userIds.length === 0) {
+    return { synced, skipped, warnings };
+  }
 
   const connections = await prisma.calendarConnection.findMany({
-    where: { userId: { in: userIds } },
+    where: { userId: { in: userIds }, provider: "google" },
+    include: { user: { select: { firstName: true, lastName: true, email: true } } },
   });
+
+  const connByUserId = new Map(connections.map((c) => [c.userId, c]));
+
+  for (const attendee of linked) {
+    if (!attendee.userId) continue;
+    if (!connByUserId.has(attendee.userId)) {
+      skipped += 1;
+      warnings.push(
+        `${attendee.firstName} ${attendee.lastName} has not connected Google Calendar.`,
+      );
+    }
+  }
 
   const meetingInfo: MeetingInfo = {
     id: meeting.id,
@@ -185,23 +274,41 @@ export async function syncCalendarForMeeting(meetingId: string) {
     endsAt: meeting.endsAt,
   };
 
-  const attendeeInfos: AttendeeInfo[] = meeting.participants.map((p) => ({
-    email: p.attendee.email,
-    firstName: p.attendee.firstName,
-    lastName: p.attendee.lastName,
+  const attendeeInfos: AttendeeInfo[] = participants.map((a) => ({
+    email: a.email,
+    firstName: a.firstName,
+    lastName: a.lastName,
   }));
 
   for (const conn of connections) {
-    try {
-      await createCalendarEvent(
-        meetingInfo,
-        attendeeInfos,
-        conn,
-        meeting.event.name,
-        meeting.room?.name,
-      );
-    } catch {
-      // Calendar sync failures must not block the platform (spec §105-106)
+    const result = await createCalendarEvent(
+      meetingInfo,
+      attendeeInfos,
+      conn,
+      meeting.event.name,
+      meeting.room?.name,
+    );
+    if ("error" in result) {
+      skipped += 1;
+      const name =
+        [conn.user.firstName, conn.user.lastName].filter(Boolean).join(" ") ||
+        conn.user.email;
+      warnings.push(`${name}: ${result.error}`);
+    } else {
+      synced += 1;
     }
   }
+
+  return { synced, skipped, warnings };
+}
+
+export function calendarSyncWarningMessage(result: CalendarSyncResult): string | undefined {
+  return formatSyncWarnings(result.warnings);
+}
+
+export async function syncMeetingCalendarsWithWarning(
+  meetingId: string,
+): Promise<string | undefined> {
+  const result = await syncCalendarForMeeting(meetingId);
+  return calendarSyncWarningMessage(result);
 }
