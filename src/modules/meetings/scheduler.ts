@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/db/prisma";
 import {
+  eachCalendarDayInRange,
+  utcFromZonedDateTime,
+} from "@/lib/timezone";
+import {
   loadGoogleBusyByAttendee,
   slotFreeOnGoogleCalendars,
 } from "@/modules/calendar/conflicts";
@@ -22,12 +26,6 @@ function addMinutes(date: Date, minutes: number): Date {
   return new Date(date.getTime() + minutes * 60_000);
 }
 
-function startOfDay(date: Date): Date {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
 interface TimeBlock {
   start: Date;
   end: Date;
@@ -48,7 +46,7 @@ export async function findAvailableSlots(
   eventId: string,
   attendeeIdA: string,
   attendeeIdB: string,
-  options?: { durationMinutes?: number },
+  options?: { durationMinutes?: number; excludeMeetingId?: string },
 ): Promise<SlotResult[]> {
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -57,6 +55,7 @@ export async function findAvailableSlots(
   if (!event || !event.startsAt || !event.endsAt) return [];
 
   const attendeeIds = [attendeeIdA, attendeeIdB];
+  const timeZone = event.timezone || "UTC";
 
   const googleBusyByAttendee = await loadGoogleBusyByAttendee(
     attendeeIds,
@@ -70,17 +69,27 @@ export async function findAvailableSlots(
   const eventEndTime = event.settings?.eventEndTime ?? "18:00";
   const startMinutes = parseTimeToMinutes(eventStartTime);
   const endMinutes = parseTimeToMinutes(eventEndTime);
+  const dayStartHour = Math.floor(startMinutes / 60);
+  const dayStartMinute = startMinutes % 60;
+  const dayEndHour = Math.floor(endMinutes / 60);
+  const dayEndMinute = endMinutes % 60;
 
   const [existingMeetings, sessionRegs, rooms] = await Promise.all([
     prisma.meeting.findMany({
       where: {
         eventId,
         status: { not: "CANCELLED" },
+        ...(options?.excludeMeetingId ? { id: { not: options.excludeMeetingId } } : {}),
         participants: { some: { attendeeId: { in: attendeeIds } } },
         startsAt: { not: null },
         endsAt: { not: null },
       },
-      select: { startsAt: true, endsAt: true, roomId: true, participants: { select: { attendeeId: true } } },
+      select: {
+        startsAt: true,
+        endsAt: true,
+        roomId: true,
+        participants: { select: { attendeeId: true } },
+      },
     }),
     prisma.sessionRegistration.findMany({
       where: { eventId, attendeeId: { in: attendeeIds } },
@@ -120,6 +129,7 @@ export async function findAvailableSlots(
     where: {
       eventId,
       status: { not: "CANCELLED" },
+      ...(options?.excludeMeetingId ? { id: { not: options.excludeMeetingId } } : {}),
       roomId: { not: null },
       startsAt: { not: null },
       endsAt: { not: null },
@@ -139,23 +149,32 @@ export async function findAvailableSlots(
   const eventStart = event.startsAt;
   const eventEnd = event.endsAt;
 
-  let currentDay = startOfDay(eventStart);
-  const lastDay = startOfDay(eventEnd);
+  const days = eachCalendarDayInRange(eventStart, eventEnd, timeZone);
 
-  while (currentDay <= lastDay) {
-    const dayStart = new Date(currentDay);
-    dayStart.setHours(0, startMinutes / 60 | 0, startMinutes % 60, 0);
-    const dayEnd = new Date(currentDay);
-    dayEnd.setHours(0, endMinutes / 60 | 0, endMinutes % 60, 0);
+  for (const day of days) {
+    const dayStart = utcFromZonedDateTime(
+      day.year,
+      day.month,
+      day.day,
+      dayStartHour,
+      dayStartMinute,
+      timeZone,
+    );
+    const dayEnd = utcFromZonedDateTime(
+      day.year,
+      day.month,
+      day.day,
+      dayEndHour,
+      dayEndMinute,
+      timeZone,
+    );
 
-    if (dayStart < eventStart) {
-      currentDay = addMinutes(currentDay, 24 * 60);
-      continue;
-    }
+    let slotStart = dayStart.getTime() < eventStart.getTime() ? eventStart : dayStart;
 
-    let slotStart = dayStart;
-    while (addMinutes(slotStart, durationMinutes) <= dayEnd) {
+    while (addMinutes(slotStart, durationMinutes).getTime() <= dayEnd.getTime()) {
       const slotEnd = addMinutes(slotStart, durationMinutes);
+      if (slotEnd.getTime() > eventEnd.getTime()) break;
+
       const candidate: TimeBlock = { start: slotStart, end: slotEnd };
 
       const aFree = !busyBlocksA.some((b) => blocksOverlap(candidate, b));
@@ -185,8 +204,6 @@ export async function findAvailableSlots(
 
       slotStart = addMinutes(slotStart, BUFFER_MINUTES + durationMinutes);
     }
-
-    currentDay = addMinutes(currentDay, 24 * 60);
   }
 
   return results;
@@ -195,7 +212,7 @@ export async function findAvailableSlots(
 export async function autoScheduleMeeting(
   eventId: string,
   meetingId: string,
-): Promise<SlotResult | null> {
+): Promise<SlotResult> {
   const meeting = await prisma.meeting.findUnique({
     where: { id: meetingId },
     include: { participants: { select: { attendeeId: true } } },
@@ -227,7 +244,9 @@ export async function autoScheduleMeeting(
     throw new AutoScheduleError("Set the event start and end dates before auto-scheduling.");
   }
 
-  const slots = await findAvailableSlots(eventId, a.attendeeId, b.attendeeId);
+  const slots = await findAvailableSlots(eventId, a.attendeeId, b.attendeeId, {
+    excludeMeetingId: meetingId,
+  });
 
   if (slots.length === 0) {
     throw new AutoScheduleError(
@@ -246,4 +265,36 @@ export async function autoScheduleMeeting(
   });
 
   return slot;
+}
+
+export async function pickFirstAvailableSlot(
+  eventId: string,
+  attendeeIdA: string,
+  attendeeIdB: string,
+): Promise<SlotResult> {
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { startsAt: true, endsAt: true, organisationId: true },
+  });
+  if (!event?.startsAt || !event?.endsAt) {
+    throw new AutoScheduleError("Set the event start and end dates before auto-scheduling.");
+  }
+
+  const rooms = await prisma.meetingRoom.count({
+    where: { eventId, organisationId: event.organisationId },
+  });
+  if (rooms === 0) {
+    throw new AutoScheduleError(
+      "Add at least one meeting room before auto-scheduling.",
+    );
+  }
+
+  const slots = await findAvailableSlots(eventId, attendeeIdA, attendeeIdB);
+  if (slots.length === 0) {
+    throw new AutoScheduleError(
+      "No available slots found. Check meeting rooms, event hours, existing meetings, agenda sessions, and Google Calendar availability.",
+    );
+  }
+
+  return slots[0];
 }

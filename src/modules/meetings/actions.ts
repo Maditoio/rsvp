@@ -9,7 +9,7 @@ import { AuthzError } from "@/lib/db/tenant";
 import { rateLimit } from "@/lib/rate-limit";
 import { validateMeetingSlot } from "@/modules/calendar/conflicts";
 import { syncMeetingCalendarsWithWarning } from "@/modules/calendar/sync";
-import { autoScheduleMeeting, AutoScheduleError } from "@/modules/meetings/scheduler";
+import { autoScheduleMeeting, AutoScheduleError, pickFirstAvailableSlot } from "@/modules/meetings/scheduler";
 
 export type MeetingActionResult = {
   calendarWarning?: string;
@@ -117,7 +117,23 @@ export async function respondToMeeting(
       status: "PENDING",
     },
   });
-  if (!request) throw new Error("Meeting request not found");
+
+  if (!request) {
+    const alreadyAccepted = await prisma.meetingRequest.findFirst({
+      where: {
+        id: requestId,
+        eventId,
+        targetId: attendee.id,
+        status: "ACCEPTED",
+      },
+    });
+    if (alreadyAccepted) {
+      throw new Error(
+        "This request was already accepted. Check the Meetings section below — ask the organiser to assign a time if none is set.",
+      );
+    }
+    throw new Error("Meeting request not found or no longer pending.");
+  }
 
   if (decision === "decline") {
     await prisma.meetingRequest.update({
@@ -135,9 +151,28 @@ export async function respondToMeeting(
   const endsAt = endsAtRaw ? new Date(endsAtRaw) : null;
   const participantIds = [request.requesterId, request.targetId];
 
-  if (startsAt && endsAt) {
+  const shouldAutoSchedule =
+    !startsAt && !endsAt && String(formData.get("autoSchedule") ?? "") === "on";
+
+  let autoSlot: Awaited<ReturnType<typeof pickFirstAvailableSlot>> | null = null;
+  if (shouldAutoSchedule) {
+    try {
+      autoSlot = await pickFirstAvailableSlot(
+        eventId,
+        request.requesterId,
+        request.targetId,
+      );
+    } catch (error) {
+      if (error instanceof AutoScheduleError) throw error;
+      throw new Error("Could not auto-schedule this meeting.");
+    }
+  } else if (startsAt && endsAt) {
     await validateMeetingSlot(eventId, participantIds, startsAt, endsAt, { roomId });
   }
+
+  const resolvedStartsAt = autoSlot?.startsAt ?? startsAt;
+  const resolvedEndsAt = autoSlot?.endsAt ?? endsAt;
+  const resolvedRoomId = autoSlot?.roomId ?? roomId;
 
   const meeting = await prisma.$transaction(async (tx) => {
     await tx.meetingRequest.update({
@@ -148,9 +183,9 @@ export async function respondToMeeting(
       data: {
         organisationId: attendee.organisationId,
         eventId,
-        roomId,
-        startsAt,
-        endsAt,
+        roomId: resolvedRoomId,
+        startsAt: resolvedStartsAt,
+        endsAt: resolvedEndsAt,
         status: "SCHEDULED",
       },
     });
@@ -173,24 +208,8 @@ export async function respondToMeeting(
     return m;
   });
 
-  const shouldAutoSchedule =
-    !startsAt && !endsAt && String(formData.get("autoSchedule") ?? "") === "on";
-
-  if (shouldAutoSchedule) {
-    try {
-      await autoScheduleMeeting(eventId, meeting.id);
-    } catch (error) {
-      if (error instanceof AutoScheduleError) throw error;
-      throw new Error("Could not auto-schedule this meeting.");
-    }
-  }
-
   let calendarWarning: string | undefined;
-  const scheduled = await prisma.meeting.findUnique({
-    where: { id: meeting.id },
-    select: { startsAt: true, endsAt: true },
-  });
-  if (scheduled?.startsAt && scheduled?.endsAt) {
+  if (resolvedStartsAt && resolvedEndsAt) {
     calendarWarning = await scheduleMeetingCalendars(meeting.id);
   }
 
