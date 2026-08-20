@@ -9,6 +9,7 @@ describe("eventNav", () => {
     expect(labels.filter((l) => l === "Event settings")).toHaveLength(1);
     expect(labels).not.toContain("Dashboard");
     expect(labels).toContain("Overview");
+    expect(labels).toContain("Staff");
     expect(new Set(items.map((item) => item.href)).size).toBe(items.length);
   });
 });

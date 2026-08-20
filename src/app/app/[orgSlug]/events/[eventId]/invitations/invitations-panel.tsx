@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RotateCw, Send, XCircle } from "lucide-react";
 import {
@@ -17,8 +17,14 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Drawer } from "@/components/ui/drawer";
 import { Select } from "@/components/ui/select";
 import { Table, Td, Th } from "@/components/ui/table";
-import { StatusBadge } from "@/components/status-badge";
-import { displayName } from "@/lib/utils";
+import { ColumnFilterTh } from "@/components/column-filter-th";
+import { InvitationStatusIcon } from "@/components/invitation-status-icon";
+import {
+  TABLE_PAGE_SIZE,
+  TablePagination,
+  paginate,
+} from "@/components/table-pagination";
+import { displayName, humanizeEnum } from "@/lib/utils";
 
 const SENDABLE = new Set(["DRAFT", "SCHEDULED", "BOUNCED"]);
 const RESENDABLE = new Set([
@@ -28,6 +34,8 @@ const RESENDABLE = new Set([
   "BOUNCED",
   "ACCEPTED",
 ]);
+
+const NO_CATEGORY = "__none__";
 
 type InvitationRow = {
   id: string;
@@ -62,10 +70,15 @@ export function InvitationsPanel({
   canWrite: boolean;
 }) {
   const router = useRouter();
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  const uninvitedSelectAllRef = useRef<HTMLInputElement>(null);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [selectedInvites, setSelectedInvites] = useState<string[]>([]);
   const [categoryId, setCategoryId] = useState("");
   const [filterCategoryId, setFilterCategoryId] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [page, setPage] = useState(1);
+  const [uninvitedPage, setUninvitedPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -73,16 +86,47 @@ export function InvitationsPanel({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [pending, start] = useTransition();
 
-  const filteredInvitations = useMemo(
-    () =>
-      filterCategoryId
-        ? invitations.filter((row) => row.category?.id === filterCategoryId)
-        : invitations,
-    [invitations, filterCategoryId],
+  const categoryFilterOptions = useMemo(
+    () => [
+      ...categories.map((c) => ({ value: c.id, label: c.name })),
+      { value: NO_CATEGORY, label: "No category" },
+    ],
+    [categories],
   );
 
-  const allUninvitedSelected =
-    uninvited.length > 0 && selectedContacts.length === uninvited.length;
+  const statusFilterOptions = useMemo(() => {
+    const statuses = new Set(invitations.map((row) => row.status));
+    return [...statuses]
+      .sort()
+      .map((status) => ({ value: status, label: humanizeEnum(status) }));
+  }, [invitations]);
+
+  const filteredInvitations = useMemo(() => {
+    return invitations.filter((row) => {
+      if (filterCategoryId === NO_CATEGORY) {
+        if (row.category) return false;
+      } else if (filterCategoryId && row.category?.id !== filterCategoryId) {
+        return false;
+      }
+      if (filterStatus && row.status !== filterStatus) return false;
+      return true;
+    });
+  }, [invitations, filterCategoryId, filterStatus]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filterCategoryId, filterStatus]);
+
+  const {
+    page: safePage,
+    pageCount,
+    slice,
+  } = paginate(filteredInvitations, page, TABLE_PAGE_SIZE);
+
+  useEffect(() => {
+    if (safePage !== page) setPage(safePage);
+  }, [safePage, page]);
+
   const sendableSelected = useMemo(
     () =>
       filteredInvitations.filter(
@@ -91,8 +135,67 @@ export function InvitationsPanel({
     [filteredInvitations, selectedInvites],
   );
 
+  const selectableFiltered = useMemo(
+    () => filteredInvitations.filter((row) => SENDABLE.has(row.status)),
+    [filteredInvitations],
+  );
+
+  const selectedMatchingCount = useMemo(
+    () => selectableFiltered.filter((row) => selectedInvites.includes(row.id)).length,
+    [selectableFiltered, selectedInvites],
+  );
+
+  const allSendableSelected =
+    selectableFiltered.length > 0 &&
+    selectedMatchingCount === selectableFiltered.length;
+  const someSendableSelected =
+    selectedMatchingCount > 0 && !allSendableSelected;
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSendableSelected;
+    }
+  }, [someSendableSelected]);
+
+  const {
+    page: safeUninvitedPage,
+    pageCount: uninvitedPageCount,
+    slice: uninvitedSlice,
+  } = paginate(uninvited, uninvitedPage, TABLE_PAGE_SIZE);
+
+  useEffect(() => {
+    if (safeUninvitedPage !== uninvitedPage) setUninvitedPage(safeUninvitedPage);
+  }, [safeUninvitedPage, uninvitedPage]);
+
+  const allUninvitedSelected =
+    uninvited.length > 0 && selectedContacts.length === uninvited.length;
+  const someUninvitedSelected =
+    selectedContacts.length > 0 && !allUninvitedSelected;
+
+  useEffect(() => {
+    if (uninvitedSelectAllRef.current) {
+      uninvitedSelectAllRef.current.indeterminate = someUninvitedSelected;
+    }
+  }, [someUninvitedSelected]);
+
   function toggle(list: string[], id: string) {
     return list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+  }
+
+  function toggleAllSendableMatching() {
+    if (allSendableSelected) {
+      const ids = new Set(selectableFiltered.map((row) => row.id));
+      setSelectedInvites((list) => list.filter((id) => !ids.has(id)));
+    } else {
+      setSelectedInvites((list) => {
+        const existing = new Set(list);
+        const next = [...list];
+        for (const row of selectableFiltered) {
+          if (!existing.has(row.id)) next.push(row.id);
+        }
+        return next;
+      });
+    }
   }
 
   function run(key: string, fn: () => Promise<void>) {
@@ -120,18 +223,6 @@ export function InvitationsPanel({
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-2xl text-ink-800">Invitations</h2>
           <div className="flex flex-wrap items-center gap-2">
-            <Select
-              className="h-9 w-auto px-3 text-sm"
-              value={filterCategoryId}
-              onChange={(e) => setFilterCategoryId(e.target.value)}
-            >
-              <option value="">All categories</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
             {canWrite ? (
               <>
                 <Button
@@ -167,92 +258,164 @@ export function InvitationsPanel({
             ) : null}
           </div>
         </div>
-        {filteredInvitations.length === 0 ? (
+        {invitations.length === 0 ? (
           <Card>No invitations yet.</Card>
         ) : (
-          <Table>
-            <thead>
-              <tr className="border-b border-stone-200">
-                {canWrite ? <Th /> : null}
-                <Th>Contact</Th>
-                <Th>Status</Th>
-                <Th>Category</Th>
-                {canWrite ? <Th /> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredInvitations.map((invitation) => (
-                <tr key={invitation.id} className="border-b border-stone-100">
+          <>
+            <Table>
+              <thead>
+                <tr className="border-b border-stone-200">
                   {canWrite ? (
-                    <Td>
+                    <Th>
                       <input
+                        ref={selectAllRef}
                         type="checkbox"
                         className="size-4 accent-ink-700"
-                        checked={selectedInvites.includes(invitation.id)}
-                        disabled={!SENDABLE.has(invitation.status)}
-                        onChange={() =>
-                          setSelectedInvites((list) => toggle(list, invitation.id))
-                        }
-                        aria-label={`Select invitation for ${invitation.contact.email}`}
+                        checked={allSendableSelected}
+                        disabled={selectableFiltered.length === 0}
+                        onChange={toggleAllSendableMatching}
+                        aria-label="Select all matching sendable invitations"
                       />
-                    </Td>
+                    </Th>
                   ) : null}
-                  <Td>
-                    <p>{displayName(invitation.contact)}</p>
-                    <p className="text-xs text-stone-500">
-                      {invitation.contact.email}
-                    </p>
-                  </Td>
-                  <Td>
-                    <StatusBadge status={invitation.status} />
-                  </Td>
-                  <Td>{invitation.category?.name ?? "—"}</Td>
-                  {canWrite ? (
-                    <Td>
-                      <div className="flex items-center justify-end gap-1">
-                        {RESENDABLE.has(invitation.status) ? (
-                          <button
-                            type="button"
-                            title="Resend invitation"
-                            disabled={pending}
-                            className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700 disabled:opacity-50"
-                            onClick={() =>
-                              run(`resend-${invitation.id}`, async () => {
-                                await resendInvitation(
-                                  orgSlug,
-                                  eventId,
-                                  invitation.id,
-                                );
-                                setMessage(
-                                  `Invitation resent to ${invitation.contact.email}.`,
-                                );
-                              })
-                            }
-                          >
-                            <RotateCw className="size-4" />
-                          </button>
-                        ) : null}
-                        {canTransition(
-                          invitation.status,
-                          InvitationStatus.CANCELLED,
-                        ) ? (
-                          <button
-                            type="button"
-                            title="Cancel invitation"
-                            disabled={pending}
-                            className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-danger disabled:opacity-50"
-                            onClick={() => setCancelTarget(invitation)}
-                          >
-                            <XCircle className="size-4" />
-                          </button>
-                        ) : null}
-                      </div>
-                    </Td>
-                  ) : null}
+                  <Th>Contact</Th>
+                  <ColumnFilterTh
+                    label="Status"
+                    value={filterStatus}
+                    options={statusFilterOptions}
+                    onChange={setFilterStatus}
+                    allLabel="All statuses"
+                  />
+                  <ColumnFilterTh
+                    label="Category"
+                    value={filterCategoryId}
+                    options={categoryFilterOptions}
+                    onChange={setFilterCategoryId}
+                    allLabel="All categories"
+                  />
+                  {canWrite ? <Th aria-label="Actions"> </Th> : null}
                 </tr>
-              ))}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody>
+                {slice.length === 0 ? (
+                  <tr>
+                    <Td
+                      colSpan={canWrite ? 5 : 3}
+                      className="text-stone-500"
+                    >
+                      No invitations match these filters.
+                    </Td>
+                  </tr>
+                ) : (
+                  slice.map((invitation) => (
+                    <tr key={invitation.id} className="border-b border-stone-100">
+                      {canWrite ? (
+                        <Td>
+                          <input
+                            type="checkbox"
+                            className="size-4 accent-ink-700"
+                            checked={selectedInvites.includes(invitation.id)}
+                            disabled={!SENDABLE.has(invitation.status)}
+                            onChange={() =>
+                              setSelectedInvites((list) =>
+                                toggle(list, invitation.id),
+                              )
+                            }
+                            aria-label={`Select invitation for ${invitation.contact.email}`}
+                          />
+                        </Td>
+                      ) : null}
+                      <Td>
+                        <p>{displayName(invitation.contact)}</p>
+                        <p className="text-xs text-stone-500">
+                          {invitation.contact.email}
+                        </p>
+                      </Td>
+                      <Td>
+                        <InvitationStatusIcon status={invitation.status} />
+                      </Td>
+                      <Td>{invitation.category?.name ?? "—"}</Td>
+                      {canWrite ? (
+                        <Td>
+                          <div className="flex items-center justify-end gap-1">
+                            {SENDABLE.has(invitation.status) ? (
+                              <button
+                                type="button"
+                                title="Send invitation"
+                                disabled={pending}
+                                className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700 disabled:opacity-50"
+                                onClick={() =>
+                                  run(`send-${invitation.id}`, async () => {
+                                    const result = await sendInvitations(
+                                      orgSlug,
+                                      eventId,
+                                      [invitation.id],
+                                    );
+                                    setMessage(
+                                      `Sent ${result.sent} invitation to ${invitation.contact.email}.`,
+                                    );
+                                  })
+                                }
+                              >
+                                <Send className="size-4" />
+                                <span className="sr-only">Send invitation</span>
+                              </button>
+                            ) : null}
+                            {RESENDABLE.has(invitation.status) ? (
+                              <button
+                                type="button"
+                                title="Resend invitation"
+                                disabled={pending}
+                                className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700 disabled:opacity-50"
+                                onClick={() =>
+                                  run(`resend-${invitation.id}`, async () => {
+                                    await resendInvitation(
+                                      orgSlug,
+                                      eventId,
+                                      invitation.id,
+                                    );
+                                    setMessage(
+                                      `Invitation resent to ${invitation.contact.email}.`,
+                                    );
+                                  })
+                                }
+                              >
+                                <RotateCw className="size-4" />
+                                <span className="sr-only">Resend invitation</span>
+                              </button>
+                            ) : null}
+                            {canTransition(
+                              invitation.status,
+                              InvitationStatus.CANCELLED,
+                            ) ? (
+                              <button
+                                type="button"
+                                title="Cancel invitation"
+                                disabled={pending}
+                                className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-danger disabled:opacity-50"
+                                onClick={() => setCancelTarget(invitation)}
+                              >
+                                <XCircle className="size-4" />
+                                <span className="sr-only">Cancel invitation</span>
+                              </button>
+                            ) : null}
+                          </div>
+                        </Td>
+                      ) : null}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </Table>
+            <div className="mt-3">
+              <TablePagination
+                page={safePage}
+                pageCount={pageCount}
+                total={filteredInvitations.length}
+                onPageChange={setPage}
+              />
+            </div>
+          </>
         )}
       </div>
 
@@ -288,6 +451,7 @@ export function InvitationsPanel({
                 <tr className="border-b border-stone-200">
                   <Th>
                     <input
+                      ref={uninvitedSelectAllRef}
                       type="checkbox"
                       className="size-4 accent-ink-700"
                       checked={allUninvitedSelected}
@@ -306,7 +470,7 @@ export function InvitationsPanel({
                 </tr>
               </thead>
               <tbody>
-                {uninvited.map((contact) => (
+                {uninvitedSlice.map((contact) => (
                   <tr key={contact.id} className="border-b border-stone-100">
                     <Td>
                       <input
@@ -327,6 +491,12 @@ export function InvitationsPanel({
                 ))}
               </tbody>
             </Table>
+            <TablePagination
+              page={safeUninvitedPage}
+              pageCount={uninvitedPageCount}
+              total={uninvited.length}
+              onPageChange={setUninvitedPage}
+            />
             <div className="flex justify-end">
               <Button
                 type="button"

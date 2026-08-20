@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, useTransition } from "react";
-import { Send } from "lucide-react";
-import { createContact } from "@/modules/contacts/actions";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { Send, Trash2 } from "lucide-react";
+import { createContact, deleteContact } from "@/modules/contacts/actions";
 import { createInvitationsForContacts } from "@/modules/invitations/actions";
 import {
   contactCreateFieldErrors,
@@ -14,14 +14,21 @@ import {
 } from "@/modules/contacts/parse";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Table, Td, Th } from "@/components/ui/table";
-import { StatusBadge } from "@/components/status-badge";
+import { ColumnFilterTh } from "@/components/column-filter-th";
+import { InvitationStatusIcon } from "@/components/invitation-status-icon";
+import {
+  TABLE_PAGE_SIZE,
+  TablePagination,
+  paginate,
+} from "@/components/table-pagination";
 import { COUNTRIES } from "@/lib/countries";
-import { displayName } from "@/lib/utils";
+import { displayName, humanizeEnum } from "@/lib/utils";
 
 type InviteeRow = {
   id: string;
@@ -37,6 +44,8 @@ type InviteeRow = {
 type CategoryOption = { id: string; name: string };
 
 type FieldErrors = Partial<Record<keyof ContactCreateInput, string>>;
+
+const UNINVITED_FILTER = "__none__";
 
 function FieldMessage({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
@@ -64,31 +73,95 @@ export function InviteesPanel({
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const selectAllRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [filterCategoryId, setFilterCategoryId] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkCategoryId, setBulkCategoryId] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<InviteeRow | null>(null);
   const importHref = `/app/${orgSlug}/events/${eventId}/invitees/import`;
 
-  const filteredContacts = useMemo(
-    () =>
-      filterCategoryId
-        ? contacts.filter((c) => c.categoryId === filterCategoryId)
-        : contacts,
-    [contacts, filterCategoryId],
+  const categoryFilterOptions = useMemo(
+    () => [
+      ...categories.map((c) => ({ value: c.id, label: c.name })),
+      { value: UNINVITED_FILTER, label: "No category" },
+    ],
+    [categories],
   );
 
+  const statusFilterOptions = useMemo(() => {
+    const statuses = new Set<string>();
+    for (const c of contacts) {
+      if (c.invitationStatus) statuses.add(c.invitationStatus);
+    }
+    return [
+      { value: UNINVITED_FILTER, label: "Not invited" },
+      ...[...statuses]
+        .sort()
+        .map((status) => ({ value: status, label: humanizeEnum(status) })),
+    ];
+  }, [contacts]);
+
+  const filteredContacts = useMemo(() => {
+    return contacts.filter((c) => {
+      if (filterCategoryId === UNINVITED_FILTER) {
+        if (c.categoryId) return false;
+      } else if (filterCategoryId && c.categoryId !== filterCategoryId) {
+        return false;
+      }
+      if (filterStatus === UNINVITED_FILTER) {
+        if (c.invitationStatus) return false;
+      } else if (filterStatus && c.invitationStatus !== filterStatus) {
+        return false;
+      }
+      return true;
+    });
+  }, [contacts, filterCategoryId, filterStatus]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filterCategoryId, filterStatus]);
+
+  const { page: safePage, pageCount, slice } = paginate(
+    filteredContacts,
+    page,
+    TABLE_PAGE_SIZE,
+  );
+
+  useEffect(() => {
+    if (safePage !== page) setPage(safePage);
+  }, [safePage, page]);
+
   const uninvitedSelected = useMemo(
-    () => filteredContacts.filter((c) => selected.includes(c.id) && !c.invitationStatus),
+    () =>
+      filteredContacts.filter(
+        (c) => selected.includes(c.id) && !c.invitationStatus,
+      ),
+    [filteredContacts, selected],
+  );
+
+  const selectedMatchingCount = useMemo(
+    () => filteredContacts.filter((c) => selected.includes(c.id)).length,
     [filteredContacts, selected],
   );
 
   const allFilteredSelected =
-    filteredContacts.length > 0 && filteredContacts.every((c) => selected.includes(c.id));
+    filteredContacts.length > 0 &&
+    selectedMatchingCount === filteredContacts.length;
+  const someFilteredSelected =
+    selectedMatchingCount > 0 && !allFilteredSelected;
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someFilteredSelected;
+    }
+  }, [someFilteredSelected]);
 
   function toggleOne(id: string) {
     setSelected((list) =>
@@ -96,7 +169,7 @@ export function InviteesPanel({
     );
   }
 
-  function toggleAll() {
+  function toggleAllMatching() {
     if (allFilteredSelected) {
       const ids = new Set(filteredContacts.map((c) => c.id));
       setSelected((list) => list.filter((x) => !ids.has(x)));
@@ -167,110 +240,138 @@ export function InviteesPanel({
         </Card>
       ) : (
         <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Select
-              className="h-9 w-auto px-3 text-sm"
-              value={filterCategoryId}
-              onChange={(e) => setFilterCategoryId(e.target.value)}
-            >
-              <option value="">All categories</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
-            {canInvite && uninvitedSelected.length > 0 ? (
-              <div className="flex items-center gap-2">
-                <Select
-                  className="h-9 w-auto px-3 text-sm"
-                  value={bulkCategoryId}
-                  onChange={(e) => setBulkCategoryId(e.target.value)}
-                >
-                  <option value="">No category</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </Select>
-                <Button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => {
-                    setError(null);
-                    setNotice(null);
-                    start(async () => {
-                      try {
-                        const result = await createInvitationsForContacts(
-                          orgSlug,
-                          eventId,
-                          uninvitedSelected.map((c) => c.id),
-                          bulkCategoryId || undefined,
-                        );
-                        setSelected([]);
-                        setNotice(`Created ${result.created} invitation(s).`);
-                        router.refresh();
-                      } catch (e) {
-                        setError(e instanceof Error ? e.message : "Bulk invite failed");
-                      }
-                    });
-                  }}
-                >
-                  <Send className="mr-1.5 size-4" />
-                  {pending
-                    ? "Creating…"
-                    : `Send invitation to ${uninvitedSelected.length} selected`}
-                </Button>
-              </div>
-            ) : null}
-          </div>
+          {canInvite && uninvitedSelected.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Select
+                className="h-9 w-auto px-3 text-sm"
+                value={bulkCategoryId}
+                onChange={(e) => setBulkCategoryId(e.target.value)}
+              >
+                <option value="">No category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
+              <Button
+                type="button"
+                disabled={pending}
+                onClick={() => {
+                  setError(null);
+                  setNotice(null);
+                  start(async () => {
+                    try {
+                      const result = await createInvitationsForContacts(
+                        orgSlug,
+                        eventId,
+                        uninvitedSelected.map((c) => c.id),
+                        bulkCategoryId || undefined,
+                      );
+                      setSelected([]);
+                      setNotice(`Created ${result.created} invitation(s).`);
+                      router.refresh();
+                    } catch (e) {
+                      setError(
+                        e instanceof Error ? e.message : "Bulk invite failed",
+                      );
+                    }
+                  });
+                }}
+              >
+                <Send className="mr-1.5 size-4" />
+                {pending
+                  ? "Creating…"
+                  : `Send invitation to ${uninvitedSelected.length} selected`}
+              </Button>
+            </div>
+          ) : null}
           <Table>
             <thead>
               <tr>
                 <Th>
                   <input
+                    ref={selectAllRef}
                     type="checkbox"
                     className="size-4 accent-ink-700"
                     checked={allFilteredSelected}
-                    onChange={toggleAll}
-                    aria-label="Select all visible invitees"
+                    onChange={toggleAllMatching}
+                    aria-label="Select all matching invitees"
                   />
                 </Th>
                 <Th>Name</Th>
                 <Th>Email</Th>
                 <Th>Company</Th>
-                <Th>Category</Th>
-                <Th>Invitation</Th>
+                <ColumnFilterTh
+                  label="Category"
+                  value={filterCategoryId}
+                  options={categoryFilterOptions}
+                  onChange={setFilterCategoryId}
+                  allLabel="All categories"
+                />
+                <ColumnFilterTh
+                  label="Invitation"
+                  value={filterStatus}
+                  options={statusFilterOptions}
+                  onChange={setFilterStatus}
+                  allLabel="All statuses"
+                />
+                {canWrite ? <Th aria-label="Actions"> </Th> : null}
               </tr>
             </thead>
             <tbody>
-              {filteredContacts.map((contact) => (
-                <tr key={contact.id}>
-                  <Td>
-                    <input
-                      type="checkbox"
-                      className="size-4 accent-ink-700"
-                      checked={selected.includes(contact.id)}
-                      onChange={() => toggleOne(contact.id)}
-                      aria-label={`Select ${contact.email}`}
-                    />
-                  </Td>
-                  <Td>{displayName(contact)}</Td>
-                  <Td>{contact.email}</Td>
-                  <Td>{contact.company ?? "—"}</Td>
-                  <Td>{contact.categoryName ?? "—"}</Td>
-                  <Td>
-                    {contact.invitationStatus ? (
-                      <StatusBadge status={contact.invitationStatus} />
-                    ) : (
-                      <span className="text-stone-500">Not invited</span>
-                    )}
+              {slice.length === 0 ? (
+                <tr>
+                  <Td colSpan={canWrite ? 7 : 6} className="text-stone-500">
+                    No invitees match these filters.
                   </Td>
                 </tr>
-              ))}
+              ) : (
+                slice.map((contact) => (
+                  <tr key={contact.id}>
+                    <Td>
+                      <input
+                        type="checkbox"
+                        className="size-4 accent-ink-700"
+                        checked={selected.includes(contact.id)}
+                        onChange={() => toggleOne(contact.id)}
+                        aria-label={`Select ${contact.email}`}
+                      />
+                    </Td>
+                    <Td>{displayName(contact)}</Td>
+                    <Td>{contact.email}</Td>
+                    <Td>{contact.company ?? "—"}</Td>
+                    <Td>{contact.categoryName ?? "—"}</Td>
+                    <Td>
+                      <InvitationStatusIcon status={contact.invitationStatus} />
+                    </Td>
+                    {canWrite ? (
+                      <Td>
+                        <div className="flex items-center justify-end">
+                          <button
+                            type="button"
+                            title="Delete invitee"
+                            disabled={pending}
+                            className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-danger disabled:opacity-50"
+                            onClick={() => setDeleteTarget(contact)}
+                          >
+                            <Trash2 className="size-4" />
+                            <span className="sr-only">Delete invitee</span>
+                          </button>
+                        </div>
+                      </Td>
+                    ) : null}
+                  </tr>
+                ))
+              )}
             </tbody>
           </Table>
+          <TablePagination
+            page={safePage}
+            pageCount={pageCount}
+            total={filteredContacts.length}
+            onPageChange={setPage}
+          />
         </>
       )}
 
@@ -280,7 +381,7 @@ export function InviteesPanel({
         open={open}
         onClose={() => setOpen(false)}
         title="Add invitee"
-        description="Create a contact for this event. Sending an invitation is a separate step."
+        description="Create a contact for this event. Choosing a category creates a draft invitation; sending is a separate step."
       >
         <form
           ref={formRef}
@@ -426,6 +527,20 @@ export function InviteesPanel({
               message={fieldErrors.country}
             />
           </div>
+          <div>
+            <Label htmlFor="invitee-category">Category</Label>
+            <Select id="invitee-category" name="categoryId" defaultValue="">
+              <option value="">None</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+            <p className="mt-1 text-[0.8125rem] text-stone-500">
+              Optional. Creates a draft invitation for this category.
+            </p>
+          </div>
           {error ? <p className="text-sm text-danger">{error}</p> : null}
           <div className="flex justify-end">
             <Button disabled={pending}>
@@ -434,6 +549,38 @@ export function InviteesPanel({
           </div>
         </form>
       </Drawer>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onClose={() => (pending ? undefined : setDeleteTarget(null))}
+        title="Delete this invitee"
+        description={
+          deleteTarget
+            ? `Remove ${displayName(deleteTarget)} (${deleteTarget.email}) from this event. Their invitations will be removed as well.`
+            : "Remove this invitee from the event."
+        }
+        confirmLabel="Delete invitee"
+        cancelLabel="Keep invitee"
+        destructive
+        pending={pending}
+        onConfirm={() => {
+          if (!deleteTarget) return;
+          setError(null);
+          setNotice(null);
+          start(async () => {
+            try {
+              await deleteContact(orgSlug, eventId, deleteTarget.id);
+              setSelected((list) => list.filter((id) => id !== deleteTarget.id));
+              setDeleteTarget(null);
+              setNotice(`${displayName(deleteTarget)} has been removed.`);
+              router.refresh();
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Could not delete invitee");
+              setDeleteTarget(null);
+            }
+          });
+        }}
+      />
     </div>
   );
 }

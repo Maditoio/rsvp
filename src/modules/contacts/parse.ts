@@ -12,10 +12,6 @@ export const IMPORT_FIELD_KEYS = [
   "jobTitle",
   "country",
   "category",
-  "vip",
-  "speaker",
-  "sponsor",
-  "notes",
   "ignore",
 ] as const;
 
@@ -36,10 +32,6 @@ export const IMPORT_FIELDS: ImportFieldDef[] = [
   { key: "jobTitle", label: "Job Title", requirement: "optional" },
   { key: "country", label: "Country", requirement: "optional" },
   { key: "category", label: "Category", requirement: "optional" },
-  { key: "vip", label: "VIP", requirement: "optional" },
-  { key: "speaker", label: "Speaker", requirement: "optional" },
-  { key: "sponsor", label: "Sponsor", requirement: "optional" },
-  { key: "notes", label: "Notes", requirement: "optional" },
 ];
 
 /** Header aliases used when auto-guessing a column map. */
@@ -52,10 +44,6 @@ const FIELD_ALIASES: Record<Exclude<ImportFieldKey, "ignore">, string[]> = {
   jobTitle: ["job title", "jobtitle", "title", "position", "role"],
   country: ["country"],
   category: ["category", "invitation category"],
-  vip: ["vip"],
-  speaker: ["speaker"],
-  sponsor: ["sponsor"],
-  notes: ["notes", "note", "comments"],
 };
 
 export type ColumnMap = Record<string, ImportFieldKey>;
@@ -127,10 +115,6 @@ function cellFromMapped(
   return "";
 }
 
-function truthy(value: string) {
-  return ["1", "true", "yes", "y", "vip"].includes(value.toLowerCase());
-}
-
 export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
@@ -200,10 +184,9 @@ export function previewImport(
       jobTitle: cellFromMapped(row, map, "jobTitle") || undefined,
       country: cellFromMapped(row, map, "country") || undefined,
       category: cellFromMapped(row, map, "category") || undefined,
-      vip: truthy(cellFromMapped(row, map, "vip")),
-      speaker: truthy(cellFromMapped(row, map, "speaker")),
-      sponsor: truthy(cellFromMapped(row, map, "sponsor")),
-      notes: cellFromMapped(row, map, "notes") || undefined,
+      vip: false,
+      speaker: false,
+      sponsor: false,
       line,
     });
   });

@@ -12,6 +12,7 @@ import {
   QrCode,
   ScrollText,
   Settings,
+  Shield,
   SlidersHorizontal,
   Tags,
   UserCheck,
@@ -99,6 +100,7 @@ export function eventNavGroups(
         { href: base, label: "Overview", permission: "event.read", icon: LayoutDashboard, exact: true },
         { href: `${base}/registration-form`, label: "Form builder", permission: "event.read", icon: ClipboardList },
         { href: `${base}/categories`, label: "Categories", permission: "invitations.read", icon: Tags },
+        { href: `${base}/staff`, label: "Staff", permission: "event.update", icon: Shield },
       ],
     },
     {

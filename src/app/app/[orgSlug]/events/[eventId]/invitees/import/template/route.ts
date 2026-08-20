@@ -22,10 +22,6 @@ export async function GET(
     "Mathematician",
     "United Kingdom",
     "Delegate",
-    "",
-    "",
-    "",
-    "",
   ]);
   sheet.getRow(1).font = { bold: true };
 
