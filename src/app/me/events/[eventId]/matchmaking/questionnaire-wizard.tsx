@@ -279,6 +279,16 @@ export function QuestionnaireWizard({
           Other visible delegates are ranked from your answers. You can update
           this setup at any time.
         </p>
+        <p className="mt-3 text-sm text-stone-500">
+          Optional AI explanations for matches can be enabled later in{" "}
+          <Link
+            href={`/me/events/${eventId}/privacy`}
+            className="font-semibold text-ink-700 underline-offset-4 hover:underline"
+          >
+            privacy settings
+          </Link>
+          , when the organiser turns them on.
+        </p>
         <div className="mt-10">
           <Link
             href={directoryHref}

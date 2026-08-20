@@ -3,6 +3,63 @@ import { isCountryName } from "@/lib/countries";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+export const IMPORT_FIELD_KEYS = [
+  "firstName",
+  "lastName",
+  "email",
+  "phone",
+  "company",
+  "jobTitle",
+  "country",
+  "category",
+  "vip",
+  "speaker",
+  "sponsor",
+  "notes",
+  "ignore",
+] as const;
+
+export type ImportFieldKey = (typeof IMPORT_FIELD_KEYS)[number];
+
+export type ImportFieldDef = {
+  key: Exclude<ImportFieldKey, "ignore">;
+  label: string;
+  requirement: "required" | "required_if_no_email" | "required_if_no_name" | "optional";
+};
+
+export const IMPORT_FIELDS: ImportFieldDef[] = [
+  { key: "firstName", label: "First Name", requirement: "required_if_no_email" },
+  { key: "lastName", label: "Last Name", requirement: "required_if_no_email" },
+  { key: "email", label: "Email", requirement: "required_if_no_name" },
+  { key: "phone", label: "Phone", requirement: "optional" },
+  { key: "company", label: "Company", requirement: "optional" },
+  { key: "jobTitle", label: "Job Title", requirement: "optional" },
+  { key: "country", label: "Country", requirement: "optional" },
+  { key: "category", label: "Category", requirement: "optional" },
+  { key: "vip", label: "VIP", requirement: "optional" },
+  { key: "speaker", label: "Speaker", requirement: "optional" },
+  { key: "sponsor", label: "Sponsor", requirement: "optional" },
+  { key: "notes", label: "Notes", requirement: "optional" },
+];
+
+/** Header aliases used when auto-guessing a column map. */
+const FIELD_ALIASES: Record<Exclude<ImportFieldKey, "ignore">, string[]> = {
+  firstName: ["first name", "firstname", "first_name", "given name"],
+  lastName: ["last name", "lastname", "last_name", "surname", "family name"],
+  email: ["email", "e-mail", "email address", "emailaddress"],
+  phone: ["phone", "mobile", "telephone", "phone number"],
+  company: ["company", "organisation", "organization", "org"],
+  jobTitle: ["job title", "jobtitle", "title", "position", "role"],
+  country: ["country"],
+  category: ["category", "invitation category"],
+  vip: ["vip"],
+  speaker: ["speaker"],
+  sponsor: ["sponsor"],
+  notes: ["notes", "note", "comments"],
+};
+
+export type ColumnMap = Record<string, ImportFieldKey>;
+
 export type ImportRow = {
   firstName: string;
   lastName: string;
@@ -30,14 +87,42 @@ export type ImportPreview = {
   issues: ImportIssue[];
 };
 
-function cell(row: Record<string, unknown>, keys: string[]) {
-  for (const key of keys) {
-    const match = Object.keys(row).find(
-      (k) => k.trim().toLowerCase() === key.toLowerCase(),
-    );
-    if (match && row[match] != null && String(row[match]).trim()) {
-      return String(row[match]).trim();
+function normalizeHeader(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export function guessColumnMap(headers: string[]): ColumnMap {
+  const map: ColumnMap = {};
+  const used = new Set<Exclude<ImportFieldKey, "ignore">>();
+
+  for (const header of headers) {
+    const normalized = normalizeHeader(header);
+    let matched: Exclude<ImportFieldKey, "ignore"> | "ignore" = "ignore";
+    for (const [field, aliases] of Object.entries(FIELD_ALIASES) as [
+      Exclude<ImportFieldKey, "ignore">,
+      string[],
+    ][]) {
+      if (used.has(field)) continue;
+      if (aliases.some((alias) => alias === normalized)) {
+        matched = field;
+        used.add(field);
+        break;
+      }
     }
+    map[header] = matched;
+  }
+  return map;
+}
+
+function cellFromMapped(
+  row: Record<string, unknown>,
+  map: ColumnMap,
+  field: Exclude<ImportFieldKey, "ignore">,
+) {
+  for (const [header, mapped] of Object.entries(map)) {
+    if (mapped !== field) continue;
+    const value = row[header];
+    if (value != null && String(value).trim()) return String(value).trim();
   }
   return "";
 }
@@ -50,18 +135,43 @@ export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+export function validateColumnMap(map: ColumnMap): string | null {
+  const values = Object.values(map);
+  const hasEmail = values.includes("email");
+  const hasFirst = values.includes("firstName");
+  const hasLast = values.includes("lastName");
+  if (!hasEmail && !(hasFirst && hasLast)) {
+    return "Map either Email, or both First Name and Last Name.";
+  }
+  if (!hasEmail) {
+    return "Email is required for invitees. Map an Email column.";
+  }
+  if (!hasFirst || !hasLast) {
+    return "Map both First Name and Last Name.";
+  }
+  const assigned = values.filter((v) => v !== "ignore");
+  const unique = new Set(assigned);
+  if (unique.size !== assigned.length) {
+    return "Each field can only be mapped once.";
+  }
+  return null;
+}
+
 export function previewImport(
   rows: Record<string, unknown>[],
+  columnMap?: ColumnMap,
 ): ImportPreview {
   const valid: ImportRow[] = [];
   const issues: ImportIssue[] = [];
   const seen = new Set<string>();
+  const headers = rows.length > 0 ? Object.keys(rows[0]!) : [];
+  const map = columnMap ?? guessColumnMap(headers);
 
   rows.forEach((row, index) => {
     const line = index + 2;
-    const firstName = cell(row, ["first name", "firstname", "first_name"]);
-    const lastName = cell(row, ["last name", "lastname", "last_name"]);
-    const email = normalizeEmail(cell(row, ["email", "e-mail"]));
+    const firstName = cellFromMapped(row, map, "firstName");
+    const lastName = cellFromMapped(row, map, "lastName");
+    const email = normalizeEmail(cellFromMapped(row, map, "email"));
 
     if (!email) {
       issues.push({ line, reason: "missing_email" });
@@ -85,21 +195,23 @@ export function previewImport(
       firstName,
       lastName,
       email,
-      phone: cell(row, ["phone", "mobile"]),
-      company: cell(row, ["company", "organisation", "organization"]),
-      jobTitle: cell(row, ["job title", "jobtitle", "title"]),
-      country: cell(row, ["country"]),
-      category: cell(row, ["category"]),
-      vip: truthy(cell(row, ["vip"])),
-      speaker: truthy(cell(row, ["speaker"])),
-      sponsor: truthy(cell(row, ["sponsor"])),
-      notes: cell(row, ["notes"]),
+      phone: cellFromMapped(row, map, "phone") || undefined,
+      company: cellFromMapped(row, map, "company") || undefined,
+      jobTitle: cellFromMapped(row, map, "jobTitle") || undefined,
+      country: cellFromMapped(row, map, "country") || undefined,
+      category: cellFromMapped(row, map, "category") || undefined,
+      vip: truthy(cellFromMapped(row, map, "vip")),
+      speaker: truthy(cellFromMapped(row, map, "speaker")),
+      sponsor: truthy(cellFromMapped(row, map, "sponsor")),
+      notes: cellFromMapped(row, map, "notes") || undefined,
       line,
     });
   });
 
   return { valid, issues };
 }
+
+export const TEMPLATE_HEADERS = IMPORT_FIELDS.map((f) => f.label);
 
 export const confirmSchema = z.object({
   eventId: z.string(),

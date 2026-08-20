@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { MobileMenu } from "./mobile-menu";
 
 export function StickyNav() {
@@ -24,8 +25,21 @@ export function StickyNav() {
       }}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Link href="/" className="font-display text-xl font-semibold" style={{ color: scrolled ? "#3D3630" : "#FFFFFF" }}>
-          Bizcon
+        <Link href="/" className="inline-flex items-center gap-2.5 hover:opacity-90">
+          <Image
+            src="/brand/logo-192.png"
+            alt=""
+            width={32}
+            height={32}
+            className="rounded-sm"
+            priority
+          />
+          <span
+            className="font-display text-xl font-semibold"
+            style={{ color: scrolled ? "#3D3630" : "#FFFFFF" }}
+          >
+            Bizcon
+          </span>
         </Link>
         <div className="hidden items-center gap-6 sm:flex">
           <Link

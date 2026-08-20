@@ -361,6 +361,21 @@ export default function HomePage() {
       <footer style={{ background: "#1B1815" }} className="py-16">
         <div className="mx-auto grid max-w-6xl gap-10 px-6 sm:grid-cols-2 lg:grid-cols-4">
           <div>
+            <div className="inline-flex items-center gap-2.5">
+              <img
+                src="/brand/logo-192.png"
+                alt=""
+                width={28}
+                height={28}
+                className="rounded-sm"
+              />
+              <p className="font-display text-lg font-semibold text-white">Bizcon</p>
+            </div>
+            <p className="mt-3 text-sm" style={{ color: "#A09588" }}>
+              Event Intelligence for professional summits.
+            </p>
+          </div>
+          <div>
             <p className="text-sm font-semibold text-white">Product</p>
             <ul className="mt-4 space-y-2.5 text-sm" style={{ color: "#A09588" }}>
               <li>Guest Management</li>
@@ -379,6 +394,11 @@ export default function HomePage() {
                   Contact
                 </Link>
               </li>
+              <li>
+                <a href="mailto:hello@bizconrsvp.com" className="hover:text-white">
+                  hello@bizconrsvp.com
+                </a>
+              </li>
             </ul>
           </div>
           <div>
@@ -393,16 +413,6 @@ export default function HomePage() {
                 <Link href="/termsofservice" className="hover:text-white">
                   Terms
                 </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-white">Connect</p>
-            <ul className="mt-4 space-y-2.5 text-sm" style={{ color: "#A09588" }}>
-              <li>
-                <a href="mailto:hello@bizconrsvp.com" className="hover:text-white">
-                  hello@bizconrsvp.com
-                </a>
               </li>
             </ul>
           </div>

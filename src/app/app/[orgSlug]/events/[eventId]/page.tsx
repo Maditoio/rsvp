@@ -4,20 +4,25 @@ import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
 import { eventCounts } from "@/modules/events/stats";
+import { getEventChecklist } from "@/modules/events/checklist";
 import { getAppUrl } from "@/lib/utils";
 import { urlQrDataUrl } from "@/lib/qr";
 import { Card, DecisionCard } from "@/components/ui/card";
+import { EventChecklist } from "@/components/events/event-checklist";
 import { ApplyQrBadge } from "./apply-url-card";
 import { StaffManagement } from "./staff-management";
 
 export default async function EventDashboardPage({
   params,
+  searchParams,
 }: PageProps<"/app/[orgSlug]/events/[eventId]">) {
   const { orgSlug, eventId } = await params;
+  const query = await searchParams;
+  const setupMode = query?.setup === "1";
   const ctx = await safe(() => requireEvent(orgSlug, eventId, "event.read"));
 
   const canUpdate = hasPermission(ctx.grants, "event.update");
-  const [event, counts] = await Promise.all([
+  const [event, counts, checklist] = await Promise.all([
     prisma.event.findFirst({
       where: { id: eventId, organisationId: ctx.organisation.id },
       select: {
@@ -30,6 +35,9 @@ export default async function EventDashboardPage({
       },
     }),
     eventCounts(ctx.organisation.id, eventId),
+    canUpdate
+      ? getEventChecklist(ctx.organisation.id, orgSlug, eventId)
+      : null,
   ]);
 
   if (!event) return null;
@@ -119,6 +127,10 @@ export default async function EventDashboardPage({
           ) : null}
         </div>
       </DecisionCard>
+
+      {checklist ? (
+        <EventChecklist checklist={checklist} defaultOpen={Boolean(setupMode)} />
+      ) : null}
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map(([label, value]) => (

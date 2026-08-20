@@ -9,7 +9,11 @@ import { writeAudit } from "@/modules/audit/log";
 import {
   contactCreateFromFormData,
   contactCreateSchema,
+  guessColumnMap,
   previewImport,
+  validateColumnMap,
+  type ColumnMap,
+  type ImportFieldKey,
   type ImportRow,
 } from "@/modules/contacts/parse";
 
@@ -21,7 +25,6 @@ async function parseFile(file: File): Promise<SheetRow[]> {
 
   if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
     const workbook = new ExcelJS.Workbook();
-    // ExcelJS types expect ArrayBuffer-like; Node Buffer is accepted at runtime
     await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
     const sheet = workbook.worksheets[0];
     if (!sheet) return [];
@@ -50,7 +53,17 @@ async function parseFile(file: File): Promise<SheetRow[]> {
   return parsed.data;
 }
 
-export async function previewContactImport(
+function parseColumnMap(raw: FormDataEntryValue | null): ColumnMap | undefined {
+  if (typeof raw !== "string" || !raw.trim()) return undefined;
+  const parsed = JSON.parse(raw) as Record<string, string>;
+  const map: ColumnMap = {};
+  for (const [header, field] of Object.entries(parsed)) {
+    map[header] = field as ImportFieldKey;
+  }
+  return map;
+}
+
+export async function inspectContactImport(
   orgSlug: string,
   eventId: string,
   formData: FormData,
@@ -65,7 +78,55 @@ export async function previewContactImport(
   }
 
   const rows = await parseFile(file);
-  const preview = previewImport(rows);
+  if (rows.length === 0) {
+    throw new Error("No data rows found in this file.");
+  }
+
+  const headers = Object.keys(rows[0]!).filter((h) => h.trim() !== "");
+  if (headers.length === 0) {
+    throw new Error("Could not read column headers from the first row.");
+  }
+
+  const suggestedMap = guessColumnMap(headers);
+  const samples = rows.slice(0, 3).map((row) => {
+    const sample: Record<string, string> = {};
+    for (const h of headers) {
+      sample[h] = row[h] != null ? String(row[h]) : "";
+    }
+    return sample;
+  });
+
+  return {
+    filename: file.name,
+    rowCount: rows.length,
+    headers,
+    suggestedMap,
+    samples,
+  };
+}
+
+export async function previewContactImport(
+  orgSlug: string,
+  eventId: string,
+  formData: FormData,
+) {
+  await requireEvent(orgSlug, eventId, "invitees.write");
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    throw new Error("Choose a CSV or Excel file");
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    throw new Error("File is too large (max 8MB)");
+  }
+
+  const columnMap = parseColumnMap(formData.get("columnMap"));
+  if (columnMap) {
+    const mapError = validateColumnMap(columnMap);
+    if (mapError) throw new Error(mapError);
+  }
+
+  const rows = await parseFile(file);
+  const preview = previewImport(rows, columnMap);
   const existing = await prisma.contact.findMany({
     where: {
       eventId,

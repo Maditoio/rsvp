@@ -4,12 +4,22 @@ import { Badge } from "@/components/ui/badge";
 import { getMyAttendance } from "@/modules/attendees/actions";
 import { requireUser } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
-import { formatEventWindow } from "@/lib/utils";
+import { displayName, formatEventWindow } from "@/lib/utils";
 import { prisma } from "@/lib/db/prisma";
+import { rankedDirectory } from "@/modules/matchmaking/basic";
 import {
   isQuestionnaireComplete,
   matchmakingPath,
 } from "@/modules/matchmaking/questionnaire";
+import { matchBandLabel, type MatchBand } from "@/modules/matchmaking/score";
+
+const TOP_MATCH_COUNT = 3;
+
+function bandTone(band: MatchBand): "success" | "default" | "muted" {
+  if (band === "strong") return "success";
+  if (band === "good") return "default";
+  return "muted";
+}
 
 export default async function AttendeeEventPage({
   params,
@@ -27,6 +37,9 @@ export default async function AttendeeEventPage({
     select: { questionnaire: true },
   });
   const matchingComplete = isQuestionnaireComplete(matchProfile?.questionnaire);
+  const directory = matchingComplete ? await rankedDirectory(eventId) : null;
+  const topMatches = directory?.forYou.slice(0, TOP_MATCH_COUNT) ?? [];
+  const directoryHref = `/me/events/${eventId}/directory`;
 
   return (
     <div className="space-y-6">
@@ -65,6 +78,46 @@ export default async function AttendeeEventPage({
             </Link>
             <span className="text-sm text-stone-500">You can skip this for now.</span>
           </div>
+        </Card>
+      ) : topMatches.length > 0 ? (
+        <Card>
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+            For you
+          </p>
+          <h2 className="mt-2 font-display text-2xl text-ink-800">
+            Suggested connections
+          </h2>
+          <p className="mt-2 text-sm text-stone-700">
+            Top matches from your looking-for, offering, and shared objectives.
+          </p>
+          <ul className="mt-4 divide-y divide-stone-200 border-t border-stone-200">
+            {topMatches.map((person) => {
+              const bandText = matchBandLabel(person.band);
+              return (
+                <li key={person.id} className="py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium text-ink-800">
+                      {displayName(person)}
+                    </p>
+                    {person.band && bandText ? (
+                      <Badge tone={bandTone(person.band)}>{bandText}</Badge>
+                    ) : null}
+                  </div>
+                  <p className="text-sm text-stone-700">
+                    {[person.jobTitle, person.company]
+                      .filter(Boolean)
+                      .join(" · ") || "—"}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+          <Link
+            href={directoryHref}
+            className="mt-4 inline-flex text-sm font-semibold text-ink-700 underline-offset-4 hover:underline"
+          >
+            View directory &amp; matching
+          </Link>
         </Card>
       ) : null}
       <Card>

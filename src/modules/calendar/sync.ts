@@ -373,3 +373,71 @@ export async function syncMeetingCalendarsWithWarning(
   const result = await syncCalendarForMeeting(meetingId);
   return calendarSyncWarningMessage(result);
 }
+
+/** Delete provider calendar events for a meeting and remove local sync rows. */
+export async function removeMeetingCalendars(
+  meetingId: string,
+): Promise<CalendarSyncResult> {
+  const warnings: string[] = [];
+  let synced = 0;
+  let skipped = 0;
+
+  const rows = await prisma.calendarEvent.findMany({
+    where: { meetingId },
+    include: {
+      connection: {
+        include: { user: { select: { firstName: true, lastName: true, email: true } } },
+      },
+    },
+  });
+
+  if (rows.length === 0) {
+    return { synced: 0, skipped: 0, warnings: [] };
+  }
+
+  const removedIds: string[] = [];
+
+  for (const row of rows) {
+    if (!row.externalId) {
+      removedIds.push(row.id);
+      synced += 1;
+      continue;
+    }
+
+    const ok = await deleteCalendarEvent(row.externalId, row.connection);
+    if (ok) {
+      removedIds.push(row.id);
+      synced += 1;
+    } else {
+      skipped += 1;
+      const name =
+        [row.connection.user.firstName, row.connection.user.lastName]
+          .filter(Boolean)
+          .join(" ") || row.connection.user.email;
+      const provider =
+        row.connection.provider === "microsoft" ? "Outlook" : "Google";
+      warnings.push(
+        `${name}: could not remove the ${provider} Calendar event. Try reconnecting calendars.`,
+      );
+    }
+  }
+
+  if (removedIds.length > 0) {
+    await prisma.calendarEvent.deleteMany({
+      where: { id: { in: removedIds } },
+    });
+  }
+
+  return { synced, skipped, warnings };
+}
+
+export async function removeMeetingCalendarsWithWarning(
+  meetingId: string,
+): Promise<string | undefined> {
+  try {
+    const result = await removeMeetingCalendars(meetingId);
+    return calendarSyncWarningMessage(result);
+  } catch {
+    return "Meeting was cancelled, but calendar events could not be removed. Try reconnecting calendars.";
+  }
+}

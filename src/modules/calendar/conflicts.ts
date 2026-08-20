@@ -123,10 +123,18 @@ export async function checkPlatformParticipantConflicts(
   return `${who} already has another meeting scheduled at this time in the event.`;
 }
 
+function sameBusyWindow(a: TimeBlock, b: TimeBlock, toleranceMs = 2_000): boolean {
+  return (
+    Math.abs(a.start.getTime() - b.start.getTime()) <= toleranceMs &&
+    Math.abs(a.end.getTime() - b.end.getTime()) <= toleranceMs
+  );
+}
+
 export async function checkGoogleCalendarConflicts(
   attendeeIds: string[],
   startsAt: Date,
   endsAt: Date,
+  options?: { ignoreBlock?: TimeBlock },
 ): Promise<string | null> {
   const attendees = await prisma.attendee.findMany({
     where: { id: { in: attendeeIds } },
@@ -158,7 +166,11 @@ export async function checkGoogleCalendarConflicts(
         );
       }
 
-      if (blocks.some((b) => blocksOverlap(candidate, b))) {
+      const relevant = options?.ignoreBlock
+        ? blocks.filter((b) => !sameBusyWindow(b, options.ignoreBlock!))
+        : blocks;
+
+      if (relevant.some((b) => blocksOverlap(candidate, b))) {
         const who = `${attendee.firstName} ${attendee.lastName}`.trim();
         const provider = connection.provider === "microsoft" ? "Outlook" : "Google";
         return `${who} has another event in their ${provider} Calendar at this time. Choose a different slot.`;
@@ -205,10 +217,22 @@ export async function validateMeetingSlot(
   );
   if (platformConflict) throw new Error(platformConflict);
 
+  let ignoreBlock: TimeBlock | undefined;
+  if (options?.excludeMeetingId) {
+    const existing = await prisma.meeting.findUnique({
+      where: { id: options.excludeMeetingId },
+      select: { startsAt: true, endsAt: true },
+    });
+    if (existing?.startsAt && existing?.endsAt) {
+      ignoreBlock = { start: existing.startsAt, end: existing.endsAt };
+    }
+  }
+
   const googleConflict = await checkGoogleCalendarConflicts(
     attendeeIds,
     startsAt,
     endsAt,
+    ignoreBlock ? { ignoreBlock } : undefined,
   );
   if (googleConflict) throw new Error(googleConflict);
 }

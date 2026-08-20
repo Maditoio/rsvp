@@ -17,6 +17,13 @@ const eventSchema = z.object({
   startsAt: z.string().optional().or(z.literal("")),
   endsAt: z.string().optional().or(z.literal("")),
   website: z.string().url().optional().or(z.literal("")),
+  slug: z
+    .string()
+    .max(60)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens")
+    .optional()
+    .or(z.literal("")),
+  allowPublicApplication: z.boolean().optional(),
 });
 
 function parseDate(value?: string) {
@@ -35,9 +42,11 @@ export async function createEvent(orgSlug: string, formData: FormData) {
     startsAt: String(formData.get("startsAt") ?? ""),
     endsAt: String(formData.get("endsAt") ?? ""),
     website: String(formData.get("website") ?? ""),
+    slug: String(formData.get("slug") ?? ""),
+    allowPublicApplication: formData.get("allowPublicApplication") === "true",
   });
 
-  let slug = toSlug(input.name) || "event";
+  let slug = (input.slug?.trim() || toSlug(input.name) || "event").slice(0, 60);
   const taken = await prisma.event.findUnique({
     where: {
       organisationId_slug: { organisationId: ctx.organisation.id, slug },
@@ -56,7 +65,12 @@ export async function createEvent(orgSlug: string, formData: FormData) {
       startsAt: parseDate(input.startsAt),
       endsAt: parseDate(input.endsAt),
       website: input.website || null,
-      settings: { create: { organisationId: ctx.organisation.id } },
+      settings: {
+        create: {
+          organisationId: ctx.organisation.id,
+          allowPublicApplication: input.allowPublicApplication ?? false,
+        },
+      },
       invitationCategories: {
         create: DEFAULT_CATEGORIES.map((c) => ({
           organisationId: ctx.organisation.id,
@@ -79,7 +93,7 @@ export async function createEvent(orgSlug: string, formData: FormData) {
   });
 
   revalidatePath(`/app/${orgSlug}`);
-  return { eventId: event.id };
+  return { eventId: event.id, slug: event.slug };
 }
 
 export async function updateEvent(

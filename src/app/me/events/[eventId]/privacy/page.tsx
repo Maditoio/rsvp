@@ -31,9 +31,10 @@ export default async function AttendeePrivacyPage({
         </p>
         <h1 className="mt-1 font-display text-3xl text-ink-800">Privacy</h1>
         <p className="mt-1 text-sm text-stone-700">
-          Control what other attendees can see. Matching uses shared objectives;
-          AI explanations are optional. Organisers still see your registration
-          record.
+          Control what other attendees can see. Matching uses shared objectives
+          from your matching profile; AI explanations are optional and only
+          appear in Directory when both the organiser and you enable them.
+          Organisers still see your registration record.
         </p>
       </div>
       <PrivacyForm

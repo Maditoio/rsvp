@@ -16,6 +16,7 @@ import { useClerk } from "@clerk/nextjs";
 import type { Permission } from "@/lib/authz/permissions";
 import { orgPrimaryNav, isNavActive } from "@/components/nav";
 import { NavLink } from "@/components/nav-link";
+import { BrandLogo, BrandMark } from "@/components/brand-logo";
 import { cn } from "@/lib/utils";
 
 /* ── Persisted collapse state ── */
@@ -209,15 +210,18 @@ export function OrgRail({
       {/* Header */}
       <div className="border-b border-stone-100 p-5 pr-6">
         {collapsed ? (
-          <div className="mx-auto flex size-[34px] items-center justify-center rounded-sm bg-ink-700">
-            <span className="font-display text-sm font-semibold text-white">B</span>
-          </div>
+          <Link href={`/app/${orgSlug}`} className="mx-auto block w-fit">
+            <BrandMark size={34} />
+          </Link>
         ) : (
           <>
-            <Link href={`/app/${orgSlug}`} className="block font-display text-[21px] font-semibold text-ink-700">
-              Bizcon
-            </Link>
-            <p className="mt-0.5 truncate text-xs text-stone-500" title={orgName}>{orgName}</p>
+            <BrandLogo
+              href={`/app/${orgSlug}`}
+              wordmark="Bizcon"
+              size={28}
+              wordmarkClassName="text-[21px] text-ink-700"
+            />
+            <p className="mt-1 truncate text-xs text-stone-500" title={orgName}>{orgName}</p>
           </>
         )}
       </div>

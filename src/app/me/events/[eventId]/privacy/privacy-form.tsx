@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { saveMyPrivacy } from "@/modules/attendees/profile";
+import { matchmakingPath } from "@/modules/matchmaking/questionnaire";
 import { Button } from "@/components/ui/button";
 
 export function PrivacyForm({
@@ -23,6 +25,8 @@ export function PrivacyForm({
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const directoryHref = `/me/events/${eventId}/directory`;
+  const matchingHref = matchmakingPath(eventId);
 
   return (
     <form
@@ -49,7 +53,15 @@ export function PrivacyForm({
         <span>
           <span className="font-semibold">Show my profile in the directory</span>
           <span className="mt-1 block text-xs font-normal text-stone-500">
-            Other registered attendees can find you and request a meeting.
+            Other registered attendees can find you and request a meeting. See
+            recommendations in the{" "}
+            <Link
+              href={directoryHref}
+              className="font-semibold text-ink-700 underline-offset-4 hover:underline"
+            >
+              Directory
+            </Link>
+            .
           </span>
         </span>
       </label>
@@ -63,7 +75,14 @@ export function PrivacyForm({
         <span>
           <span className="font-semibold">Include me in basic matching</span>
           <span className="mt-1 block text-xs font-normal text-stone-500">
-            Matching uses shared objectives; AI explanations are optional.
+            Matching uses shared objectives from your{" "}
+            <Link
+              href={matchingHref}
+              className="font-semibold text-ink-700 underline-offset-4 hover:underline"
+            >
+              matching profile
+            </Link>
+            . AI explanations are optional.
           </span>
         </span>
       </label>
@@ -83,7 +102,7 @@ export function PrivacyForm({
           <span className="font-semibold">Allow AI to explain my matches</span>
           <span className="mt-1 block text-xs font-normal text-stone-500">
             {eventAiEnabled
-              ? "When enabled, AI may write an explanation of why a connection fits. Matching still uses shared objectives."
+              ? "When enabled, AI may write an explanation on Directory recommendations. Matching still uses shared objectives."
               : "The organiser has not enabled AI insights for this event. Matching still uses shared objectives."}
           </span>
         </span>

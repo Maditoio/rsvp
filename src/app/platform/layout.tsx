@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LayoutDashboard } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,9 @@ export default function PlatformLayout({
             <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-bronze-600">
               Platform
             </p>
-            <p className="mt-2 font-display text-2xl text-ink-800">Bizcon RSVP</p>
+            <div className="mt-2">
+              <BrandLogo href="/platform" size={32} wordmarkClassName="text-2xl" />
+            </div>
           </div>
           <nav>
             <Link

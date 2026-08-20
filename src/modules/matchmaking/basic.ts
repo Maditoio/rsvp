@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/prisma";
 import { requireUser } from "@/lib/authz/require";
 import { AuthzError, forOrganisation } from "@/lib/db/tenant";
+import { isQuestionnaireComplete } from "./questionnaire";
 import {
   asStringArray,
   isMatchmakingEligible,
@@ -33,6 +34,8 @@ export type DirectoryPerson = {
   band: MatchBand | null;
   matchmakingEnabled: boolean;
   matchmakingEligible: boolean;
+  /** Cached AI explanation when previously generated; null if none. */
+  aiInsight: string | null;
 };
 
 export type RankedDirectory = {
@@ -41,6 +44,8 @@ export type RankedDirectory = {
   people: DirectoryPerson[];
   eventAiEnabled: boolean;
   attendeeOptIn: boolean;
+  questionnaireComplete: boolean;
+  matchmakingEnabled: boolean;
 };
 
 const directoryInclude = {
@@ -138,6 +143,7 @@ export async function rankedDirectory(eventId: string): Promise<RankedDirectory>
       band: matchBandFromScore(score),
       matchmakingEnabled: row.privacy?.matchmakingEnabled === true,
       matchmakingEligible: isMatchmakingEligible(row),
+      aiInsight: storedRow?.aiInsight ?? null,
     };
   });
 
@@ -157,5 +163,7 @@ export async function rankedDirectory(eventId: string): Promise<RankedDirectory>
     people: remaining,
     eventAiEnabled: flags.eventAiEnabled,
     attendeeOptIn: flags.attendeeOptIn,
+    questionnaireComplete: isQuestionnaireComplete(me.matchProfile?.questionnaire),
+    matchmakingEnabled: me.privacy?.matchmakingEnabled === true,
   };
 }

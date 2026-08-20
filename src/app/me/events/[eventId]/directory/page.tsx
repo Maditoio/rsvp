@@ -40,6 +40,8 @@ export default async function DirectoryPage({
         people={directory.people}
         eventAiEnabled={directory.eventAiEnabled}
         attendeeOptIn={directory.attendeeOptIn}
+        questionnaireComplete={directory.questionnaireComplete}
+        matchmakingEnabled={directory.matchmakingEnabled}
       />
     </div>
   );

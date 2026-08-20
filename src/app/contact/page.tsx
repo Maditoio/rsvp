@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Mail, MessageSquare, ArrowLeft } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const metadata = {
   title: "Book a Demo — Bizcon RSVP",
@@ -11,13 +12,12 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen" style={{ background: "#FAF7F2" }}>
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <Link
+        <BrandLogo
           href="/"
-          className="font-display text-2xl font-bold"
-          style={{ color: "#1B1815" }}
-        >
-          Bizcon
-        </Link>
+          wordmark="Bizcon"
+          size={32}
+          wordmarkClassName="text-2xl font-bold"
+        />
         <Link
           href="/"
           className="flex items-center gap-1.5 text-sm font-medium"

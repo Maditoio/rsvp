@@ -2,9 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Calendar, Clock } from "lucide-react";
-import { saveMeetingRoom, assignMeetingSlot, autoScheduleSingle, autoScheduleAll } from "@/modules/meetings/actions";
+import { Calendar, CalendarClock, Clock, XCircle } from "lucide-react";
+import {
+  saveMeetingRoom,
+  assignMeetingSlot,
+  autoScheduleSingle,
+  autoScheduleAll,
+  cancelMeeting,
+  rescheduleMeeting,
+} from "@/modules/meetings/actions";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,9 +25,16 @@ type MeetingRow = {
   id: string;
   status: string;
   room: string | null;
+  roomId: string | null;
   when: string;
+  startsAtLocal: string;
+  endsAtLocal: string;
   participants: string;
 };
+
+function canChangeMeeting(status: string) {
+  return status === "SCHEDULED";
+}
 
 export function MeetingsPanel({
   orgSlug,
@@ -37,7 +52,10 @@ export function MeetingsPanel({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [assignTarget, setAssignTarget] = useState<MeetingRow | null>(null);
+  const [rescheduleTarget, setRescheduleTarget] = useState<MeetingRow | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<MeetingRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [bulkResult, setBulkResult] = useState<string | null>(null);
@@ -166,7 +184,7 @@ export function MeetingsPanel({
                     {canManage ? (
                       <Td>
                         <div className="flex items-center gap-1">
-                          {!row.when ? (
+                          {canChangeMeeting(row.status) && !row.when ? (
                             <button
                               type="button"
                               title="Auto-schedule"
@@ -179,13 +197,21 @@ export function MeetingsPanel({
                                 fd.set("meetingId", row.id);
                                 start(async () => {
                                   try {
-                                    const result = await autoScheduleSingle(orgSlug, eventId, fd);
+                                    const result = await autoScheduleSingle(
+                                      orgSlug,
+                                      eventId,
+                                      fd,
+                                    );
                                     if (result.calendarWarning) {
                                       setWarning(result.calendarWarning);
                                     }
                                     router.refresh();
                                   } catch (e) {
-                                    setError(e instanceof Error ? e.message : "Auto-schedule failed");
+                                    setError(
+                                      e instanceof Error
+                                        ? e.message
+                                        : "Auto-schedule failed",
+                                    );
                                   }
                                 });
                               }}
@@ -193,18 +219,45 @@ export function MeetingsPanel({
                               <Calendar className="size-4" />
                             </button>
                           ) : null}
-                          <button
-                            type="button"
-                            title="Assign room and time"
-                            className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700"
-                            onClick={() => {
-                              setAssignTarget(row);
-                              setError(null);
-                              setAssignOpen(true);
-                            }}
-                          >
-                            <Clock className="size-4" />
-                          </button>
+                          {canChangeMeeting(row.status) ? (
+                            <>
+                              <button
+                                type="button"
+                                title={row.when ? "Reschedule" : "Assign room and time"}
+                                className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700"
+                                onClick={() => {
+                                  setError(null);
+                                  if (row.when) {
+                                    setRescheduleTarget(row);
+                                    setRescheduleOpen(true);
+                                    setAssignOpen(false);
+                                  } else {
+                                    setAssignTarget(row);
+                                    setAssignOpen(true);
+                                    setRescheduleOpen(false);
+                                  }
+                                }}
+                              >
+                                {row.when ? (
+                                  <CalendarClock className="size-4" />
+                                ) : (
+                                  <Clock className="size-4" />
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                title="Cancel meeting"
+                                disabled={pending}
+                                className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-danger disabled:opacity-50"
+                                onClick={() => {
+                                  setError(null);
+                                  setCancelTarget(row);
+                                }}
+                              >
+                                <XCircle className="size-4" />
+                              </button>
+                            </>
+                          ) : null}
                         </div>
                       </Td>
                     ) : null}
@@ -215,6 +268,10 @@ export function MeetingsPanel({
           </div>
         )}
       </div>
+
+      {error && !open && !assignOpen && !rescheduleOpen ? (
+        <p className="text-sm text-danger">{error}</p>
+      ) : null}
 
       <Drawer
         open={open}
@@ -284,14 +341,12 @@ export function MeetingsPanel({
             {rooms.length > 0 ? (
               <div>
                 <Label htmlFor="assign-roomId">Room</Label>
-                <Select
-                  id="assign-roomId"
-                  name="roomId"
-                  className="mt-1"
-                >
+                <Select id="assign-roomId" name="roomId" className="mt-1">
                   <option value="">No room</option>
                   {rooms.map((room) => (
-                    <option key={room.id} value={room.id}>{room.name}</option>
+                    <option key={room.id} value={room.id}>
+                      {room.name}
+                    </option>
                   ))}
                 </Select>
               </div>
@@ -311,6 +366,119 @@ export function MeetingsPanel({
           </form>
         ) : null}
       </Drawer>
+
+      <Drawer
+        open={rescheduleOpen}
+        onClose={() => setRescheduleOpen(false)}
+        title="Reschedule meeting"
+        description={
+          rescheduleTarget
+            ? `Move ${rescheduleTarget.participants} to a new slot`
+            : undefined
+        }
+        size="sm"
+      >
+        {rescheduleTarget ? (
+          <form
+            key={rescheduleTarget.id}
+            className="space-y-4"
+            action={(formData) => {
+              setError(null);
+              setWarning(null);
+              start(async () => {
+                try {
+                  const result = await rescheduleMeeting(orgSlug, eventId, formData);
+                  if (result.calendarWarning) {
+                    setWarning(result.calendarWarning);
+                  }
+                  setRescheduleOpen(false);
+                  router.refresh();
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Could not reschedule");
+                }
+              });
+            }}
+          >
+            <input type="hidden" name="meetingId" value={rescheduleTarget.id} />
+            {rooms.length > 0 ? (
+              <div>
+                <Label htmlFor="reschedule-roomId">Room</Label>
+                <Select
+                  id="reschedule-roomId"
+                  name="roomId"
+                  className="mt-1"
+                  defaultValue={rescheduleTarget.roomId ?? ""}
+                >
+                  <option value="">No room</option>
+                  {rooms.map((room) => (
+                    <option key={room.id} value={room.id}>
+                      {room.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            ) : null}
+            <div>
+              <Label htmlFor="reschedule-startsAt">Start</Label>
+              <Input
+                id="reschedule-startsAt"
+                name="startsAt"
+                type="datetime-local"
+                required
+                defaultValue={rescheduleTarget.startsAtLocal}
+              />
+            </div>
+            <div>
+              <Label htmlFor="reschedule-endsAt">End</Label>
+              <Input
+                id="reschedule-endsAt"
+                name="endsAt"
+                type="datetime-local"
+                required
+                defaultValue={rescheduleTarget.endsAtLocal}
+              />
+            </div>
+            {error ? <p className="text-sm text-danger">{error}</p> : null}
+            <div className="flex justify-end">
+              <Button disabled={pending}>{pending ? "Saving…" : "Reschedule"}</Button>
+            </div>
+          </form>
+        ) : null}
+      </Drawer>
+
+      <ConfirmDialog
+        open={cancelTarget != null}
+        onClose={() => (pending ? undefined : setCancelTarget(null))}
+        title="Cancel this meeting"
+        description={
+          cancelTarget
+            ? `Cancel the meeting between ${cancelTarget.participants}? Synced Google and Outlook events will be removed when possible.`
+            : "Cancel this meeting?"
+        }
+        confirmLabel="Cancel meeting"
+        cancelLabel="Keep meeting"
+        destructive
+        pending={pending}
+        onConfirm={() => {
+          if (!cancelTarget) return;
+          setError(null);
+          setWarning(null);
+          const fd = new FormData();
+          fd.set("meetingId", cancelTarget.id);
+          start(async () => {
+            try {
+              const result = await cancelMeeting(orgSlug, eventId, fd);
+              if (result.calendarWarning) {
+                setWarning(result.calendarWarning);
+              }
+              setCancelTarget(null);
+              router.refresh();
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Could not cancel meeting");
+            }
+          });
+        }}
+      />
     </div>
   );
 }

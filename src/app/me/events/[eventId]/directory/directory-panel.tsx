@@ -1,9 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { requestMeeting } from "@/modules/meetings/actions";
 import { getAiInsight } from "@/modules/matchmaking/ai-actions";
+import type { DirectoryPerson } from "@/modules/matchmaking/basic";
+import { matchmakingPath } from "@/modules/matchmaking/questionnaire";
+import { matchBandLabel, type MatchBand, type MatchReasons } from "@/modules/matchmaking/score";
 import { AiInsightTeaser } from "@/components/matchmaking/ai-insight-teaser";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
@@ -12,59 +16,72 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { displayName } from "@/lib/utils";
-import type { MatchBand, MatchReasons } from "@/modules/matchmaking/score";
 
-function matchBandLabel(band: MatchBand | null): string | null {
-  if (band === "strong") return "Strong match";
-  if (band === "good") return "Good match";
-  if (band === "possible") return "Possible match";
-  return null;
+export type { DirectoryPerson };
+
+function bandTone(band: MatchBand): "success" | "default" | "muted" {
+  if (band === "strong") return "success";
+  if (band === "good") return "default";
+  return "muted";
 }
 
-export type DirectoryPerson = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  company: string | null;
-  jobTitle: string | null;
-  country: string | null;
-  email: string | null;
-  phone: string | null;
-  about: string | null;
-  lookingFor: string | null;
-  offering: string | null;
-  interests: string[];
-  sharedInterests: string[];
-  score: number;
-  reasons: MatchReasons;
-  band: MatchBand | null;
-  matchmakingEnabled: boolean;
-  matchmakingEligible: boolean;
-};
+function reasonLabels(reasons: MatchReasons): string[] {
+  if (reasons.labels.length > 0) return reasons.labels;
+  const fallback: string[] = [];
+  if (reasons.lookingOfferingOverlap.length > 0) {
+    fallback.push(
+      `They offer what you are looking for: ${reasons.lookingOfferingOverlap.join(", ")}`,
+    );
+  }
+  if (reasons.offeringLookingOverlap.length > 0) {
+    fallback.push(
+      `You offer what they are looking for: ${reasons.offeringLookingOverlap.join(", ")}`,
+    );
+  }
+  if (reasons.sharedIndustries.length > 0) {
+    fallback.push(`Shared industries: ${reasons.sharedIndustries.join(", ")}`);
+  }
+  if (reasons.sharedGeographies.length > 0) {
+    fallback.push(`Shared geographies: ${reasons.sharedGeographies.join(", ")}`);
+  }
+  if (reasons.sharedMeetingPreferences.length > 0) {
+    fallback.push(
+      `Shared meeting preferences: ${reasons.sharedMeetingPreferences.join(", ")}`,
+    );
+  }
+  if (reasons.sharedInterests.length > 0) {
+    fallback.push(`Shared interests: ${reasons.sharedInterests.join(", ")}`);
+  }
+  if (reasons.sameCountry) {
+    fallback.push("You are based in the same country");
+  }
+  return fallback;
+}
 
 function AiInsightCard({
   eventId,
   targetId,
   eventAiEnabled = false,
   attendeeOptIn = false,
+  cachedInsight = null,
 }: {
   eventId: string;
   targetId: string;
   eventAiEnabled?: boolean;
   attendeeOptIn?: boolean;
+  cachedInsight?: string | null;
 }) {
-  const [insight, setInsight] = useState<string | null>(null);
+  const [insight, setInsight] = useState<string | null>(cachedInsight);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!eventAiEnabled) {
+  if (!eventAiEnabled || !attendeeOptIn) {
     return (
-      <AiInsightTeaser eventId={eventId} eventAiEnabled={false} attendeeOptIn={attendeeOptIn} />
-    );
-  }
-  if (!attendeeOptIn) {
-    return (
-      <AiInsightTeaser eventId={eventId} eventAiEnabled={true} attendeeOptIn={false} />
+      <AiInsightTeaser
+        eventId={eventId}
+        eventAiEnabled={eventAiEnabled}
+        attendeeOptIn={attendeeOptIn}
+      />
     );
   }
 
@@ -80,9 +97,10 @@ function AiInsightCard({
   return (
     <div className="rounded-md border border-stone-200 bg-stone-0 px-3 py-2">
       <Badge tone="accent">AI insight</Badge>
-      {error ? (
-        <p className="mt-2 text-xs text-danger">{error}</p>
-      ) : null}
+      <p className="mt-2 text-sm text-stone-700">
+        Generate a short explanation of why this connection fits your objectives.
+      </p>
+      {error ? <p className="mt-2 text-xs text-danger">{error}</p> : null}
       <div className="mt-2">
         <Button
           type="button"
@@ -109,10 +127,72 @@ function AiInsightCard({
   );
 }
 
-function bandTone(band: MatchBand): "success" | "default" | "muted" {
-  if (band === "strong") return "success";
-  if (band === "good") return "default";
-  return "muted";
+function ForYouEmpty({
+  eventId,
+  questionnaireComplete,
+  matchmakingEnabled,
+}: {
+  eventId: string;
+  questionnaireComplete: boolean;
+  matchmakingEnabled: boolean;
+}) {
+  if (!questionnaireComplete) {
+    return (
+      <div className="rounded-md border border-stone-200 bg-stone-0 px-4 py-4">
+        <p className="text-sm text-stone-700">
+          Complete your matching questionnaire to see ranked recommendations
+          based on looking-for, offering, and shared objectives.
+        </p>
+        <Link
+          href={matchmakingPath(eventId)}
+          className="mt-3 inline-flex text-sm font-semibold text-ink-700 underline-offset-4 hover:underline"
+        >
+          Set up matching profile
+        </Link>
+      </div>
+    );
+  }
+
+  if (!matchmakingEnabled) {
+    return (
+      <div className="rounded-md border border-stone-200 bg-stone-0 px-4 py-4">
+        <p className="text-sm text-stone-700">
+          Matching is off in your privacy settings, so recommendations are
+          paused. Turn it on to appear in others&apos; For you lists and see
+          yours here.
+        </p>
+        <Link
+          href={`/me/events/${eventId}/privacy`}
+          className="mt-3 inline-flex text-sm font-semibold text-ink-700 underline-offset-4 hover:underline"
+        >
+          Open privacy settings
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-md border border-stone-200 bg-stone-0 px-4 py-4">
+      <p className="text-sm text-stone-700">
+        No strong complementary matches yet. Browse the directory below, or
+        refine what you are looking for and offering.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-4">
+        <Link
+          href={matchmakingPath(eventId)}
+          className="inline-flex text-sm font-semibold text-ink-700 underline-offset-4 hover:underline"
+        >
+          Update matching profile
+        </Link>
+        <Link
+          href={`/me/events/${eventId}/privacy`}
+          className="inline-flex text-sm text-stone-500 underline-offset-4 hover:underline"
+        >
+          Privacy &amp; matching
+        </Link>
+      </div>
+    </div>
+  );
 }
 
 function PersonCard({
@@ -131,7 +211,7 @@ function PersonCard({
   onRequest: (person: DirectoryPerson) => void;
 }) {
   const bandText = matchBandLabel(person.band);
-  const why = person.reasons.labels;
+  const why = recommended ? reasonLabels(person.reasons) : [];
 
   return (
     <Card>
@@ -139,7 +219,7 @@ function PersonCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-medium text-ink-800">{displayName(person)}</p>
-            {recommended && bandText && person.band ? (
+            {recommended && person.band && bandText ? (
               <Badge tone={bandTone(person.band)}>{bandText}</Badge>
             ) : null}
           </div>
@@ -198,6 +278,7 @@ function PersonCard({
                 targetId={person.id}
                 eventAiEnabled={eventAiEnabled}
                 attendeeOptIn={attendeeOptIn}
+                cachedInsight={person.aiInsight}
               />
             </div>
           ) : null}
@@ -221,12 +302,16 @@ export function DirectoryPanel({
   people,
   eventAiEnabled = false,
   attendeeOptIn = false,
+  questionnaireComplete = false,
+  matchmakingEnabled = false,
 }: {
   eventId: string;
   forYou: DirectoryPerson[];
   people: DirectoryPerson[];
   eventAiEnabled?: boolean;
   attendeeOptIn?: boolean;
+  questionnaireComplete?: boolean;
+  matchmakingEnabled?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -235,6 +320,9 @@ export function DirectoryPanel({
   const [pending, start] = useTransition();
 
   const empty = forYou.length === 0 && people.length === 0;
+  const hasStrongOrGood = forYou.some(
+    (person) => person.band === "strong" || person.band === "good",
+  );
 
   function openRequest(person: DirectoryPerson) {
     setTarget(person);
@@ -245,10 +333,20 @@ export function DirectoryPanel({
   return (
     <div className="space-y-8">
       {empty ? (
-        <p className="text-sm text-stone-700">
-          No other visible profiles yet. Ask attendees to complete their profile
-          and leave directory visibility on.
-        </p>
+        <div className="rounded-md border border-stone-200 bg-stone-0 px-4 py-4">
+          <p className="text-sm text-stone-700">
+            No other visible profiles yet. Ask attendees to complete their
+            profile and leave directory visibility on.
+          </p>
+          {!questionnaireComplete ? (
+            <Link
+              href={matchmakingPath(eventId)}
+              className="mt-3 inline-flex text-sm font-semibold text-ink-700 underline-offset-4 hover:underline"
+            >
+              Set up matching profile
+            </Link>
+          ) : null}
+        </div>
       ) : (
         <>
           <section className="space-y-4">
@@ -260,22 +358,38 @@ export function DirectoryPanel({
               </p>
             </div>
             {forYou.length === 0 ? (
-              <p className="text-sm text-stone-700">
-                No ranked matches yet. Complete your matchmaking questionnaire
-                to see complementary connections here.
-              </p>
+              <ForYouEmpty
+                eventId={eventId}
+                questionnaireComplete={questionnaireComplete}
+                matchmakingEnabled={matchmakingEnabled}
+              />
             ) : (
-              forYou.map((person) => (
-                <PersonCard
-                  key={person.id}
-                  person={person}
-                  recommended
-                  eventId={eventId}
-                  eventAiEnabled={eventAiEnabled}
-                  attendeeOptIn={attendeeOptIn}
-                  onRequest={openRequest}
-                />
-              ))
+              <>
+                {!hasStrongOrGood ? (
+                  <p className="text-sm text-stone-500">
+                    No strong or good matches yet — these are possible
+                    connections. Refine your{" "}
+                    <Link
+                      href={matchmakingPath(eventId)}
+                      className="font-semibold text-ink-700 underline-offset-4 hover:underline"
+                    >
+                      matching profile
+                    </Link>{" "}
+                    for better ranking.
+                  </p>
+                ) : null}
+                {forYou.map((person) => (
+                  <PersonCard
+                    key={person.id}
+                    person={person}
+                    recommended
+                    eventId={eventId}
+                    eventAiEnabled={eventAiEnabled}
+                    attendeeOptIn={attendeeOptIn}
+                    onRequest={openRequest}
+                  />
+                ))}
+              </>
             )}
           </section>
 
