@@ -24,9 +24,9 @@ export default async function CalendarPage({
     return null;
   }
 
-  const connection = await prisma.calendarConnection.findFirst({
-    where: { userId: user.id },
-    select: { id: true, provider: true, expiresAt: true },
+  const connections = await prisma.calendarConnection.findMany({
+    where: { userId: user.id, provider: { in: ["google", "microsoft"] } },
+    select: { id: true, provider: true },
   });
 
   const appUrl = getAppUrl();
@@ -48,11 +48,7 @@ export default async function CalendarPage({
       </div>
       <CalendarPanel
         eventId={eventId}
-        connection={
-          connection
-            ? { id: connection.id, provider: connection.provider }
-            : null
-        }
+        connections={connections}
         googleAuthUrl={googleAuthUrl}
         microsoftAuthUrl={microsoftAuthUrl}
       />
