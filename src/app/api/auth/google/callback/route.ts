@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db/prisma";
 import { requireUser } from "@/lib/authz/require";
 import { exchangeGoogleCode } from "@/modules/calendar/google";
@@ -45,7 +46,8 @@ export async function GET(request: NextRequest) {
         where: { id: existing.id },
         data: {
           accessTokenEnc: tokens.accessToken,
-          refreshTokenEnc: tokens.refreshToken,
+          // Google may omit refresh_token on reconnect — keep the prior one.
+          refreshTokenEnc: tokens.refreshToken ?? existing.refreshTokenEnc,
           expiresAt: tokens.expiresAt,
           scopes: "calendar.events",
         },
@@ -73,6 +75,7 @@ export async function GET(request: NextRequest) {
       metadata: { provider: "google" },
     });
 
+    revalidatePath(`/me/events/${eventId}/calendar`);
     return NextResponse.redirect(fallbackUrl);
   } catch {
     return NextResponse.redirect(`${fallbackUrl}?error=exchange_failed`);

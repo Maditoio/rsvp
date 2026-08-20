@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db/prisma";
 import { requireUser } from "@/lib/authz/require";
 import { exchangeMicrosoftCode } from "@/modules/calendar/microsoft";
@@ -38,14 +39,19 @@ export async function GET(request: NextRequest) {
     const tokens = await exchangeMicrosoftCode(code, appUrl);
 
     const existing = await prisma.calendarConnection.findFirst({
-      where: { userId: user.id, provider: "microsoft" },
+      where: {
+        userId: user.id,
+        provider: { in: ["microsoft", "outlook"] },
+      },
     });
     if (existing) {
       await prisma.calendarConnection.update({
         where: { id: existing.id },
         data: {
+          provider: "microsoft",
           accessTokenEnc: tokens.accessToken,
-          refreshTokenEnc: tokens.refreshToken,
+          // Microsoft may omit refresh_token on reconnect — keep the prior one.
+          refreshTokenEnc: tokens.refreshToken ?? existing.refreshTokenEnc,
           expiresAt: tokens.expiresAt,
           scopes: "Calendars.ReadWrite",
         },
@@ -73,6 +79,7 @@ export async function GET(request: NextRequest) {
       metadata: { provider: "microsoft" },
     });
 
+    revalidatePath(`/me/events/${eventId}/calendar`);
     return NextResponse.redirect(fallbackUrl);
   } catch {
     return NextResponse.redirect(`${fallbackUrl}?error=exchange_failed`);

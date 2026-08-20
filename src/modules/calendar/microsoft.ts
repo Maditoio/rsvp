@@ -38,6 +38,8 @@ export function getMicrosoftAuthUrl(appUrl: string, state: string): string {
     response_type: "code",
     scope: SCOPES.join(" "),
     response_mode: "query",
+    // Ensure a refresh token is issued (needed for Connected → sync later).
+    prompt: "consent",
     state,
   });
   return `${MS_AUTH_URL}?${params.toString()}`;

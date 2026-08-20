@@ -9,8 +9,12 @@ import { CalendarPanel } from "./calendar-panel";
 
 export default async function CalendarPage({
   params,
+  searchParams,
 }: PageProps<"/me/events/[eventId]/calendar">) {
   const { eventId } = await params;
+  const query = await searchParams;
+  const oauthError =
+    typeof query.error === "string" ? query.error : null;
   const user = await safe(() => requireUser());
 
   const attendee = await prisma.attendee.findFirst({
@@ -25,7 +29,7 @@ export default async function CalendarPage({
   }
 
   const connections = await prisma.calendarConnection.findMany({
-    where: { userId: user.id, provider: { in: ["google", "microsoft"] } },
+    where: { userId: user.id, provider: { in: ["google", "microsoft", "outlook"] } },
     select: { id: true, provider: true },
   });
 
@@ -51,6 +55,7 @@ export default async function CalendarPage({
         connections={connections}
         googleAuthUrl={googleAuthUrl}
         microsoftAuthUrl={microsoftAuthUrl}
+        oauthError={oauthError}
       />
     </div>
   );
