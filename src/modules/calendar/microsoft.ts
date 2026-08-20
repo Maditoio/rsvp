@@ -3,8 +3,8 @@ import { prisma } from "@/lib/db/prisma";
 import type { CalendarConnectionRecord } from "./google";
 
 const TENANT = process.env.MICROSOFT_TENANT_ID?.trim() || "common";
-const MS_AUTH_URL = `https://login.microsoftonline.com/${TENANT}/oauth2/v2/authorize`;
-const MS_TOKEN_URL = `https://login.microsoftonline.com/${TENANT}/oauth2/v2/token`;
+const MS_AUTH_URL = `https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/authorize`;
+const MS_TOKEN_URL = `https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/token`;
 const GRAPH_API = "https://graph.microsoft.com/v1.0";
 
 const SCOPES = [
