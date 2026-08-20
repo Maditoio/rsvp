@@ -27,7 +27,7 @@ export default async function EventLayout({
         eventName={event?.name ?? "Event"}
         grants={ctx.grants}
       />
-      <main className="flex-1 overflow-y-auto p-6 md:p-10">{children}</main>
+      <main className="min-w-0 flex-1 overflow-y-auto p-6 md:p-10">{children}</main>
     </EventNavScope>
   );
 }

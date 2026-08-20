@@ -374,21 +374,36 @@ export default function HomePage() {
           <div>
             <p className="text-sm font-semibold text-white">Company</p>
             <ul className="mt-4 space-y-2.5 text-sm" style={{ color: "#A09588" }}>
-              <li>About</li>
-              <li>Contact</li>
+              <li>
+                <Link href="/contact" className="hover:text-white">
+                  Contact
+                </Link>
+              </li>
             </ul>
           </div>
           <div>
             <p className="text-sm font-semibold text-white">Legal</p>
             <ul className="mt-4 space-y-2.5 text-sm" style={{ color: "#A09588" }}>
-              <li>Privacy</li>
-              <li>Terms</li>
+              <li>
+                <Link href="/privacystatment" className="hover:text-white">
+                  Privacy
+                </Link>
+              </li>
+              <li>
+                <Link href="/termsofservice" className="hover:text-white">
+                  Terms
+                </Link>
+              </li>
             </ul>
           </div>
           <div>
             <p className="text-sm font-semibold text-white">Connect</p>
             <ul className="mt-4 space-y-2.5 text-sm" style={{ color: "#A09588" }}>
-              <li>hello@bizcon.events</li>
+              <li>
+                <a href="mailto:hello@bizconrsvp.com" className="hover:text-white">
+                  hello@bizconrsvp.com
+                </a>
+              </li>
             </ul>
           </div>
         </div>

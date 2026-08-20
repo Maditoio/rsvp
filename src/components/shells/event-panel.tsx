@@ -156,8 +156,8 @@ export function EventPanel({
               onClick={closeOverlay}
               aria-label="Close event navigation"
             />
-            <aside
-              className="absolute inset-y-0 left-0 flex w-[264px] flex-col overflow-x-hidden shadow-lg md:left-16"
+          <aside
+              className="absolute inset-y-0 left-0 flex w-[264px] flex-col overflow-y-auto overflow-x-hidden shadow-lg md:left-16"
               style={{ background: "#FBFAF8" }}
             >
               <div className="flex items-center justify-end p-2">
@@ -186,7 +186,7 @@ export function EventPanel({
   // Desktop: permanent panel
   return (
     <aside
-      className="hidden h-screen w-[264px] shrink-0 flex-col overflow-x-hidden border-r border-stone-200 md:flex"
+      className="hidden h-full w-[264px] shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-stone-200 md:flex"
       style={{ background: "#FBFAF8" }}
     >
       <PanelContent

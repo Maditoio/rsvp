@@ -20,14 +20,14 @@ export function OrganiserShell({
 }) {
   return (
     <EventNavProvider>
-      <div className="flex min-h-screen bg-stone-50">
+      <div className="flex h-screen overflow-hidden bg-stone-50">
         <OrgRail
           orgName={orgName}
           orgSlug={orgSlug}
           grants={grants}
           orgRole={orgRole}
         />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <header className="border-b border-stone-200 bg-stone-0 px-6 py-4 md:hidden">
             <OrganiserMobileNav
               orgName={orgName}
@@ -43,7 +43,7 @@ export function OrganiserShell({
               }
             />
           </header>
-          <div className="flex min-h-0 flex-1">{children}</div>
+          <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>
         </div>
       </div>
     </EventNavProvider>

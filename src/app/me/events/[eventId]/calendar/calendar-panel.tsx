@@ -9,10 +9,12 @@ export function CalendarPanel({
   eventId,
   connection,
   googleAuthUrl,
+  microsoftAuthUrl,
 }: {
   eventId: string;
   connection: { id: string; provider: string } | null;
   googleAuthUrl: string;
+  microsoftAuthUrl: string | null;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -66,16 +68,25 @@ export function CalendarPanel({
             Connect Google Calendar
           </a>
 
-          <div>
-            <button
-              type="button"
-              disabled
-              className="inline-flex h-10 items-center justify-center rounded-sm border border-stone-200 bg-stone-50 px-4 text-sm font-medium text-stone-400 cursor-not-allowed"
+          {microsoftAuthUrl ? (
+            <a
+              href={microsoftAuthUrl}
+              className="inline-flex h-10 items-center justify-center rounded-sm border border-stone-200 bg-stone-0 px-4 text-sm font-medium text-ink-800 hover:border-ink-400 hover:bg-stone-50"
             >
               Connect Microsoft Outlook
-            </button>
-            <p className="mt-1 text-xs text-stone-500">Coming soon</p>
-          </div>
+            </a>
+          ) : (
+            <div>
+              <button
+                type="button"
+                disabled
+                className="inline-flex h-10 items-center justify-center rounded-sm border border-stone-200 bg-stone-50 px-4 text-sm font-medium text-stone-400 cursor-not-allowed"
+              >
+                Connect Microsoft Outlook
+              </button>
+              <p className="mt-1 text-xs text-stone-500">Coming soon</p>
+            </div>
+          )}
         </div>
       )}
 

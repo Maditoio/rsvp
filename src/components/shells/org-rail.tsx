@@ -187,8 +187,8 @@ export function OrgRail({
   return (
     <aside
       className={cn(
-        "relative hidden h-screen shrink-0 flex-col border-r border-stone-200 bg-stone-0 transition-[width] duration-[220ms] ease-out md:flex motion-reduce:transition-none",
-        collapsed ? "w-16 overflow-hidden" : "w-[220px] overflow-y-auto overflow-x-hidden",
+        "relative hidden h-full shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-stone-200 bg-stone-0 transition-[width] duration-[220ms] ease-out md:flex motion-reduce:transition-none",
+        collapsed ? "w-16" : "w-[220px]",
       )}
       style={{ willChange: "width" }}
     >

@@ -23,6 +23,10 @@ function openaiClient() {
   return new OpenAI({ apiKey: key });
 }
 
+function openaiModel() {
+  return process.env.OPENAI_MATCH_MODEL?.trim() || "gpt-4o-mini";
+}
+
 export async function generateMatchInsight(
   profileA: MatchmakingProfileData,
   profileB: MatchmakingProfileData,
@@ -52,7 +56,7 @@ export async function generateMatchInsight(
     };
 
     const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: openaiModel(),
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: JSON.stringify(payload) },

@@ -4,6 +4,10 @@ import {
   getValidGoogleAccessToken,
   type CalendarConnectionRecord,
 } from "./google";
+import {
+  fetchMicrosoftFreeBusy,
+  getValidMicrosoftAccessToken,
+} from "./microsoft";
 
 export interface TimeBlock {
   start: Date;
@@ -14,17 +18,24 @@ function blocksOverlap(a: TimeBlock, b: TimeBlock): boolean {
   return a.start < b.end && b.start < a.end;
 }
 
-async function googleBusyBlocksForConnection(
-  connection: CalendarConnectionRecord,
+async function busyBlocksForConnection(
+  connection: CalendarConnectionRecord & { user?: { email: string } },
   timeMin: Date,
   timeMax: Date,
 ): Promise<TimeBlock[]> {
-  if (connection.provider !== "google") return [];
-  const accessToken = await getValidGoogleAccessToken(connection);
-  return fetchGoogleFreeBusy(accessToken, timeMin, timeMax);
+  if (connection.provider === "google") {
+    const accessToken = await getValidGoogleAccessToken(connection);
+    return fetchGoogleFreeBusy(accessToken, timeMin, timeMax);
+  }
+  if (connection.provider === "microsoft") {
+    const accessToken = await getValidMicrosoftAccessToken(connection);
+    const email = (connection as { user?: { email: string } }).user?.email ?? "me";
+    return fetchMicrosoftFreeBusy(accessToken, timeMin, timeMax, email);
+  }
+  return [];
 }
 
-/** Load Google Calendar busy blocks per attendee for a date range. */
+/** Load calendar busy blocks per attendee (Google + Microsoft) for a date range. */
 export async function loadGoogleBusyByAttendee(
   attendeeIds: string[],
   timeMin: Date,
@@ -46,21 +57,31 @@ export async function loadGoogleBusyByAttendee(
     .filter((id): id is string => id !== null);
 
   const connections = await prisma.calendarConnection.findMany({
-    where: { userId: { in: userIds }, provider: "google" },
+    where: { userId: { in: userIds }, provider: { in: ["google", "microsoft"] } },
+    include: { user: { select: { email: true } } },
   });
-  const connByUser = new Map(connections.map((c) => [c.userId, c]));
+  const connsByUser = new Map<string, (typeof connections)>();
+  for (const c of connections) {
+    const existing = connsByUser.get(c.userId) ?? [];
+    existing.push(c);
+    connsByUser.set(c.userId, existing);
+  }
 
   await Promise.all(
     attendees.map(async (attendee) => {
       if (!attendee.userId) return;
-      const conn = connByUser.get(attendee.userId);
-      if (!conn) return;
-      try {
-        const blocks = await googleBusyBlocksForConnection(conn, timeMin, timeMax);
-        result.set(attendee.id, blocks);
-      } catch {
-        result.set(attendee.id, []);
+      const conns = connsByUser.get(attendee.userId);
+      if (!conns) return;
+      const allBlocks: TimeBlock[] = [];
+      for (const conn of conns) {
+        try {
+          const blocks = await busyBlocksForConnection(conn, timeMin, timeMax);
+          allBlocks.push(...blocks);
+        } catch {
+          // skip failed connections
+        }
       }
+      result.set(attendee.id, allBlocks);
     }),
   );
 
@@ -119,28 +140,29 @@ export async function checkGoogleCalendarConflicts(
   for (const attendee of attendees) {
     if (!attendee.userId) continue;
 
-    const connection = await prisma.calendarConnection.findFirst({
-      where: { userId: attendee.userId, provider: "google" },
+    const connections = await prisma.calendarConnection.findMany({
+      where: { userId: attendee.userId, provider: { in: ["google", "microsoft"] } },
+      include: { user: { select: { email: true } } },
     });
-    if (!connection) continue;
+    if (connections.length === 0) continue;
 
-    let blocks: TimeBlock[];
-    try {
-      blocks = await googleBusyBlocksForConnection(
-        connection,
-        rangeStart,
-        rangeEnd,
-      );
-    } catch {
-      const who = `${attendee.firstName} ${attendee.lastName}`.trim();
-      throw new Error(
-        `Could not read ${who}'s Google Calendar. Ask them to reconnect under Calendar settings.`,
-      );
-    }
+    for (const connection of connections) {
+      let blocks: TimeBlock[];
+      try {
+        blocks = await busyBlocksForConnection(connection, rangeStart, rangeEnd);
+      } catch {
+        const who = `${attendee.firstName} ${attendee.lastName}`.trim();
+        const provider = connection.provider === "microsoft" ? "Outlook" : "Google";
+        throw new Error(
+          `Could not read ${who}'s ${provider} Calendar. Ask them to reconnect under Calendar settings.`,
+        );
+      }
 
-    if (blocks.some((b) => blocksOverlap(candidate, b))) {
-      const who = `${attendee.firstName} ${attendee.lastName}`.trim();
-      return `${who} has another event in their Google Calendar at this time. Choose a different slot.`;
+      if (blocks.some((b) => blocksOverlap(candidate, b))) {
+        const who = `${attendee.firstName} ${attendee.lastName}`.trim();
+        const provider = connection.provider === "microsoft" ? "Outlook" : "Google";
+        return `${who} has another event in their ${provider} Calendar at this time. Choose a different slot.`;
+      }
     }
   }
 

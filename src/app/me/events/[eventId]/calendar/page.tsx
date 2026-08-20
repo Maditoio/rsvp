@@ -4,6 +4,7 @@ import { safe } from "@/lib/authz/safe";
 import { AuthzError } from "@/lib/db/tenant";
 import { getAppUrl } from "@/lib/utils";
 import { getGoogleAuthUrl } from "@/modules/calendar/google";
+import { getMicrosoftAuthUrl, microsoftConfigured } from "@/modules/calendar/microsoft";
 import { CalendarPanel } from "./calendar-panel";
 
 export default async function CalendarPage({
@@ -30,6 +31,9 @@ export default async function CalendarPage({
 
   const appUrl = getAppUrl();
   const googleAuthUrl = getGoogleAuthUrl(appUrl, eventId);
+  const microsoftAuthUrl = microsoftConfigured()
+    ? getMicrosoftAuthUrl(appUrl, eventId)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -50,6 +54,7 @@ export default async function CalendarPage({
             : null
         }
         googleAuthUrl={googleAuthUrl}
+        microsoftAuthUrl={microsoftAuthUrl}
       />
     </div>
   );
