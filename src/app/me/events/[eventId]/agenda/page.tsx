@@ -4,6 +4,37 @@ import { safe } from "@/lib/authz/safe";
 import { AuthzError } from "@/lib/db/tenant";
 import { AttendeeAgendaPanel } from "./agenda-panel";
 
+function formatSessionSchedule(
+  startsAt: Date | null,
+  endsAt: Date | null,
+  timezone: string,
+) {
+  if (!startsAt) {
+    return { dateLabel: "Time to be confirmed", timeLabel: null as string | null };
+  }
+
+  const dateLabel = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(startsAt);
+
+  const timeFmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  const startTime = timeFmt.format(startsAt);
+  const endTime = endsAt ? timeFmt.format(endsAt) : null;
+  const timeLabel = endTime ? `${startTime} – ${endTime}` : startTime;
+
+  return { dateLabel, timeLabel };
+}
+
 export default async function AttendeeAgendaPage({
   params,
 }: PageProps<"/me/events/[eventId]/agenda">) {
@@ -11,7 +42,7 @@ export default async function AttendeeAgendaPage({
   const user = await safe(() => requireUser());
   const attendee = await prisma.attendee.findFirst({
     where: { eventId, userId: user.id },
-    include: { event: { select: { name: true } } },
+    include: { event: { select: { name: true, timezone: true } } },
   });
   if (!attendee) {
     await safe(async () => {
@@ -19,6 +50,8 @@ export default async function AttendeeAgendaPage({
     });
     return null;
   }
+
+  const timezone = attendee.event.timezone || "UTC";
 
   const sessions = await prisma.session.findMany({
     where: { eventId, organisationId: attendee.organisationId },
@@ -36,6 +69,8 @@ export default async function AttendeeAgendaPage({
     orderBy: [{ startsAt: "asc" }, { title: "asc" }],
   });
 
+  const pickedCount = sessions.filter((row) => row.registrations.length > 0).length;
+
   return (
     <div className="space-y-6">
       <div>
@@ -43,27 +78,40 @@ export default async function AttendeeAgendaPage({
           {attendee.event.name}
         </p>
         <h1 className="mt-1 font-display text-3xl text-ink-800">Agenda</h1>
-        <p className="mt-1 text-sm text-stone-700">
-          Add sessions you plan to attend. Online Teams sessions include a join
-          link when available.
+        <p className="mt-1 max-w-2xl text-sm text-stone-700">
+          Choose the sessions you plan to attend. Online and hybrid sessions show
+          a Teams join link when the organiser has created one.
         </p>
+        {sessions.length > 0 ? (
+          <p className="mt-3 text-xs text-stone-500">
+            Times shown in {timezone.replace(/_/g, " ")}
+            {pickedCount > 0
+              ? ` · ${pickedCount} selected`
+              : null}
+          </p>
+        ) : null}
       </div>
+
       <AttendeeAgendaPanel
         eventId={eventId}
-        sessions={sessions.map((row) => ({
-          id: row.id,
-          title: row.title,
-          description: row.description,
-          location: row.location,
-          format: row.format,
-          when: row.startsAt
-            ? `${row.startsAt.toLocaleString("en-GB")}${
-                row.endsAt ? ` – ${row.endsAt.toLocaleString("en-GB")}` : ""
-              }`
-            : "",
-          picked: row.registrations.length > 0,
-          teamsJoinUrl: row.onlineMeetings[0]?.joinUrl ?? null,
-        }))}
+        sessions={sessions.map((row) => {
+          const schedule = formatSessionSchedule(
+            row.startsAt,
+            row.endsAt,
+            timezone,
+          );
+          return {
+            id: row.id,
+            title: row.title,
+            description: row.description,
+            location: row.location,
+            format: row.format,
+            dateLabel: schedule.dateLabel,
+            timeLabel: schedule.timeLabel,
+            picked: row.registrations.length > 0,
+            teamsJoinUrl: row.onlineMeetings[0]?.joinUrl ?? null,
+          };
+        })}
       />
     </div>
   );
