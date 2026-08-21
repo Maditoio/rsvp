@@ -27,6 +27,11 @@ export default async function AttendeeAgendaPage({
         where: { attendeeId: attendee.id },
         select: { id: true },
       },
+      onlineMeetings: {
+        where: { provider: "TEAMS" },
+        select: { joinUrl: true },
+        take: 1,
+      },
     },
     orderBy: [{ startsAt: "asc" }, { title: "asc" }],
   });
@@ -39,7 +44,8 @@ export default async function AttendeeAgendaPage({
         </p>
         <h1 className="mt-1 font-display text-3xl text-ink-800">Agenda</h1>
         <p className="mt-1 text-sm text-stone-700">
-          Add sessions you plan to attend.
+          Add sessions you plan to attend. Online Teams sessions include a join
+          link when available.
         </p>
       </div>
       <AttendeeAgendaPanel
@@ -49,12 +55,14 @@ export default async function AttendeeAgendaPage({
           title: row.title,
           description: row.description,
           location: row.location,
+          format: row.format,
           when: row.startsAt
             ? `${row.startsAt.toLocaleString("en-GB")}${
                 row.endsAt ? ` – ${row.endsAt.toLocaleString("en-GB")}` : ""
               }`
             : "",
           picked: row.registrations.length > 0,
+          teamsJoinUrl: row.onlineMeetings[0]?.joinUrl ?? null,
         }))}
       />
     </div>

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { ExternalLink } from "lucide-react";
 import { toggleMySession } from "@/modules/sessions/actions";
 import { Button } from "@/components/ui/button";
 import { Table, Td, Th } from "@/components/ui/table";
@@ -12,8 +13,10 @@ type SessionRow = {
   title: string;
   description: string | null;
   location: string | null;
+  format: "PHYSICAL" | "ONLINE" | "HYBRID";
   when: string;
   picked: boolean;
+  teamsJoinUrl: string | null;
 };
 
 export function AttendeeAgendaPanel({
@@ -50,6 +53,12 @@ export function AttendeeAgendaPanel({
                   {row.description ? (
                     <p className="text-xs text-stone-500">{row.description}</p>
                   ) : null}
+                  {row.format !== "PHYSICAL" ? (
+                    <p className="mt-1 text-xs font-medium text-stone-600">
+                      {row.format === "HYBRID" ? "Hybrid" : "Online"}
+                      {row.teamsJoinUrl ? " · Microsoft Teams" : ""}
+                    </p>
+                  ) : null}
                   {row.picked ? (
                     <Badge className="mt-2" tone="success">
                       On my agenda
@@ -57,36 +66,49 @@ export function AttendeeAgendaPanel({
                   ) : null}
                 </Td>
                 <Td>{row.when || "TBC"}</Td>
-                <Td>{row.location || "—"}</Td>
+                <Td>{row.location || (row.format === "ONLINE" ? "Online" : "—")}</Td>
                 <Td>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={row.picked ? "secondary" : "primary"}
-                    disabled={pending && pendingId === row.id}
-                    onClick={() => {
-                      const formData = new FormData();
-                      formData.set("sessionId", row.id);
-                      setError(null);
-                      setPendingId(row.id);
-                      start(async () => {
-                        try {
-                          await toggleMySession(eventId, formData);
-                          router.refresh();
-                        } catch (e) {
-                          setError(
-                            e instanceof Error
-                              ? e.message
-                              : "Could not update agenda",
-                          );
-                        } finally {
-                          setPendingId(null);
-                        }
-                      });
-                    }}
-                  >
-                    {row.picked ? "Remove" : "Add"}
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {row.teamsJoinUrl ? (
+                      <a
+                        href={row.teamsJoinUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-8 items-center gap-1.5 rounded-sm bg-ink-700 px-3 text-[0.8125rem] font-semibold text-white hover:bg-ink-800"
+                      >
+                        <ExternalLink className="size-3.5" aria-hidden />
+                        Join session
+                      </a>
+                    ) : null}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={row.picked ? "secondary" : "primary"}
+                      disabled={pending && pendingId === row.id}
+                      onClick={() => {
+                        const formData = new FormData();
+                        formData.set("sessionId", row.id);
+                        setError(null);
+                        setPendingId(row.id);
+                        start(async () => {
+                          try {
+                            await toggleMySession(eventId, formData);
+                            router.refresh();
+                          } catch (e) {
+                            setError(
+                              e instanceof Error
+                                ? e.message
+                                : "Could not update agenda",
+                            );
+                          } finally {
+                            setPendingId(null);
+                          }
+                        });
+                      }}
+                    >
+                      {row.picked ? "Remove" : "Add"}
+                    </Button>
+                  </div>
                 </Td>
               </tr>
             ))}

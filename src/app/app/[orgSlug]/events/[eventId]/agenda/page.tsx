@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
+import { microsoftConnectedForUser } from "@/modules/meetings/session-teams-actions";
 import { AgendaPanel } from "./agenda-panel";
 
 export default async function AgendaPage({
@@ -9,31 +11,60 @@ export default async function AgendaPage({
 }: PageProps<"/app/[orgSlug]/events/[eventId]/agenda">) {
   const { orgSlug, eventId } = await params;
   const ctx = await safe(() => requireEvent(orgSlug, eventId, "event.read"));
-  const sessions = await prisma.session.findMany({
-    where: { eventId, organisationId: ctx.organisation.id },
-    include: { _count: { select: { registrations: true } } },
-    orderBy: [{ startsAt: "asc" }, { title: "asc" }],
-  });
+  const [sessions, microsoft] = await Promise.all([
+    prisma.session.findMany({
+      where: { eventId, organisationId: ctx.organisation.id },
+      include: {
+        _count: { select: { registrations: true } },
+        onlineMeetings: {
+          where: { provider: "TEAMS" },
+          select: {
+            provider: true,
+            joinUrl: true,
+            providerMeetingId: true,
+          },
+          take: 1,
+        },
+      },
+      orderBy: [{ startsAt: "asc" }, { title: "asc" }],
+    }),
+    microsoftConnectedForUser(ctx.user.id),
+  ]);
 
   return (
     <div>
-      <AgendaPanel
-        orgSlug={orgSlug}
-        eventId={eventId}
-        canManage={hasPermission(ctx.grants, "event.update")}
-        sessions={sessions.map((row) => ({
-          id: row.id,
-          title: row.title,
-          description: row.description,
-          location: row.location,
-          startsAt: row.startsAt?.toLocaleString("en-GB") ?? "",
-          endsAt: row.endsAt?.toLocaleString("en-GB") ?? "",
-          startsAtValue: row.startsAt?.toISOString() ?? "",
-          endsAtValue: row.endsAt?.toISOString() ?? "",
-          capacity: row.capacity,
-          registrations: row._count.registrations,
-        }))}
-      />
+      <Suspense fallback={null}>
+        <AgendaPanel
+          orgSlug={orgSlug}
+          eventId={eventId}
+          canManage={hasPermission(ctx.grants, "event.update")}
+          microsoftConnected={microsoft.connected}
+          microsoftNeedsReconnect={microsoft.needsReconnect}
+          sessions={sessions.map((row) => {
+            const teams = row.onlineMeetings[0];
+            return {
+              id: row.id,
+              title: row.title,
+              description: row.description,
+              location: row.location,
+              format: row.format,
+              startsAt: row.startsAt?.toLocaleString("en-GB") ?? "",
+              endsAt: row.endsAt?.toLocaleString("en-GB") ?? "",
+              startsAtValue: row.startsAt?.toISOString() ?? "",
+              endsAtValue: row.endsAt?.toISOString() ?? "",
+              capacity: row.capacity,
+              registrations: row._count.registrations,
+              teamsMeeting: teams
+                ? {
+                    provider: "TEAMS" as const,
+                    joinUrl: teams.joinUrl,
+                    providerMeetingId: teams.providerMeetingId,
+                  }
+                : null,
+            };
+          })}
+        />
+      </Suspense>
     </div>
   );
 }

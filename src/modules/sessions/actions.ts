@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { SessionFormat } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent, requireUser } from "@/lib/authz/require";
 import { writeAudit } from "@/modules/audit/log";
 import { AuthzError } from "@/lib/db/tenant";
+import { syncSessionTeamsMeetingIfNeeded } from "@/modules/meetings/session-teams-actions";
 
 const sessionSchema = z.object({
   sessionId: z.string().optional(),
@@ -15,6 +17,7 @@ const sessionSchema = z.object({
   startsAt: z.string().optional().or(z.literal("")),
   endsAt: z.string().optional().or(z.literal("")),
   capacity: z.string().optional().or(z.literal("")),
+  format: z.enum(["PHYSICAL", "ONLINE", "HYBRID"]).default("PHYSICAL"),
 });
 
 function parseDate(value?: string) {
@@ -33,6 +36,7 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
     startsAt: String(formData.get("startsAt") ?? ""),
     endsAt: String(formData.get("endsAt") ?? ""),
     capacity: String(formData.get("capacity") ?? ""),
+    format: String(formData.get("format") ?? "PHYSICAL") || "PHYSICAL",
   });
 
   const capacityValue = input.capacity
@@ -48,7 +52,10 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
     startsAt: parseDate(input.startsAt),
     endsAt: parseDate(input.endsAt),
     capacity: capacityValue,
+    format: input.format as SessionFormat,
   };
+
+  let sessionId = input.sessionId;
 
   if (input.sessionId) {
     const existing = await prisma.session.findFirst({
@@ -68,10 +75,24 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
         startsAt: data.startsAt,
         endsAt: data.endsAt,
         capacity: data.capacity,
+        format: data.format,
       },
     });
+
+    if (data.format !== SessionFormat.PHYSICAL) {
+      await syncSessionTeamsMeetingIfNeeded({
+        organisationId: ctx.organisation.id,
+        eventId,
+        sessionId: existing.id,
+        userId: ctx.user.id,
+        title: data.title,
+        startsAt: data.startsAt,
+        endsAt: data.endsAt,
+      });
+    }
   } else {
-    await prisma.session.create({ data });
+    const created = await prisma.session.create({ data });
+    sessionId = created.id;
   }
 
   await writeAudit({
@@ -80,9 +101,11 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
     userId: ctx.user.id,
     action: "session.save",
     resource: "session",
+    resourceId: sessionId,
   });
   revalidatePath(`/app/${orgSlug}/events/${eventId}/agenda`);
   revalidatePath(`/me/events/${eventId}/agenda`);
+  return { sessionId };
 }
 
 export async function deleteSession(orgSlug: string, eventId: string, formData: FormData) {

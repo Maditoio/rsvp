@@ -107,6 +107,17 @@ enum FileKind {
   OTHER
 }
 
+enum SessionFormat {
+  PHYSICAL
+  ONLINE
+  HYBRID
+}
+
+enum OnlineMeetingProvider {
+  TEAMS
+  ZOOM
+}
+
 model User {
   id            String   @id @default(cuid())
   clerkUserId   String   @unique
@@ -180,6 +191,7 @@ model Organisation {
   hubSpotConnection       HubSpotConnection?
   salesforceConnection    SalesforceConnection?
   oauthStates             OAuthState[]
+  onlineMeetings          OnlineMeeting[]
 }
 
 model OrganisationUser {
@@ -244,6 +256,7 @@ model Event {
   consents              Consent[]
   files                 FileObject[]
   applications          EventApplication[]
+  onlineMeetings        OnlineMeeting[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -560,7 +573,7 @@ model AttendeePrivacy {
 }
 
 model Session {
-  id             String    @id @default(cuid())
+  id             String        @id @default(cuid())
   organisationId String
   eventId        String
   title          String
@@ -569,11 +582,35 @@ model Session {
   endsAt         DateTime?
   location       String?
   capacity       Int?
+  format         SessionFormat @default(PHYSICAL)
 
-  organisation  Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  event         Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  registrations SessionRegistration[]
+  organisation   Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event          Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrations  SessionRegistration[]
+  onlineMeetings OnlineMeeting[]
 
+  @@index([organisationId, eventId])
+}
+
+/// Provider-backed online meeting for an event session (Teams active; Zoom reserved).
+model OnlineMeeting {
+  id                String                @id @default(cuid())
+  organisationId    String
+  eventId           String
+  sessionId         String
+  provider          OnlineMeetingProvider
+  providerMeetingId String?
+  joinUrl           String?
+  metadata          Json?
+  createdByUserId   String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  session      Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, provider])
   @@index([organisationId, eventId])
 }
 

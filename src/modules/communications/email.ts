@@ -106,6 +106,52 @@ export async function sendRegistrationConfirmationEmail(input: {
   orgName: string;
   passUrl: string;
 }) {
+  const onlineSessions = await prisma.session.findMany({
+    where: {
+      eventId: input.eventId,
+      organisationId: input.organisationId,
+      format: { in: ["ONLINE", "HYBRID"] },
+      onlineMeetings: {
+        some: { provider: "TEAMS", joinUrl: { not: null } },
+      },
+    },
+    include: {
+      onlineMeetings: {
+        where: { provider: "TEAMS", joinUrl: { not: null } },
+        take: 1,
+      },
+    },
+    orderBy: [{ startsAt: "asc" }, { title: "asc" }],
+    take: 8,
+  });
+
+  const sessionBlocks = onlineSessions
+    .map((session) => {
+      const joinUrl = session.onlineMeetings[0]?.joinUrl;
+      if (!joinUrl) return "";
+      const when = session.startsAt
+        ? `${session.startsAt.toLocaleString("en-GB", {
+            weekday: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}${
+            session.endsAt
+              ? `–${session.endsAt.toLocaleString("en-GB", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}`
+              : ""
+          }`
+        : "";
+      return `<div style="margin:16px 0;padding:12px 0;border-top:1px solid #E4E0D6">
+        <p style="margin:0;font-weight:600;color:#1F2937">${escapeHtml(session.title)}</p>
+        ${when ? `<p style="margin:4px 0;color:#5F5A4D;font-size:13px">${escapeHtml(when)}</p>` : ""}
+        <p style="margin:4px 0;color:#8B8578;font-size:12px">Online — Microsoft Teams</p>
+        <p style="margin:8px 0 0"><a href="${escapeHtml(joinUrl)}" style="color:#1F2937;font-weight:600">Join Teams meeting</a></p>
+      </div>`;
+    })
+    .join("");
+
   return deliver({
     organisationId: input.organisationId,
     eventId: input.eventId,
@@ -115,7 +161,8 @@ export async function sendRegistrationConfirmationEmail(input: {
       `Your place at ${input.eventName} is registered`,
       "Registration",
       `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} has recorded your registration.</p>
-       <p style="color:#5F5A4D">Keep this email. The original invitation link remains your access to the check-in code.</p>`,
+       <p style="color:#5F5A4D">Keep this email. The original invitation link remains your access to the check-in code.</p>
+       ${sessionBlocks}`,
       input.passUrl,
       "View check-in code",
     ),

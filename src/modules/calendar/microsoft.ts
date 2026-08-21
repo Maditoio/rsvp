@@ -2,6 +2,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import type { CalendarConnectionRecord } from "./google";
 
+export type { CalendarConnectionRecord };
+
 const TENANT = process.env.MICROSOFT_TENANT_ID?.trim() || "common";
 const MS_AUTH_URL = `https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/authorize`;
 const MS_TOKEN_URL = `https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/token`;
@@ -11,7 +13,12 @@ const SCOPES = [
   "openid",
   "offline_access",
   "Calendars.ReadWrite",
+  // Required to create/update/delete Teams online meetings for event sessions.
+  // Existing Microsoft connections must reconnect once to grant this scope.
+  "OnlineMeetings.ReadWrite",
 ];
+
+export const MICROSOFT_OAUTH_SCOPES = SCOPES;
 
 function getClientId() {
   const id = process.env.MICROSOFT_CLIENT_ID;
