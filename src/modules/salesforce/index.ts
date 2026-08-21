@@ -17,6 +17,8 @@ export {
   createOAuthState,
   consumeOAuthState,
   purgeExpiredOAuthStates,
+  packSalesforceOAuthState,
+  unpackSalesforceOAuthState,
 } from "./state";
 export {
   disconnectSalesforce,

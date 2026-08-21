@@ -126,6 +126,19 @@ describe("generateSalesforcePkce", () => {
   });
 });
 
+describe("packSalesforceOAuthState", () => {
+  it("round-trips nonce and PKCE verifier", async () => {
+    const { packSalesforceOAuthState, unpackSalesforceOAuthState } =
+      await import("./state");
+    const packed = packSalesforceOAuthState("nonce-abc", "verifier-xyz");
+    expect(packed.startsWith("nonce-abc~")).toBe(true);
+    expect(unpackSalesforceOAuthState(packed)).toEqual({
+      nonce: "nonce-abc",
+      codeVerifier: "verifier-xyz",
+    });
+  });
+});
+
 describe("secret encryption (Salesforce token storage)", () => {
   it("round-trips a token string", () => {
     const plain = "salesforce-access-token-example";

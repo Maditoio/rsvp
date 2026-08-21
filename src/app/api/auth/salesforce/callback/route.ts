@@ -6,7 +6,11 @@ import { requireOrg, requireUser } from "@/lib/authz/require";
 import { AuthzError } from "@/lib/db/tenant";
 import { writeAudit } from "@/modules/audit/log";
 import { getAppUrl } from "@/lib/utils";
-import { consumeOAuthState, exchangeSalesforceCode } from "@/modules/salesforce";
+import {
+  consumeOAuthState,
+  exchangeSalesforceCode,
+  unpackSalesforceOAuthState,
+} from "@/modules/salesforce";
 
 export const runtime = "nodejs";
 
@@ -19,7 +23,7 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const error = url.searchParams.get("error");
-  const nonce = url.searchParams.get("state")?.trim() ?? "";
+  const stateParam = url.searchParams.get("state")?.trim() ?? "";
 
   async function integrationsRedirect(
     organisationId: string | null,
@@ -38,12 +42,17 @@ export async function GET(request: NextRequest) {
 
   // Peek org from state for redirect target on early failures (does not consume).
   let peekedOrgId: string | null = null;
-  if (nonce) {
-    const peeked = await prisma.oAuthState.findUnique({
-      where: { nonce },
-      select: { organisationId: true },
-    });
-    peekedOrgId = peeked?.organisationId ?? null;
+  if (stateParam) {
+    try {
+      const { nonce } = unpackSalesforceOAuthState(stateParam);
+      const peeked = await prisma.oAuthState.findUnique({
+        where: { nonce },
+        select: { organisationId: true },
+      });
+      peekedOrgId = peeked?.organisationId ?? null;
+    } catch {
+      peekedOrgId = null;
+    }
   }
 
   if (error) {
@@ -52,7 +61,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (!code || !nonce) {
+  if (!code || !stateParam) {
     return NextResponse.redirect(
       await integrationsRedirect(peekedOrgId, "invalid_state"),
     );
@@ -63,15 +72,9 @@ export async function GET(request: NextRequest) {
 
     const { organisationId, codeVerifier } = await consumeOAuthState({
       provider: "salesforce",
-      nonce,
+      nonce: stateParam,
       userId: user.id,
     });
-
-    if (!codeVerifier) {
-      return NextResponse.redirect(
-        await integrationsRedirect(organisationId, "invalid_state"),
-      );
-    }
 
     const org = await prisma.organisation.findUnique({
       where: { id: organisationId },

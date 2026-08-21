@@ -756,7 +756,7 @@ model OAuthState {
   provider       String
   userId         String
   organisationId String
-  /** PKCE code_verifier when the provider requires it (Salesforce Connected Apps often do). */
+  /** Optional PKCE verifier (legacy); Salesforce now packs verifier into OAuth state. */
   codeVerifier   String?
   expiresAt      DateTime
   usedAt         DateTime?

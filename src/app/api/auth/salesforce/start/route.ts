@@ -35,13 +35,13 @@ export async function GET(request: NextRequest) {
     const ctx = await requireOrg(orgSlug, "settings.manage");
     await purgeExpiredOAuthStates();
     const pkce = generateSalesforcePkce();
-    const nonce = await createOAuthState({
+    const state = await createOAuthState({
       provider: "salesforce",
       userId: ctx.user.id,
       organisationId: ctx.organisation.id,
       codeVerifier: pkce.codeVerifier,
     });
-    const { url: authUrl } = getSalesforceAuthUrl(appUrl, nonce, pkce);
+    const { url: authUrl } = getSalesforceAuthUrl(appUrl, state, pkce);
     // Absolute https Location required — relative/opaque Locations cause
     // the browser to download a file named "authorize" instead of logging in.
     if (!/^https?:\/\//i.test(authUrl)) {
@@ -49,11 +49,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${integrationsUrl}?salesforce=start_failed`);
     }
     if (process.env.NODE_ENV === "development") {
-      const redacted = authUrl.replace(
-        /([?&]client_id=)([^&]+)/,
-        (_, p, id: string) =>
-          `${p}${id.slice(0, 8)}…${id.slice(-4)}`,
-      );
+      const redacted = authUrl
+        .replace(
+          /([?&]client_id=)([^&]+)/,
+          (_, p, id: string) => `${p}${id.slice(0, 8)}…${id.slice(-4)}`,
+        )
+        .replace(/([?&]state=)([^&]+)/, "$1[redacted]");
       console.info("[salesforce-oauth] redirecting to", redacted);
     }
     return NextResponse.redirect(authUrl);
