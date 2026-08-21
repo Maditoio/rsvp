@@ -243,17 +243,12 @@ export function OrgRail({
       {/* Footer */}
       <div className="mt-auto border-t border-stone-100 p-3 pb-3">
         <NavLink
-          href="#"
+          href={`/app/${orgSlug}/integrations`}
           label="Integrations"
           icon={Plug}
+          active={isNavActive(pathname, `/app/${orgSlug}/integrations`)}
           collapsed={collapsed}
-          disabled
         />
-        {!collapsed && (
-          <span className="ml-7 -mt-1 mb-1 block rounded-xs bg-stone-100 px-[5px] py-[1px] text-[9px] font-semibold text-stone-400 w-fit">
-            SOON
-          </span>
-        )}
 
         <AccountPopover orgSlug={orgSlug} orgRole={orgRole} collapsed={collapsed} />
       </div>

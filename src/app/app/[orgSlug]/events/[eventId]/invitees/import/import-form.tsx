@@ -9,6 +9,42 @@ import {
   FileSpreadsheet,
   Upload,
 } from "lucide-react";
+
+function HubSpotMark({ className }: { className?: string }) {
+  return (
+    <svg
+      width="32"
+      height="32"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        fill="#FF7A59"
+        d="M18.164 7.87V5.095a2.186 2.186 0 0 0 1.267-1.978v-.066A2.187 2.187 0 0 0 17.25.87h-.066a2.187 2.187 0 0 0-2.186 2.181v.066c0 .855.485 1.594 1.199 1.95v2.81a5.85 5.85 0 0 0-2.785 1.326l-7.38-5.746a2.552 2.552 0 0 0 .1-.688A2.525 2.525 0 1 0 3.606 5.3c0 .47.13.91.356 1.29l7.23 5.63a5.83 5.83 0 0 0-.43 2.21c0 .86.187 1.676.52 2.41l-2.28 2.28a2.13 2.13 0 0 0-.68-.115 2.17 2.17 0 1 0 2.17 2.17c0-.24-.04-.47-.115-.68l2.24-2.24c.75.4 1.61.63 2.52.63a5.86 5.86 0 0 0 5.86-5.86c0-2.19-1.2-4.1-2.98-5.13zM17.184 15.8a3.49 3.49 0 1 1 0-6.98 3.49 3.49 0 0 1 0 6.98z"
+      />
+    </svg>
+  );
+}
+
+function SalesforceMark({ className }: { className?: string }) {
+  return (
+    <svg
+      width="32"
+      height="32"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        fill="#00A1E0"
+        d="M10.04 5.34c.62-.66 1.5-1.08 2.48-1.08.7 0 1.35.23 1.88.61.7-.78 1.72-1.27 2.86-1.27 2.1 0 3.8 1.7 3.8 3.8 0 .2-.02.4-.05.59 1.1.5 1.86 1.6 1.86 2.88 0 1.74-1.41 3.15-3.15 3.15H8.3c-1.98 0-3.58-1.6-3.58-3.58 0-1.55 1-2.87 2.4-3.35.1-1.05.6-1.99 1.36-2.66.18-.16.38-.3.58-.41z"
+      />
+    </svg>
+  );
+}
 import {
   commitContactImport,
   inspectContactImport,
@@ -77,6 +113,8 @@ export function ContactImportForm({
   const [pending, start] = useTransition();
 
   const templateHref = `/app/${orgSlug}/events/${eventId}/invitees/import/template`;
+  const hubspotHref = `/app/${orgSlug}/events/${eventId}/invitees/import/hubspot`;
+  const salesforceHref = `/app/${orgSlug}/events/${eventId}/invitees/import/salesforce`;
   const inviteesHref = `/app/${orgSlug}/events/${eventId}/invitees`;
 
   const mapError = useMemo(
@@ -164,7 +202,8 @@ export function ContactImportForm({
           Import invitees
         </h1>
         <p className="mt-1 text-sm text-stone-700">
-          Import a .xlsx or .csv file. You&apos;ll map columns before anything is
+          Import from a spreadsheet or from your organisation&apos;s HubSpot or
+          Salesforce account. Spreadsheet imports map columns before anything is
           saved.
         </p>
       </div>
@@ -228,6 +267,40 @@ export function ContactImportForm({
               className="hidden"
               onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
             />
+
+            <Link
+              href={hubspotHref}
+              className="rounded-md border border-stone-200 bg-stone-0 p-5 transition-colors hover:border-ink-400"
+            >
+              <HubSpotMark />
+              <p className="mt-4 font-semibold text-ink-800">
+                Import from HubSpot
+              </p>
+              <p className="mt-1 text-sm text-stone-600">
+                Select contacts from your connected organisation HubSpot
+                account. Read-only — nothing is written back to HubSpot.
+              </p>
+              <span className="mt-4 inline-flex text-sm font-medium text-ink-700">
+                Choose HubSpot contacts
+              </span>
+            </Link>
+
+            <Link
+              href={salesforceHref}
+              className="rounded-md border border-stone-200 bg-stone-0 p-5 transition-colors hover:border-ink-400"
+            >
+              <SalesforceMark />
+              <p className="mt-4 font-semibold text-ink-800">
+                Import from Salesforce
+              </p>
+              <p className="mt-1 text-sm text-stone-600">
+                Select contacts from your connected organisation Salesforce
+                account. Read-only — nothing is written back to Salesforce.
+              </p>
+              <span className="mt-4 inline-flex text-sm font-medium text-ink-700">
+                Choose Salesforce contacts
+              </span>
+            </Link>
           </div>
 
           <div className="rounded-md border border-stone-200 bg-stone-0 p-5">

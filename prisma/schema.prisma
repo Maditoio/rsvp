@@ -125,6 +125,8 @@ model User {
   auditLogs         AuditLog[]
   notifications     Notification[]
   calendarConnections CalendarConnection[]
+  hubSpotConnections      HubSpotConnection[]      @relation("HubSpotConnectedBy")
+  salesforceConnections   SalesforceConnection[]   @relation("SalesforceConnectedBy")
   dataRequests      DataRequest[]
 
   @@index([email])
@@ -175,6 +177,9 @@ model Organisation {
   eventSettings           EventSettings[]
   eventUsers              EventUser[]
   applications            EventApplication[]
+  hubSpotConnection       HubSpotConnection?
+  salesforceConnection    SalesforceConnection?
+  oauthStates             OAuthState[]
 }
 
 model OrganisationUser {
@@ -701,6 +706,66 @@ model CalendarConnection {
   events       CalendarEvent[]
 
   @@index([userId])
+}
+
+/// Organisation-owned HubSpot CRM connection (one per org). Tokens are AES-GCM encrypted.
+model HubSpotConnection {
+  id                String    @id @default(cuid())
+  organisationId    String    @unique
+  portalId          String?
+  accessTokenEnc    String
+  refreshTokenEnc   String
+  expiresAt         DateTime?
+  scopes            String?
+  connectedByUserId String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  connectedBy  User?        @relation("HubSpotConnectedBy", fields: [connectedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([connectedByUserId])
+}
+
+/// Organisation-owned Salesforce CRM connection (one per org). Tokens are AES-GCM encrypted.
+/// instanceUrl is required for API calls (org-specific Salesforce host).
+model SalesforceConnection {
+  id                String    @id @default(cuid())
+  organisationId    String    @unique
+  salesforceOrgId   String?
+  instanceUrl       String
+  accessTokenEnc    String
+  refreshTokenEnc   String
+  expiresAt         DateTime?
+  scopes            String?
+  connectedByUserId String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  connectedBy  User?        @relation("SalesforceConnectedBy", fields: [connectedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([connectedByUserId])
+}
+
+/// Short-lived OAuth CSRF state bound to user + organisation. Single-use.
+/// provider is a free-form string (e.g. "hubspot", "salesforce").
+model OAuthState {
+  id             String    @id @default(cuid())
+  nonce          String    @unique
+  provider       String
+  userId         String
+  organisationId String
+  /** PKCE code_verifier when the provider requires it (Salesforce Connected Apps often do). */
+  codeVerifier   String?
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model CalendarEvent {

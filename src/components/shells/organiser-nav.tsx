@@ -66,10 +66,14 @@ function MobileNavList({
         </div>
       )}
 
-      <span className="mt-4 flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-stone-400">
-        <Plug className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
-        Integrations
-      </span>
+      <div className="mt-4">
+        <NavLink
+          href={`/app/${orgSlug}/integrations`}
+          label="Integrations"
+          icon={Plug}
+          active={isNavActive(pathname, `/app/${orgSlug}/integrations`)}
+        />
+      </div>
     </nav>
   );
 }

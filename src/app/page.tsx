@@ -37,7 +37,7 @@ const journeySteps = [
 
 const pillar1Bullets = [
   "Personalised invitation links with tracking",
-  "CSV import + manual entry",
+  "Import contacts from CSV, HubSpot, Salesforce, and CRM tools",
   "Configurable registration forms",
   "Public application with organiser approval",
   "Category-based guest management",

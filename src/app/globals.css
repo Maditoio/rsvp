@@ -118,3 +118,24 @@ body {
   background: #E9DBB8;
   color: #141A24;
 }
+
+@keyframes wizard-step-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wizard-step-enter {
+  animation: wizard-step-enter 320ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wizard-step-enter {
+    animation: none;
+  }
+}
