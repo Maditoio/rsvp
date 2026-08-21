@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${appUrl}/app?error=missing_org`);
   }
 
-  const integrationsUrl = `${appUrl}/app/${encodeURIComponent(orgSlug)}/integrations`;
+  const integrationsUrl = `${appUrl}/app/${encodeURIComponent(orgSlug)}/settings?tab=integrations`;
 
   if (!salesforceConfigured()) {
     return NextResponse.redirect(`${integrationsUrl}?salesforce=not_configured`);

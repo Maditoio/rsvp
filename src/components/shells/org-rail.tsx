@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
@@ -174,8 +174,13 @@ export function OrgRail({
   orgRole?: "OWNER" | "ADMIN" | null;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [collapsed, toggle] = useOrgRailCollapsed();
   const primary = useMemo(() => orgPrimaryNav(orgSlug, grants), [orgSlug, grants]);
+  const settingsPath = `/app/${orgSlug}/settings`;
+  const integrationsActive =
+    pathname === `/app/${orgSlug}/integrations` ||
+    (pathname === settingsPath && searchParams.get("tab") === "integrations");
 
   useEffect(() => {
     if (window.localStorage.getItem(STORAGE_KEY) !== null) return;
@@ -243,10 +248,10 @@ export function OrgRail({
       {/* Footer */}
       <div className="mt-auto border-t border-stone-100 p-3 pb-3">
         <NavLink
-          href={`/app/${orgSlug}/integrations`}
+          href={`/app/${orgSlug}/settings?tab=integrations`}
           label="Integrations"
           icon={Plug}
-          active={isNavActive(pathname, `/app/${orgSlug}/integrations`)}
+          active={integrationsActive}
           collapsed={collapsed}
         />
 

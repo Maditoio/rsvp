@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       select: { slug: true },
     });
     if (!org) return `${appUrl}/app?hubspot=${hubspotStatus}`;
-    return `${appUrl}/app/${encodeURIComponent(org.slug)}/integrations?hubspot=${hubspotStatus}`;
+    return `${appUrl}/app/${encodeURIComponent(org.slug)}/settings?tab=integrations&hubspot=${hubspotStatus}`;
   }
 
   // Peek org from state for redirect target on early failures (does not consume).
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
     revalidatePath(`/app/${org.slug}/settings`);
     revalidatePath(`/app/${org.slug}/integrations`);
     return NextResponse.redirect(
-      `${appUrl}/app/${encodeURIComponent(org.slug)}/integrations?hubspot=connected`,
+      `${appUrl}/app/${encodeURIComponent(org.slug)}/settings?tab=integrations&hubspot=connected`,
     );
   } catch (err) {
     if (err instanceof AuthzError && err.status === 401) {

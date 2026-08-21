@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       select: { slug: true },
     });
     if (!org) return `${appUrl}/app?salesforce=${salesforceStatus}`;
-    return `${appUrl}/app/${encodeURIComponent(org.slug)}/integrations?salesforce=${salesforceStatus}`;
+    return `${appUrl}/app/${encodeURIComponent(org.slug)}/settings?tab=integrations&salesforce=${salesforceStatus}`;
   }
 
   // Peek org from state for redirect target on early failures (does not consume).
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
     revalidatePath(`/app/${org.slug}/settings`);
     revalidatePath(`/app/${org.slug}/integrations`);
     return NextResponse.redirect(
-      `${appUrl}/app/${encodeURIComponent(org.slug)}/integrations?salesforce=connected`,
+      `${appUrl}/app/${encodeURIComponent(org.slug)}/settings?tab=integrations&salesforce=connected`,
     );
   } catch (err) {
     if (err instanceof AuthzError && err.status === 401) {

@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Menu, Plug, UserRound, X } from "lucide-react";
 import { hasPermission, type Permission } from "@/lib/authz/permissions";
 import {
@@ -27,6 +27,7 @@ function MobileNavList({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { event } = useEventNav();
   const eventId = parseOrganiserEventId(pathname, orgSlug);
   const orgItems = orgNav(orgSlug, grants, orgRole);
@@ -36,6 +37,10 @@ function MobileNavList({
         (item) => !eventGrants || hasPermission(eventGrants, item.permission),
       )
     : [];
+  const settingsPath = `/app/${orgSlug}/settings`;
+  const integrationsActive =
+    pathname === `/app/${orgSlug}/integrations` ||
+    (pathname === settingsPath && searchParams.get("tab") === "integrations");
 
   return (
     <nav className="flex flex-1 flex-col gap-1" onClick={onNavigate}>
@@ -68,10 +73,10 @@ function MobileNavList({
 
       <div className="mt-4">
         <NavLink
-          href={`/app/${orgSlug}/integrations`}
+          href={`/app/${orgSlug}/settings?tab=integrations`}
           label="Integrations"
           icon={Plug}
-          active={isNavActive(pathname, `/app/${orgSlug}/integrations`)}
+          active={integrationsActive}
         />
       </div>
     </nav>

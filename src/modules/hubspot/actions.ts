@@ -17,7 +17,7 @@ import { getValidHubSpotAccessToken, revokeHubSpotRefreshToken } from "./oauth";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function integrationsPath(orgSlug: string) {
-  return `/app/${orgSlug}/integrations`;
+  return `/app/${orgSlug}/settings`;
 }
 
 function settingsPath(orgSlug: string) {

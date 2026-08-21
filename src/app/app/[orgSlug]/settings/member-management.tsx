@@ -51,17 +51,14 @@ export function MemberManagement({
   return (
     <div className="space-y-6">
       {canManage ? (
-        <div className="flex items-end justify-between gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
-              Access control
-            </p>
-            <h2 className="mt-1 font-display text-2xl text-ink-800">
+            <h2 className="text-heading text-[1.125rem] font-semibold text-ink-700">
               Organisation members
             </h2>
-            <p className="mt-1 text-sm text-stone-700">
-              Add existing signed-in users by email. Access is always scoped to your
-              current organisation on the server.
+            <p className="mt-1 text-[0.9375rem] text-stone-700">
+              Add existing signed-in users by email. Access is always scoped to
+              your current organisation on the server.
             </p>
           </div>
           <Button type="button" onClick={() => setOpen(true)}>
@@ -122,19 +119,19 @@ export function MemberManagement({
         </div>
       ) : (
         <div>
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
-            Access control
-          </p>
-          <h2 className="mt-1 font-display text-2xl text-ink-800">Organisation members</h2>
-          <p className="mt-1 text-sm text-stone-700">
-            Your current role can view members but cannot change organisation access.
+          <h2 className="text-heading text-[1.125rem] font-semibold text-ink-700">
+            Organisation members
+          </h2>
+          <p className="mt-1 text-[0.9375rem] text-stone-700">
+            Your current role can view members but cannot change organisation
+            access.
           </p>
         </div>
       )}
 
       <Table>
         <thead>
-          <tr className="border-b border-stone-200">
+          <tr>
             <Th>Member</Th>
             <Th>Role</Th>
             <Th>Joined</Th>

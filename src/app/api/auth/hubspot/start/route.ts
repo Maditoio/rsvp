@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${appUrl}/app?error=missing_org`);
   }
 
-  const integrationsUrl = `${appUrl}/app/${encodeURIComponent(orgSlug)}/integrations`;
+  const integrationsUrl = `${appUrl}/app/${encodeURIComponent(orgSlug)}/settings?tab=integrations`;
 
   if (!hubspotConfigured()) {
     return NextResponse.redirect(`${integrationsUrl}?hubspot=not_configured`);
