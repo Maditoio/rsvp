@@ -10,6 +10,11 @@ import {
   isNavActive,
 } from "@/components/nav";
 import { NavLink } from "@/components/nav-link";
+import { setOrgRailCollapsed } from "@/components/shells/org-rail";
+
+function collapseOrgRail() {
+  setOrgRailCollapsed(true);
+}
 
 function PanelContent({
   orgSlug,
@@ -141,7 +146,10 @@ export function EventPanel({
         {/* Tablet overlay trigger — shown as a thin strip */}
         <button
           type="button"
-          onClick={() => setOverlayOpen(true)}
+          onClick={() => {
+            collapseOrgRail();
+            setOverlayOpen(true);
+          }}
           className="hidden h-screen w-10 shrink-0 items-center justify-center border-r border-stone-200 bg-stone-50 hover:bg-stone-100 md:flex"
           title="Open event navigation"
         >
@@ -156,9 +164,10 @@ export function EventPanel({
               onClick={closeOverlay}
               aria-label="Close event navigation"
             />
-          <aside
+            <aside
               className="absolute inset-y-0 left-0 flex w-[264px] flex-col overflow-y-auto overflow-x-hidden shadow-lg md:left-16"
               style={{ background: "#FBFAF8" }}
+              onPointerDown={collapseOrgRail}
             >
               <div className="flex items-center justify-end p-2">
                 <button
@@ -183,11 +192,12 @@ export function EventPanel({
     );
   }
 
-  // Desktop: permanent panel
+  // Desktop: permanent panel — interacting here collapses the org rail.
   return (
     <aside
       className="hidden h-full w-[264px] shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-stone-200 md:flex"
       style={{ background: "#FBFAF8" }}
+      onPointerDown={collapseOrgRail}
     >
       <PanelContent
         orgSlug={orgSlug}

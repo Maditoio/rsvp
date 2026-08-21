@@ -26,7 +26,9 @@ const listeners = new Set<() => void>();
 
 function subscribe(fn: () => void) {
   listeners.add(fn);
-  return () => { listeners.delete(fn); };
+  return () => {
+    listeners.delete(fn);
+  };
 }
 function getSnapshot() {
   return window.localStorage.getItem(STORAGE_KEY) === "1";
@@ -35,11 +37,17 @@ function getServerSnapshot() {
   return false;
 }
 
+/** Collapse/expand the organisation rail (sidenav 1). */
+export function setOrgRailCollapsed(collapsed: boolean) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(STORAGE_KEY, collapsed ? "1" : "0");
+  listeners.forEach((fn) => fn());
+}
+
 export function useOrgRailCollapsed() {
   const collapsed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const toggle = useCallback(() => {
-    window.localStorage.setItem(STORAGE_KEY, collapsed ? "0" : "1");
-    listeners.forEach((fn) => fn());
+    setOrgRailCollapsed(!collapsed);
   }, [collapsed]);
   return [collapsed, toggle] as const;
 }
@@ -61,6 +69,10 @@ function AccountPopover({
   const { signOut, user } = useClerk();
 
   useEffect(() => {
+    if (collapsed) setOpen(false);
+  }, [collapsed]);
+
+  useEffect(() => {
     if (!open) return;
     function onClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -78,14 +90,23 @@ function AccountPopover({
 
   const email = user?.primaryEmailAddress?.emailAddress;
   const initials = user
-    ? `${(user.firstName ?? "")[0] ?? ""}${(user.lastName ?? "")[0] ?? ""}`.toUpperCase() || "U"
+    ? `${(user.firstName ?? "")[0] ?? ""}${(user.lastName ?? "")[0] ?? ""}`.toUpperCase() ||
+      "U"
     : "U";
 
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          // Collapsed rail: expand first so the menu isn't hidden behind the event nav.
+          if (collapsed) {
+            setOrgRailCollapsed(false);
+            setOpen(true);
+            return;
+          }
+          setOpen((value) => !value);
+        }}
         className={cn(
           "flex w-full items-center gap-2 rounded-sm text-sm text-stone-600 hover:bg-stone-100 hover:text-ink-700",
           collapsed
@@ -93,31 +114,34 @@ function AccountPopover({
             : "h-[38px] px-2",
         )}
         title={collapsed ? (email ?? "Account") : undefined}
+        aria-expanded={open}
       >
         <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-ink-700 text-[10px] font-semibold text-white">
           {initials}
         </span>
         {!collapsed && (
           <>
-            <span className="min-w-0 flex-1 truncate text-left">{email ?? "Account"}</span>
+            <span className="min-w-0 flex-1 truncate text-left">
+              {email ?? "Account"}
+            </span>
             <ChevronUp
-              className={cn("size-3 shrink-0 text-stone-400 transition-transform", open && "rotate-180")}
+              className={cn(
+                "size-3 shrink-0 text-stone-400 transition-transform",
+                open && "rotate-180",
+              )}
               strokeWidth={2}
             />
           </>
         )}
       </button>
 
-      {open && (
-        <div
-          className={cn(
-            "absolute z-20 w-52 rounded-md border border-stone-200 bg-white py-1 shadow-lg",
-            collapsed ? "bottom-0 left-full ml-2" : "bottom-full left-0 mb-1",
-          )}
-        >
+      {open && !collapsed ? (
+        <div className="absolute bottom-full left-0 z-20 mb-1 w-52 rounded-md border border-stone-200 bg-white py-1 shadow-lg">
           {email && (
             <div className="border-b border-stone-100 px-3 py-2">
-              <p className="truncate text-xs font-medium text-ink-700">{user?.fullName ?? email}</p>
+              <p className="truncate text-xs font-medium text-ink-700">
+                {user?.fullName ?? email}
+              </p>
               <p className="truncate text-[11px] text-stone-500">{email}</p>
             </div>
           )}
@@ -155,7 +179,7 @@ function AccountPopover({
             </button>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -185,8 +209,7 @@ export function OrgRail({
   useEffect(() => {
     if (window.localStorage.getItem(STORAGE_KEY) !== null) return;
     if (window.innerWidth < 1280) {
-      window.localStorage.setItem(STORAGE_KEY, "1");
-      listeners.forEach((fn) => fn());
+      setOrgRailCollapsed(true);
     }
   }, []);
 
@@ -226,7 +249,9 @@ export function OrgRail({
               size={28}
               wordmarkClassName="text-[21px] text-ink-700"
             />
-            <p className="mt-1 truncate text-xs text-stone-500" title={orgName}>{orgName}</p>
+            <p className="mt-1 truncate text-xs text-stone-500" title={orgName}>
+              {orgName}
+            </p>
           </>
         )}
       </div>
