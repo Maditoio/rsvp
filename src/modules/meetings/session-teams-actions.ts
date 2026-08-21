@@ -14,10 +14,6 @@ import {
 } from "@/modules/meetings/microsoft-teams";
 import { isActiveOnlineMeetingProvider } from "@/modules/meetings/providers";
 
-function toGraphIso(date: Date) {
-  return date.toISOString().replace(/\.\d{3}Z$/, "Z");
-}
-
 async function loadMicrosoftConnection(userId: string) {
   return prisma.calendarConnection.findFirst({
     where: {
@@ -117,8 +113,8 @@ export async function createSessionTeamsMeeting(
 
   const created = await createTeamsMeeting(connectionRecord(connection), {
     subject: session.title,
-    startIso: toGraphIso(session.startsAt),
-    endIso: toGraphIso(session.endsAt),
+    start: session.startsAt,
+    end: session.endsAt,
   });
 
   const meeting = await prisma.onlineMeeting.upsert({
@@ -245,8 +241,8 @@ export async function syncSessionTeamsMeetingIfNeeded(input: {
       meeting.providerMeetingId,
       {
         subject: input.title,
-        startIso: toGraphIso(input.startsAt),
-        endIso: toGraphIso(input.endsAt),
+        start: input.startsAt,
+        end: input.endsAt,
       },
     );
     await prisma.onlineMeeting.update({
