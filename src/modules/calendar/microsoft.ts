@@ -59,8 +59,38 @@ const tokenResponseSchema = z.object({
   token_type: z.string(),
 });
 
+/** Strip anything that could be a secret from Microsoft token error bodies. */
+function sanitizeMicrosoftTokenErrorBody(text: string) {
+  try {
+    const json = JSON.parse(text) as Record<string, unknown>;
+    return {
+      error: typeof json.error === "string" ? json.error : undefined,
+      errorCodes: Array.isArray(json.error_codes) ? json.error_codes : undefined,
+      errorDescription:
+        typeof json.error_description === "string"
+          ? json.error_description.slice(0, 500)
+          : undefined,
+      correlationId:
+        typeof json.correlation_id === "string" ? json.correlation_id : undefined,
+      traceId: typeof json.trace_id === "string" ? json.trace_id : undefined,
+    };
+  } catch {
+    return { rawPreview: text.slice(0, 200).replace(/[A-Za-z0-9_-]{20,}/g, "[redacted]") };
+  }
+}
+
 export async function exchangeMicrosoftCode(code: string, appUrl: string) {
   const redirectUri = getMicrosoftRedirectUri(appUrl);
+  console.info("[microsoft-oauth] token_exchange_start", {
+    tokenHost: new URL(MS_TOKEN_URL).host,
+    tenantMode: TENANT === "common" ? "common" : "specific",
+    redirectUri,
+    scopeCount: SCOPES.length,
+    scopes: SCOPES.filter((s) => s !== "openid"),
+    hasCode: Boolean(code),
+    codeLength: code.length,
+  });
+
   const res = await fetch(MS_TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -76,10 +106,34 @@ export async function exchangeMicrosoftCode(code: string, appUrl: string) {
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Microsoft token exchange failed: ${res.status} ${text}`);
+    const sanitized = sanitizeMicrosoftTokenErrorBody(text);
+    console.error("[microsoft-oauth] token_exchange_failed", {
+      status: res.status,
+      redirectUri,
+      ...sanitized,
+    });
+    throw new Error(
+      `Microsoft token exchange failed: ${res.status} ${sanitized.error ?? "unknown"} ${sanitized.errorDescription ?? ""}`.trim(),
+    );
   }
 
-  const data = tokenResponseSchema.parse(await res.json());
+  let data: z.infer<typeof tokenResponseSchema>;
+  try {
+    data = tokenResponseSchema.parse(await res.json());
+  } catch (parseErr) {
+    console.error("[microsoft-oauth] token_response_parse_failed", {
+      message: parseErr instanceof Error ? parseErr.message : String(parseErr),
+    });
+    throw parseErr;
+  }
+
+  console.info("[microsoft-oauth] token_exchange_ok", {
+    hasAccessToken: Boolean(data.access_token),
+    hasRefreshToken: Boolean(data.refresh_token),
+    expiresIn: data.expires_in,
+    tokenType: data.token_type,
+  });
+
   return {
     accessToken: data.access_token,
     refreshToken: data.refresh_token ?? null,
