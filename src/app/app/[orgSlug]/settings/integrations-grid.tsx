@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -19,6 +19,7 @@ type LiveIntegration = {
   connectHref: string;
   oauthError: string | null;
   oauthSuccess: boolean;
+  icon: ReactNode;
 };
 
 type SoonIntegration = {
@@ -26,7 +27,16 @@ type SoonIntegration = {
   name: string;
   description: string;
   soon: true;
+  icon: ReactNode;
 };
+
+function IconTile({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex size-9 shrink-0 items-center justify-center rounded-sm bg-stone-50">
+      {children}
+    </div>
+  );
+}
 
 function HubSpotMark() {
   return (
@@ -50,6 +60,62 @@ function SalesforceMark() {
   );
 }
 
+function PipedriveMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="10" fill="#017737" />
+      <path
+        fill="#fff"
+        d="M8.2 7.5h3.1c2.2 0 3.6 1.2 3.6 3.05 0 1.85-1.4 3.05-3.6 3.05H10.4V16.5H8.2V7.5zm2.2 1.75v2.6h1c1.05 0 1.65-.5 1.65-1.3S13.45 9.25 12.4 9.25h-2z"
+      />
+    </svg>
+  );
+}
+
+function DynamicsMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path fill="#002050" d="M4 4h7.5v16H4z" />
+      <path fill="#0078D4" d="M12.5 8H20v12h-7.5z" />
+      <path fill="#50E6FF" d="M12.5 4H20v3.5h-7.5z" />
+    </svg>
+  );
+}
+
+function ZapierMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        fill="#FF4A00"
+        d="M12 2.5 13.8 9H20l-5 3.6L16.8 21 12 16.9 7.2 21l1.8-8.4L4 9h6.2L12 2.5z"
+      />
+    </svg>
+  );
+}
+
+function TeamsMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        fill="#5059C9"
+        d="M16.5 7.2c1.2 0 2.2-1 2.2-2.2S17.7 2.8 16.5 2.8 14.3 3.8 14.3 5s1 2.2 2.2 2.2z"
+      />
+      <path
+        fill="#7B83EB"
+        d="M19.8 8.5h-3.2c-.7 0-1.3.4-1.6 1v5.3c0 1.3 1.1 2.4 2.4 2.4h.1c1.5 0 2.7-1.2 2.7-2.7v-4.6c0-.8-.6-1.4-1.4-1.4z"
+      />
+      <path
+        fill="#4B53BC"
+        d="M8.8 7.8c1.5 0 2.7-1.2 2.7-2.7S10.3 2.4 8.8 2.4 6.1 3.6 6.1 5.1s1.2 2.7 2.7 2.7z"
+      />
+      <path
+        fill="#7B83EB"
+        d="M13.2 9H4.5C3.7 9 3 9.7 3 10.5v5.8C3 18.2 4.8 20 7 20h3.5c2.2 0 4-1.8 4-4v-5.5c0-.8-.7-1.5-1.5-1.5h.2z"
+      />
+    </svg>
+  );
+}
+
 function oauthMessage(
   provider: "hubspot" | "salesforce",
   code: string | null | undefined,
@@ -68,7 +134,7 @@ function oauthMessage(
     case "forbidden":
       return `You do not have permission to manage ${label} for this organisation.`;
     case "not_configured":
-      return `${label} is not configured on this environment.`;
+      return `${label} is not configured on this environment. Add the client ID and secret, then redeploy.`;
     case "start_failed":
       return `Could not start ${label} connection. Try again.`;
     default:
@@ -78,11 +144,14 @@ function oauthMessage(
 
 function SoonCard({ item }: { item: SoonIntegration }) {
   return (
-    <div className="flex min-h-[132px] flex-col justify-center rounded-md border border-dashed border-stone-200 bg-stone-0 px-5 py-5">
-      <span className="inline-flex w-fit rounded-xs bg-bronze-100 px-2 py-0.5 text-[0.8125rem] font-semibold text-bronze-600">
-        SOON
-      </span>
-      <p className="mt-2 text-[0.9375rem] font-semibold text-stone-600">
+    <div className="flex min-h-[132px] flex-col rounded-md border border-dashed border-stone-200 bg-stone-0 p-5">
+      <div className="flex items-start gap-3">
+        <IconTile>{item.icon}</IconTile>
+        <span className="ml-auto inline-flex rounded-xs bg-bronze-100 px-2 py-0.5 text-[0.8125rem] font-semibold text-bronze-600">
+          SOON
+        </span>
+      </div>
+      <p className="mt-2.5 text-[0.9375rem] font-semibold text-stone-600">
         {item.name}
       </p>
       <p className="mt-1 text-[0.8125rem] font-medium text-stone-400">
@@ -103,15 +172,10 @@ function LiveCard({
   onDisconnect: () => void;
   pending: boolean;
 }) {
-  const icon =
-    item.id === "hubspot" ? <HubSpotMark /> : <SalesforceMark />;
-
   return (
     <div className="flex flex-col rounded-md border border-solid border-stone-200 bg-stone-0 p-5">
       <div className="flex items-start gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-sm bg-stone-50">
-          {icon}
-        </div>
+        <IconTile>{item.icon}</IconTile>
         <Badge
           tone={item.connected ? "success" : "muted"}
           className="ml-auto h-auto min-h-6 py-0.5"
@@ -136,6 +200,11 @@ function LiveCard({
       {item.oauthError ? (
         <p className="mb-3 text-[0.8125rem] text-danger">{item.oauthError}</p>
       ) : null}
+      {!item.connected && !item.configured && !item.oauthError ? (
+        <p className="mb-3 text-[0.8125rem] text-stone-500">
+          OAuth credentials are not set on this environment yet.
+        </p>
+      ) : null}
 
       {!canManage ? (
         <p className="mt-auto text-[0.8125rem] text-stone-500">
@@ -154,21 +223,13 @@ function LiveCard({
         >
           {pending ? "Disconnecting…" : "Disconnect"}
         </button>
-      ) : item.configured ? (
+      ) : (
         <a
           href={item.connectHref}
           className="mt-auto inline-flex h-9 w-full items-center justify-center rounded-sm bg-ink-700 text-[0.78125rem] font-semibold text-white transition-colors hover:bg-ink-800"
         >
           Connect
         </a>
-      ) : (
-        <button
-          type="button"
-          disabled
-          className="mt-auto inline-flex h-9 w-full cursor-not-allowed items-center justify-center rounded-sm border border-stone-200 bg-stone-50 text-[0.78125rem] font-semibold text-stone-400"
-        >
-          Connect
-        </button>
       )}
     </div>
   );
@@ -180,18 +241,28 @@ const SOON_ITEMS: SoonIntegration[] = [
     name: "Pipedrive",
     description: "Import contacts from Pipedrive pipelines.",
     soon: true,
+    icon: <PipedriveMark />,
   },
   {
     id: "dynamics",
     name: "Dynamics 365",
     description: "Connect Microsoft Dynamics for CRM invitees.",
     soon: true,
+    icon: <DynamicsMark />,
+  },
+  {
+    id: "teams",
+    name: "Microsoft Teams",
+    description: "Notify organisers and share event updates in Teams.",
+    soon: true,
+    icon: <TeamsMark />,
   },
   {
     id: "zapier",
     name: "Zapier",
     description: "Trigger invitee sync from thousands of apps.",
     soon: true,
+    icon: <ZapierMark />,
   },
 ];
 
@@ -236,6 +307,7 @@ export function IntegrationsGrid({
         connectHref: `/api/auth/hubspot/start?orgSlug=${encodeURIComponent(orgSlug)}`,
         oauthError: oauthMessage("hubspot", hubspot.oauthStatus),
         oauthSuccess: hubspot.oauthStatus === "connected",
+        icon: <HubSpotMark />,
       },
       {
         id: "salesforce",
@@ -250,6 +322,7 @@ export function IntegrationsGrid({
         connectHref: `/api/auth/salesforce/start?orgSlug=${encodeURIComponent(orgSlug)}`,
         oauthError: oauthMessage("salesforce", salesforce.oauthStatus),
         oauthSuccess: salesforce.oauthStatus === "connected",
+        icon: <SalesforceMark />,
       },
     ],
     [hubspot, orgSlug, salesforce],
