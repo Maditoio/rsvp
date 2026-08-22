@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { TurnstileWidget } from "@/components/turnstile";
 import { COUNTRIES } from "@/lib/countries";
+import { isValidEmail } from "@/lib/validation";
+import { useToast } from "@/components/ui/toast";
 
 export function PublicApplyForm({
   orgSlug,
@@ -21,7 +23,9 @@ export function PublicApplyForm({
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const toast = useToast();
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const onToken = useCallback((value: string | null) => {
     setTurnstileToken(value);
@@ -49,24 +53,44 @@ export function PublicApplyForm({
       className="space-y-4"
       action={(formData) => {
         setError(null);
+        setFieldErrors({});
+        const firstName = String(formData.get("firstName") ?? "").trim();
+        const lastName = String(formData.get("lastName") ?? "").trim();
+        const email = String(formData.get("email") ?? "").trim();
+        const nextFieldErrors: Record<string, string> = {};
+        if (!firstName) nextFieldErrors.firstName = "First name is required.";
+        if (!lastName) nextFieldErrors.lastName = "Last name is required.";
+        if (!email) nextFieldErrors.email = "Email is required.";
+        else if (!isValidEmail(email)) {
+          nextFieldErrors.email = "Enter a valid email address.";
+        }
+        if (Object.keys(nextFieldErrors).length > 0) {
+          setFieldErrors(nextFieldErrors);
+          const message = Object.values(nextFieldErrors)[0] ?? "Check the form.";
+          setError(message);
+          toast.error(message);
+          return;
+        }
         if (siteKey && !turnstileToken) {
-          setError("Complete the bot check before submitting.");
+          const message = "Complete the bot check before submitting.";
+          setError(message);
+          toast.error(message);
           return;
         }
         start(async () => {
-          try {
-            await submitPublicApplication(
-              orgSlug,
-              eventSlug,
-              formData,
-              turnstileToken ?? undefined,
-            );
-            setSubmitted(true);
-          } catch (e) {
-            setError(
-              e instanceof Error ? e.message : "Could not submit application",
-            );
+          const result = await submitPublicApplication(
+            orgSlug,
+            eventSlug,
+            formData,
+            turnstileToken ?? undefined,
+          );
+          if (!result.ok) {
+            setError(result.error);
+            toast.error(result.error);
+            return;
           }
+          toast.success("Application submitted.");
+          setSubmitted(true);
         });
       }}
     >
@@ -74,15 +98,24 @@ export function PublicApplyForm({
         <div>
           <Label htmlFor="firstName">First name</Label>
           <Input id="firstName" name="firstName" required />
+          {fieldErrors.firstName ? (
+            <p className="mt-1 text-sm text-danger">{fieldErrors.firstName}</p>
+          ) : null}
         </div>
         <div>
           <Label htmlFor="lastName">Last name</Label>
           <Input id="lastName" name="lastName" required />
+          {fieldErrors.lastName ? (
+            <p className="mt-1 text-sm text-danger">{fieldErrors.lastName}</p>
+          ) : null}
         </div>
       </div>
       <div>
         <Label htmlFor="email">Email</Label>
         <Input id="email" name="email" type="email" required />
+        {fieldErrors.email ? (
+          <p className="mt-1 text-sm text-danger">{fieldErrors.email}</p>
+        ) : null}
       </div>
       <div>
         <Label htmlFor="company">Organisation</Label>

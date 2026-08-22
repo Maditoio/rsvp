@@ -5,92 +5,99 @@ import Link from "next/link";
 import { submitRegistration } from "@/modules/registrations/actions";
 import { Button } from "@/components/ui/button";
 import { TurnstileWidget } from "@/components/turnstile";
-import { QrCodeImage } from "@/components/qr-code";
 import { DynamicFields } from "@/components/dynamic-fields";
+import { AccessibilityIconPicker } from "@/components/accessibility-icon-picker";
+import { AttendanceDatesPicker } from "@/components/attendance-dates-picker";
 import type { FormFieldDef } from "@/modules/registrations/defaults";
 import { matchmakingPath } from "@/modules/matchmaking/questionnaire";
+import type { EventDayOption } from "@/lib/event-dates";
+import { isValidEmail, normalizeEmail } from "@/lib/validation";
+import { useToast } from "@/components/ui/toast";
+
+const SPECIAL_FIELD_KEYS = new Set(["attendanceDates", "accessibility"]);
 
 export function RegistrationForm({
   token,
   siteKey,
   fields,
   defaults,
-  existingQr,
+  eventDays,
+  alreadyRegistered = false,
+  invitationEmail,
+  signUpHref,
   matchmakingHref,
 }: {
   token: string;
   siteKey: string;
   fields: FormFieldDef[];
-  defaults: Record<string, string>;
-  existingQr?: { dataUrl: string; firstName: string } | null;
+  defaults: Record<string, string | string[]>;
+  eventDays: EventDayOption[];
+  alreadyRegistered?: boolean;
+  invitationEmail: string;
+  signUpHref: string;
   matchmakingHref?: string | null;
 }) {
+  const toast = useToast();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [qrDataUrl, setQrDataUrl] = useState<string | null>(
-    existingQr?.dataUrl ?? null,
-  );
-  const [setupHref, setSetupHref] = useState<string | null>(
-    matchmakingHref ?? null,
-  );
+  const [completed, setCompleted] = useState(alreadyRegistered);
+  const [setupHref, setSetupHref] = useState<string | null>(matchmakingHref ?? null);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const onToken = useCallback((value: string | null) => {
     setTurnstileToken(value);
   }, []);
 
-  if (qrDataUrl) {
+  const standardFields = fields.filter((field) => !SPECIAL_FIELD_KEYS.has(field.key));
+  const attendanceField = fields.find((field) => field.key === "attendanceDates");
+  const accessibilityField = fields.find((field) => field.key === "accessibility");
+  const attendanceSelected = Array.isArray(defaults.attendanceDates)
+    ? defaults.attendanceDates
+    : defaults.attendanceDates
+      ? [defaults.attendanceDates]
+      : [];
+  const accessibilitySelected = Array.isArray(defaults.accessibility)
+    ? defaults.accessibility
+    : defaults.accessibility
+      ? [defaults.accessibility]
+      : [];
+
+  if (completed) {
     return (
       <div className="text-center">
         <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
           Registered
         </p>
         <h2 className="mt-2 font-display text-3xl text-ink-800">
-          Your check-in code
+          Registration complete
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-stone-700">
-          Accepting the invitation and registering are separate steps. This
-          opaque code is for event-day check-in only — it does not contain your
-          details. A confirmation email has been sent with this access link.
+          A confirmation email is on its way to{" "}
+          <span className="font-medium text-ink-800">{invitationEmail}</span>. Use
+          that message to sign in, open the event app, and access meetings, agenda,
+          matchmaking, and your check-in QR code.
         </p>
-        <div className="mt-6 flex justify-center">
-          <QrCodeImage
-            dataUrl={qrDataUrl}
-            label="Opaque attendance check-in code"
-          />
-        </div>
-        {setupHref ? (
-          <div className="mx-auto mt-8 max-w-md border-t border-stone-200 pt-6">
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
-              Next
-            </p>
-            <h3 className="mt-2 font-display text-2xl text-ink-800">
-              Set up who you want to meet
-            </h3>
-            <p className="mt-2 text-sm text-stone-700">
-              Your registration is complete. A short matching profile helps the
-              directory introduce the right people.
-            </p>
+        <div className="mx-auto mt-8 flex max-w-md flex-col gap-3">
+          <Link
+            href={signUpHref}
+            className="inline-flex h-11 items-center justify-center rounded-sm bg-ink-700 px-5 text-[0.9375rem] font-semibold text-white hover:bg-ink-800"
+          >
+            Create your account
+          </Link>
+          <Link
+            href="/me"
+            className="inline-flex h-11 items-center justify-center rounded-sm border border-stone-200 bg-stone-0 px-5 text-[0.9375rem] font-semibold text-ink-700 hover:bg-stone-50"
+          >
+            Open My events
+          </Link>
+          {setupHref ? (
             <Link
               href={setupHref}
-              className="mt-5 inline-flex h-11 items-center rounded-sm bg-ink-700 px-5 text-[0.9375rem] font-semibold text-white hover:bg-ink-800"
+              className="text-sm text-stone-700 underline-offset-4 hover:text-ink-700 hover:underline"
             >
-              Set up matching profile
+              Set up your matching profile
             </Link>
-            <div className="mt-3">
-              <Link
-                href="/me"
-                className="text-sm text-stone-700 underline-offset-4 hover:text-ink-700 hover:underline"
-              >
-                Skip for now
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <p className="mt-4 text-sm text-stone-500">
-            Save a screenshot of this code. You can sign in later under My event
-            if you create an account.
-          </p>
-        )}
+          ) : null}
+        </div>
       </div>
     );
   }
@@ -101,31 +108,62 @@ export function RegistrationForm({
       action={(formData) => {
         setError(null);
         if (siteKey && !turnstileToken) {
-          setError("Complete the bot check before submitting.");
+          const message = "Complete the bot check before submitting.";
+          setError(message);
+          toast.error(message);
+          return;
+        }
+        const email = normalizeEmail(String(formData.get("email") ?? ""));
+        if (!isValidEmail(email)) {
+          const message = "Enter a valid email address.";
+          setError(message);
+          toast.error(message);
+          return;
+        }
+        if (email !== normalizeEmail(invitationEmail)) {
+          const message =
+            "Use the email address on your invitation. The registration email must match your invited address.";
+          setError(message);
+          toast.error(message);
           return;
         }
         start(async () => {
-          try {
-            const result = await submitRegistration(
-              token,
-              formData,
-              turnstileToken ?? undefined,
-            );
-            if (!result.ok) {
-              setError(result.error);
-              return;
-            }
-            setQrDataUrl(result.qrDataUrl);
-            if (result.signedIn) {
-              setSetupHref(matchmakingPath(result.eventId));
-            }
-          } catch {
-            setError("Could not complete registration. Please try again.");
+          const result = await submitRegistration(
+            token,
+            formData,
+            turnstileToken ?? undefined,
+          );
+          if (!result.ok) {
+            setError(result.error);
+            toast.error(result.error);
+            return;
+          }
+          toast.success(
+            "Registration complete. Check your email for next steps.",
+            "Registered",
+          );
+          setCompleted(true);
+          if (result.signedIn) {
+            setSetupHref(matchmakingPath(result.eventId));
           }
         });
       }}
     >
-      <DynamicFields fields={fields} defaults={defaults} />
+      <DynamicFields fields={standardFields} defaults={defaults} />
+      {attendanceField ? (
+        <AttendanceDatesPicker
+          name="attendanceDates"
+          options={eventDays}
+          required={attendanceField.required}
+          defaultSelected={attendanceSelected}
+        />
+      ) : null}
+      {accessibilityField ? (
+        <AccessibilityIconPicker
+          name="accessibility"
+          defaultSelected={accessibilitySelected}
+        />
+      ) : null}
       <TurnstileWidget siteKey={siteKey} onToken={onToken} />
       {error ? <p className="text-sm text-danger">{error}</p> : null}
       <div className="flex justify-end">

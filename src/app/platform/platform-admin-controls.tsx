@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { isValidEmail } from "@/lib/validation";
+import { useToast } from "@/components/ui/toast";
 
 export function PlatformAdminControls() {
   const router = useRouter();
+  const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
@@ -17,16 +20,23 @@ export function PlatformAdminControls() {
   const submit = (makeAdmin: boolean, formData: FormData) => {
     formData.set("platformAdmin", String(makeAdmin));
     setError(null);
+    const email = String(formData.get("email") ?? "").trim();
+    if (!isValidEmail(email)) {
+      const message = "Enter a valid email address.";
+      setError(message);
+      toast.error(message);
+      return;
+    }
     start(async () => {
-      try {
-        await setPlatformAdmin(formData);
-        setOpen(false);
-        router.refresh();
-      } catch (e) {
-        setError(
-          e instanceof Error ? e.message : "Could not update platform admin access",
-        );
+      const result = await setPlatformAdmin(formData);
+      if (!result.ok) {
+        setError(result.error);
+        toast.error(result.error);
+        return;
       }
+      toast.success(makeAdmin ? "Platform admin granted." : "Platform admin revoked.");
+      setOpen(false);
+      router.refresh();
     });
   };
 

@@ -7,9 +7,16 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent, requireOrg, requirePlatformAdmin } from "@/lib/authz/require";
 import { writeAudit } from "@/modules/audit/log";
+import {
+  type ActionResult,
+  actionFail,
+  actionOk,
+  publicActionError,
+} from "@/lib/action-result";
+import { emailFieldSchema, isValidEmail, normalizeEmail } from "@/lib/validation";
 
 const addOrgMemberSchema = z.object({
-  email: z.string().trim().email().transform((value) => value.toLowerCase()),
+  email: emailFieldSchema,
   role: z.enum(["OWNER", "ADMIN"]),
 });
 
@@ -18,11 +25,22 @@ const orgRoleSchema = z.object({
   role: z.enum(["OWNER", "ADMIN"]),
 });
 
-const eventRoleSchema = z.object({
-  userId: z.string().optional(),
-  email: z.string().trim().email().transform((value) => value.toLowerCase()).optional(),
-  role: z.enum(["EVENT_ADMINISTRATOR", "REGISTRATION_MANAGER", "CHECKIN_STAFF"]),
-});
+const eventRoleSchema = z
+  .object({
+    userId: z.string().optional(),
+    email: z
+      .string()
+      .trim()
+      .optional()
+      .transform((value) => (value ? normalizeEmail(value) : undefined))
+      .refine((value) => value === undefined || isValidEmail(value), {
+        message: "Enter a valid email address",
+      }),
+    role: z.enum(["EVENT_ADMINISTRATOR", "REGISTRATION_MANAGER", "CHECKIN_STAFF"]),
+  })
+  .refine((data) => Boolean(data.userId || data.email), {
+    message: "Member email is required.",
+  });
 
 async function requestIp() {
   return (await headers()).get("x-forwarded-for");
@@ -44,52 +62,65 @@ async function ensureOwnerInvariant(organisationId: string, userId: string, next
   }
 }
 
-export async function addOrganisationMember(orgSlug: string, formData: FormData) {
-  const ctx = await requireOrg(orgSlug, "org.manage");
-  const input = addOrgMemberSchema.parse({
-    email: String(formData.get("email") ?? ""),
-    role: String(formData.get("role") ?? "ADMIN"),
-  });
+export async function addOrganisationMember(
+  orgSlug: string,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireOrg(orgSlug, "org.manage");
+    const input = addOrgMemberSchema.parse({
+      email: String(formData.get("email") ?? ""),
+      role: String(formData.get("role") ?? "ADMIN"),
+    });
 
-  const user = await prisma.user.findFirst({
-    where: { email: { equals: input.email, mode: "insensitive" } },
-  });
-  if (!user) {
-    throw new Error("That user has not signed in yet. Ask them to create an account first.");
-  }
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: input.email, mode: "insensitive" } },
+    });
+    if (!user) {
+      return actionFail(
+        "That user has not signed in yet. Ask them to create an account first.",
+      );
+    }
 
-  const membership = await prisma.organisationUser.upsert({
-    where: {
-      organisationId_userId: {
+    const membership = await prisma.organisationUser.upsert({
+      where: {
+        organisationId_userId: {
+          organisationId: ctx.organisation.id,
+          userId: user.id,
+        },
+      },
+      create: {
         organisationId: ctx.organisation.id,
         userId: user.id,
+        role: input.role as OrgRole,
       },
-    },
-    create: {
+      update: { role: input.role as OrgRole },
+      include: { user: true },
+    });
+
+    await writeAudit({
       organisationId: ctx.organisation.id,
-      userId: user.id,
-      role: input.role as OrgRole,
-    },
-    update: { role: input.role as OrgRole },
-    include: { user: true },
-  });
+      userId: ctx.user.id,
+      action: "organisation.member.upsert",
+      resource: "organisation_user",
+      resourceId: membership.id,
+      ip: await requestIp(),
+      metadata: {
+        targetUserId: user.id,
+        targetEmail: user.email,
+        role: input.role,
+      },
+    });
 
-  await writeAudit({
-    organisationId: ctx.organisation.id,
-    userId: ctx.user.id,
-    action: "organisation.member.upsert",
-    resource: "organisation_user",
-    resourceId: membership.id,
-    ip: await requestIp(),
-    metadata: {
-      targetUserId: user.id,
-      targetEmail: user.email,
-      role: input.role,
-    },
-  });
-
-  revalidatePath(`/app/${orgSlug}/settings`);
-  revalidatePath("/platform");
+    revalidatePath(`/app/${orgSlug}/settings`);
+    revalidatePath("/platform");
+    return actionOk();
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return actionFail(error.issues[0]?.message ?? "Invalid member details.");
+    }
+    return actionFail(publicActionError(error, "Could not add member."));
+  }
 }
 
 export async function updateOrganisationMemberRole(orgSlug: string, formData: FormData) {
@@ -134,129 +165,153 @@ export async function changeOrganisationMemberRole(orgSlug: string, formData: Fo
   return updateOrganisationMemberRole(orgSlug, formData);
 }
 
-export async function removeOrganisationMember(orgSlug: string, formData: FormData) {
-  const ctx = await requireOrg(orgSlug, "org.manage");
-  const userId = z.string().min(1).parse(String(formData.get("userId") ?? ""));
+export async function removeOrganisationMember(
+  orgSlug: string,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireOrg(orgSlug, "org.manage");
+    const userId = z.string().min(1).parse(String(formData.get("userId") ?? ""));
 
-  await ensureOwnerInvariant(ctx.organisation.id, userId);
-  if (userId === ctx.user.id) {
-    throw new Error("Remove another owner first before removing your own organisation access.");
-  }
+    await ensureOwnerInvariant(ctx.organisation.id, userId);
+    if (userId === ctx.user.id) {
+      return actionFail(
+        "Remove another owner first before removing your own organisation access.",
+      );
+    }
 
-  const membership = await prisma.organisationUser.findUnique({
-    where: {
-      organisationId_userId: {
-        organisationId: ctx.organisation.id,
-        userId,
-      },
-    },
-    include: { user: true },
-  });
-  if (!membership) throw new Error("Organisation member not found");
-
-  await prisma.$transaction([
-    prisma.eventUser.deleteMany({
-      where: {
-        organisationId: ctx.organisation.id,
-        userId,
-      },
-    }),
-    prisma.organisationUser.delete({
+    const membership = await prisma.organisationUser.findUnique({
       where: {
         organisationId_userId: {
           organisationId: ctx.organisation.id,
           userId,
         },
       },
-    }),
-  ]);
+      include: { user: true },
+    });
+    if (!membership) return actionFail("Organisation member not found");
 
-  await writeAudit({
-    organisationId: ctx.organisation.id,
-    userId: ctx.user.id,
-    action: "organisation.member.remove",
-    resource: "organisation_user",
-    resourceId: membership.id,
-    ip: await requestIp(),
-    metadata: {
-      targetUserId: membership.userId,
-      targetEmail: membership.user.email,
-      removedEventAssignments: true,
-    },
-  });
+    await prisma.$transaction([
+      prisma.eventUser.deleteMany({
+        where: {
+          organisationId: ctx.organisation.id,
+          userId,
+        },
+      }),
+      prisma.organisationUser.delete({
+        where: {
+          organisationId_userId: {
+            organisationId: ctx.organisation.id,
+            userId,
+          },
+        },
+      }),
+    ]);
 
-  revalidatePath(`/app/${orgSlug}/settings`);
-  revalidatePath("/platform");
+    await writeAudit({
+      organisationId: ctx.organisation.id,
+      userId: ctx.user.id,
+      action: "organisation.member.remove",
+      resource: "organisation_user",
+      resourceId: membership.id,
+      ip: await requestIp(),
+      metadata: {
+        targetUserId: membership.userId,
+        targetEmail: membership.user.email,
+        removedEventAssignments: true,
+      },
+    });
+
+    revalidatePath(`/app/${orgSlug}/settings`);
+    revalidatePath("/platform");
+    return actionOk();
+  } catch (error) {
+    return actionFail(publicActionError(error, "Could not remove member."));
+  }
 }
 
-export async function assignEventStaff(orgSlug: string, eventId: string, formData: FormData) {
-  const ctx = await requireEvent(orgSlug, eventId, "event.update");
-  const input = eventRoleSchema.parse({
-    userId: String(formData.get("userId") ?? ""),
-    email: String(formData.get("email") ?? ""),
-    role: String(formData.get("role") ?? ""),
-  });
+export async function assignEventStaff(
+  orgSlug: string,
+  eventId: string,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireEvent(orgSlug, eventId, "event.update");
+    const input = eventRoleSchema.parse({
+      userId: String(formData.get("userId") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      role: String(formData.get("role") ?? ""),
+    });
 
-  const targetUserId =
-    input.userId ||
-    (
-      await prisma.user.findFirst({
-        where: {
-          email: { equals: input.email ?? "", mode: "insensitive" },
+    const targetUserId =
+      input.userId ||
+      (
+        await prisma.user.findFirst({
+          where: {
+            email: { equals: input.email ?? "", mode: "insensitive" },
+          },
+          select: { id: true },
+        })
+      )?.id;
+    if (!targetUserId) {
+      return actionFail(
+        "That user has not signed in yet. Ask them to create an account first.",
+      );
+    }
+
+    const orgMember = await prisma.organisationUser.findUnique({
+      where: {
+        organisationId_userId: {
+          organisationId: ctx.organisation.id,
+          userId: targetUserId,
         },
-        select: { id: true },
-      })
-    )?.id;
-  if (!targetUserId) {
-    throw new Error("That user has not signed in yet. Ask them to create an account first.");
-  }
-
-  const orgMember = await prisma.organisationUser.findUnique({
-    where: {
-      organisationId_userId: {
-        organisationId: ctx.organisation.id,
-        userId: targetUserId,
       },
-    },
-    include: { user: true },
-  });
-  if (!orgMember) {
-    throw new Error("Only organisation members can be assigned to event staff roles.");
-  }
+      include: { user: true },
+    });
+    if (!orgMember) {
+      return actionFail("Only organisation members can be assigned to event staff roles.");
+    }
 
-  const assignment = await prisma.eventUser.upsert({
-    where: {
-      eventId_userId: {
+    const assignment = await prisma.eventUser.upsert({
+      where: {
+        eventId_userId: {
+          eventId,
+          userId: targetUserId,
+        },
+      },
+      create: {
+        organisationId: ctx.organisation.id,
         eventId,
         userId: targetUserId,
+        role: input.role as EventRole,
       },
-    },
-    create: {
+      update: { role: input.role as EventRole },
+    });
+
+    await writeAudit({
       organisationId: ctx.organisation.id,
       eventId,
-      userId: targetUserId,
-      role: input.role as EventRole,
-    },
-    update: { role: input.role as EventRole },
-  });
+      userId: ctx.user.id,
+      action: "event.staff.upsert",
+      resource: "event_user",
+      resourceId: assignment.id,
+      ip: await requestIp(),
+      metadata: {
+        targetUserId: orgMember.userId,
+        targetEmail: orgMember.user.email,
+        role: input.role,
+      },
+    });
 
-  await writeAudit({
-    organisationId: ctx.organisation.id,
-    eventId,
-    userId: ctx.user.id,
-    action: "event.staff.upsert",
-    resource: "event_user",
-    resourceId: assignment.id,
-    ip: await requestIp(),
-    metadata: {
-      targetUserId: orgMember.userId,
-      targetEmail: orgMember.user.email,
-      role: input.role,
-    },
-  });
-
-  revalidatePath(`/app/${orgSlug}/events/${eventId}`);
-  revalidatePath(`/app/${orgSlug}/settings`);
+    revalidatePath(`/app/${orgSlug}/events/${eventId}`);
+    revalidatePath(`/app/${orgSlug}/settings`);
+    return actionOk();
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return actionFail(error.issues[0]?.message ?? "Invalid staff details.");
+    }
+    return actionFail(publicActionError(error, "Could not assign event staff."));
+  }
 }
 
 export async function changeEventStaffRole(
@@ -331,42 +386,53 @@ export async function removeEventStaff(orgSlug: string, eventId: string, formDat
   revalidatePath(`/app/${orgSlug}/events/${eventId}`);
 }
 
-export async function setPlatformAdmin(formData: FormData) {
-  const actor = await requirePlatformAdmin();
-  const userId = String(formData.get("userId") ?? "");
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const next = z.enum(["true", "false"]).transform((v) => v === "true").parse(
-    String(formData.get("platformAdmin") ?? "false"),
-  );
+export async function setPlatformAdmin(formData: FormData): Promise<ActionResult> {
+  try {
+    const actor = await requirePlatformAdmin();
+    const userId = String(formData.get("userId") ?? "");
+    const emailRaw = String(formData.get("email") ?? "").trim();
+    const email = emailRaw ? normalizeEmail(emailRaw) : "";
+    if (!userId && !isValidEmail(email)) {
+      return actionFail("Enter a valid email address.");
+    }
+    const next = z.enum(["true", "false"]).transform((v) => v === "true").parse(
+      String(formData.get("platformAdmin") ?? "false"),
+    );
 
-  const resolvedUserId =
-    userId ||
-    (
-      await prisma.user.findFirst({
-        where: { email: { equals: email, mode: "insensitive" } },
-        select: { id: true },
-      })
-    )?.id;
-  if (!resolvedUserId) {
-    throw new Error("That user has not signed in yet. Ask them to create an account first.");
+    const resolvedUserId =
+      userId ||
+      (
+        await prisma.user.findFirst({
+          where: { email: { equals: email, mode: "insensitive" } },
+          select: { id: true },
+        })
+      )?.id;
+    if (!resolvedUserId) {
+      return actionFail(
+        "That user has not signed in yet. Ask them to create an account first.",
+      );
+    }
+
+    const user = await prisma.user.update({
+      where: { id: resolvedUserId },
+      data: { platformAdmin: next },
+    });
+
+    await writeAudit({
+      userId: actor.id,
+      action: next ? "platform.admin.grant" : "platform.admin.revoke",
+      resource: "user",
+      resourceId: user.id,
+      ip: await requestIp(),
+      metadata: {
+        targetEmail: user.email,
+        platformAdmin: next,
+      },
+    });
+
+    revalidatePath("/platform");
+    return actionOk();
+  } catch (error) {
+    return actionFail(publicActionError(error, "Could not update platform admin access."));
   }
-
-  const user = await prisma.user.update({
-    where: { id: resolvedUserId },
-    data: { platformAdmin: next },
-  });
-
-  await writeAudit({
-    userId: actor.id,
-    action: next ? "platform.admin.grant" : "platform.admin.revoke",
-    resource: "user",
-    resourceId: user.id,
-    ip: await requestIp(),
-    metadata: {
-      targetEmail: user.email,
-      platformAdmin: next,
-    },
-  });
-
-  revalidatePath("/platform");
 }

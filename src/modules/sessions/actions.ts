@@ -8,6 +8,7 @@ import { requireEvent, requireUser } from "@/lib/authz/require";
 import { writeAudit } from "@/modules/audit/log";
 import { AuthzError } from "@/lib/db/tenant";
 import { syncSessionTeamsMeetingIfNeeded } from "@/modules/meetings/session-teams-actions";
+import { parseOptionalDateRange } from "@/lib/validation";
 
 const sessionSchema = z.object({
   sessionId: z.string().optional(),
@@ -43,14 +44,19 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
     ? z.coerce.number().int().positive().parse(input.capacity)
     : null;
 
+  const slot = parseOptionalDateRange(input.startsAt ?? "", input.endsAt ?? "");
+  if (!slot.ok) {
+    throw new Error(slot.error);
+  }
+
   const data = {
     organisationId: ctx.organisation.id,
     eventId,
     title: input.title,
     description: input.description || null,
     location: input.location || null,
-    startsAt: parseDate(input.startsAt),
-    endsAt: parseDate(input.endsAt),
+    startsAt: slot.startsAt,
+    endsAt: slot.endsAt,
     capacity: capacityValue,
     format: input.format as SessionFormat,
   };

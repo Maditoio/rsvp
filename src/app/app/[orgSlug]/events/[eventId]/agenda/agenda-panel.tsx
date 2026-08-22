@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, Td, Th } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { parseOptionalDateRange } from "@/lib/validation";
 import {
   SessionOnlineControls,
   type SessionOnlineMeeting,
@@ -192,6 +193,19 @@ export function AgendaPanel({
           action={(formData) => {
             formData.set("format", format);
             setError(null);
+            const title = String(formData.get("title") ?? "").trim();
+            if (title.length < 2) {
+              setError("Session title must be at least 2 characters.");
+              return;
+            }
+            const slot = parseOptionalDateRange(
+              String(formData.get("startsAt") ?? ""),
+              String(formData.get("endsAt") ?? ""),
+            );
+            if (!slot.ok) {
+              setError(slot.error);
+              return;
+            }
             start(async () => {
               try {
                 await saveSession(orgSlug, eventId, formData);

@@ -97,6 +97,22 @@ export async function sendInvitationEmail(input: {
   });
 }
 
+function letterPair(
+  title: string,
+  eyebrow: string,
+  body: string,
+  primaryHref: string,
+  primaryCta: string,
+  secondaryHref?: string,
+  secondaryCta?: string,
+) {
+  const secondary =
+    secondaryHref && secondaryCta
+      ? `<p style="margin:12px 0 0"><a href="${secondaryHref}" style="color:#1F2937;font-weight:600">${escapeHtml(secondaryCta)}</a></p>`
+      : "";
+  return letter(title, eyebrow, `${body}${secondary}`, primaryHref, primaryCta);
+}
+
 export async function sendRegistrationConfirmationEmail(input: {
   organisationId: string;
   eventId: string;
@@ -104,7 +120,9 @@ export async function sendRegistrationConfirmationEmail(input: {
   toName: string;
   eventName: string;
   orgName: string;
-  passUrl: string;
+  signUpUrl: string;
+  appUrl: string;
+  matchmakingUrl: string;
 }) {
   const onlineSessions = await prisma.session.findMany({
     where: {
@@ -161,10 +179,80 @@ export async function sendRegistrationConfirmationEmail(input: {
       `Your place at ${input.eventName} is registered`,
       "Registration",
       `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} has recorded your registration.</p>
-       <p style="color:#5F5A4D">Keep this email. The original invitation link remains your access to the check-in code.</p>
-       ${sessionBlocks}`,
-      input.passUrl,
-      "View check-in code",
+       <p style="color:#5F5A4D">Create an account with <strong>${escapeHtml(input.toEmail)}</strong> to open the event app. There you can browse the agenda, request meetings, complete your matching profile, and access your check-in QR code on event day.</p>
+       <ul style="color:#5F5A4D;font-size:14px;line-height:1.6;padding-left:18px">
+         <li>Meetings and connection requests</li>
+         <li>Agenda and online sessions</li>
+         <li>Matchmaking directory</li>
+         <li>Check-in QR code in the app</li>
+       </ul>
+       ${sessionBlocks}
+       <p style="color:#8B8578;font-size:13px">After signing up, complete your matching profile so the directory can introduce the right people.</p>`,
+      input.signUpUrl,
+      "Create account",
+    ),
+  });
+}
+
+export async function sendOrganizerWelcomeEmail(input: {
+  organisationId: string;
+  toEmail: string;
+  toName: string;
+  orgName: string;
+  loginUrl: string;
+}) {
+  return deliver({
+    organisationId: input.organisationId,
+    toEmail: input.toEmail,
+    subject: `Welcome to ${input.orgName} on Bizcon RSVP`,
+    html: letter(
+      `Your organiser workspace is ready`,
+      "Welcome",
+      `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} is set up on Bizcon RSVP.</p>
+       <p style="color:#5F5A4D">Use the platform console to manage invitations, registration, meetings, check-in, and event communications.</p>`,
+      input.loginUrl,
+      "Open organiser console",
+    ),
+  });
+}
+
+export async function sendMeetingRequestEmail(input: {
+  organisationId: string;
+  eventId: string;
+  toEmail: string;
+  toName: string;
+  eventName: string;
+  requesterName: string;
+  requesterCompany: string | null;
+  requesterJobTitle: string | null;
+  message: string | null;
+  acceptUrl: string;
+  declineUrl: string;
+  inAppUrl: string;
+}) {
+  const details = [
+    input.requesterCompany ? `<strong>${escapeHtml(input.requesterCompany)}</strong>` : null,
+    input.requesterJobTitle ? escapeHtml(input.requesterJobTitle) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return deliver({
+    organisationId: input.organisationId,
+    eventId: input.eventId,
+    toEmail: input.toEmail,
+    subject: `${input.requesterName} would like to connect at ${input.eventName}`,
+    html: letterPair(
+      `${input.requesterName} sent a connection request`,
+      "Connection request",
+      `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.requesterName)} would like to meet at ${escapeHtml(input.eventName)}.</p>
+       ${details ? `<p style="color:#5F5A4D;font-size:14px">${details}</p>` : ""}
+       ${input.message ? `<blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #B4923F;background:#FBF7EE;color:#5F5A4D">${escapeHtml(input.message)}</blockquote>` : ""}
+       <p style="color:#8B8578;font-size:13px">Accepting will create a meeting you can reschedule in the app.</p>`,
+      input.acceptUrl,
+      "Accept request",
+      input.declineUrl,
+      "Decline request",
     ),
   });
 }

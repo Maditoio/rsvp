@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/toast";
+import { optionalUrlSchema, parseOptionalDateRange } from "@/lib/validation";
 
 function toDatetimeLocal(value: Date | string | null) {
   if (!value) return "";
@@ -34,6 +36,7 @@ export function EventEditForm({
   };
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -42,14 +45,42 @@ export function EventEditForm({
       className="space-y-4"
         action={(formData) => {
           setError(null);
+          const name = String(formData.get("name") ?? "").trim();
+          if (name.length < 2) {
+            const message = "Event name must be at least 2 characters.";
+            setError(message);
+            toast.error(message);
+            return;
+          }
+          const website = String(formData.get("website") ?? "").trim();
+          const websiteResult = optionalUrlSchema.safeParse(website);
+          if (!websiteResult.success) {
+            const message =
+              websiteResult.error.issues[0]?.message ??
+              "Enter a valid website URL.";
+            setError(message);
+            toast.error(message);
+            return;
+          }
+          const range = parseOptionalDateRange(
+            String(formData.get("startsAt") ?? ""),
+            String(formData.get("endsAt") ?? ""),
+          );
+          if (!range.ok) {
+            setError(range.error);
+            toast.error(range.error);
+            return;
+          }
           start(async () => {
-            try {
-              await updateEvent(orgSlug, eventId, formData);
-              router.push(`/app/${orgSlug}/events/${eventId}`);
-              router.refresh();
-            } catch (e) {
-              setError(e instanceof Error ? e.message : "Could not update event");
+            const result = await updateEvent(orgSlug, eventId, formData);
+            if (!result.ok) {
+              setError(result.error);
+              toast.error(result.error);
+              return;
             }
+            toast.success("Event details saved.");
+            router.push(`/app/${orgSlug}/events/${eventId}`);
+            router.refresh();
           });
         }}
     >

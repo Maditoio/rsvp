@@ -5,7 +5,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireOrg, requireUser } from "@/lib/authz/require";
 import { writeAudit } from "@/modules/audit/log";
-import { toSlug } from "@/lib/utils";
+import { toSlug, getAppUrl } from "@/lib/utils";
+import { sendOrganizerWelcomeEmail } from "@/modules/communications/email";
 
 const orgSchema = z.object({
   name: z.string().min(2).max(120),
@@ -33,6 +34,18 @@ export async function createOrganisation(formData: FormData) {
     resource: "organisation",
     resourceId: organisation.id,
   });
+
+  try {
+    await sendOrganizerWelcomeEmail({
+      organisationId: organisation.id,
+      toEmail: user.email,
+      toName: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email,
+      orgName: organisation.name,
+      loginUrl: `${getAppUrl()}/app/${organisation.slug}`,
+    });
+  } catch (error) {
+    console.error("organizer welcome email failed", error);
+  }
 
   return { slug: organisation.slug };
 }

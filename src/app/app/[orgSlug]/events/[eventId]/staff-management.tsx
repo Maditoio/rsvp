@@ -15,6 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, Td, Th } from "@/components/ui/table";
 import { displayName, humanizeEnum } from "@/lib/utils";
+import { isValidEmail } from "@/lib/validation";
+import { useToast } from "@/components/ui/toast";
 
 const roles: EventRole[] = [
   "EVENT_ADMINISTRATOR",
@@ -48,6 +50,7 @@ export function StaffManagement({
   canManage: boolean;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
@@ -78,16 +81,23 @@ export function StaffManagement({
               className="space-y-4"
               action={(formData) => {
                 setError(null);
+                const email = String(formData.get("email") ?? "").trim();
+                if (!isValidEmail(email)) {
+                  const message = "Enter a valid email address.";
+                  setError(message);
+                  toast.error(message);
+                  return;
+                }
                 start(async () => {
-                  try {
-                    await assignEventStaff(orgSlug, eventId, formData);
-                    setOpen(false);
-                    router.refresh();
-                  } catch (e) {
-                    setError(
-                      e instanceof Error ? e.message : "Could not assign event staff",
-                    );
+                  const result = await assignEventStaff(orgSlug, eventId, formData);
+                  if (!result.ok) {
+                    setError(result.error);
+                    toast.error(result.error);
+                    return;
                   }
+                  toast.success("Staff member assigned.");
+                  setOpen(false);
+                  router.refresh();
                 });
               }}
             >

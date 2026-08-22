@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { displayName } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 
 export type { DirectoryPerson };
 
@@ -521,6 +522,7 @@ export function DirectoryPanel({
   matchmakingEnabled?: boolean;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [target, setTarget] = useState<DirectoryPerson | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -697,16 +699,23 @@ export function DirectoryPanel({
             className="space-y-4"
             action={(formData) => {
               setError(null);
+              const message = String(formData.get("message") ?? "");
+              if (message.length > 500) {
+                const err = "Message must be 500 characters or fewer.";
+                setError(err);
+                toast.error(err);
+                return;
+              }
               start(async () => {
-                try {
-                  await requestMeeting(eventId, formData);
-                  setOpen(false);
-                  router.refresh();
-                } catch (e) {
-                  setError(
-                    e instanceof Error ? e.message : "Could not send request",
-                  );
+                const result = await requestMeeting(eventId, formData);
+                if (!result.ok) {
+                  setError(result.error);
+                  toast.error(result.error);
+                  return;
                 }
+                toast.success("Connection request sent.");
+                setOpen(false);
+                router.refresh();
               });
             }}
           >

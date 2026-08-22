@@ -305,7 +305,7 @@ export function QuestionnaireWizard({
     return (
       <div className="mx-auto max-w-2xl">
         <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
-          Step {QUESTION_STEP_COUNT} of {QUESTION_STEP_COUNT}
+          Final step
         </p>
         <h1 className="mt-3 font-display text-3xl text-ink-800 sm:text-4xl">
           How should you appear?

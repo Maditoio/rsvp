@@ -14,6 +14,7 @@ import {
   User,
   UserCog,
 } from "lucide-react";
+import { useAttendeeAttention } from "@/components/attendee-attention-context";
 import { isNavActive, parseAttendeeEventId } from "@/components/nav";
 import { cn } from "@/lib/utils";
 
@@ -75,6 +76,8 @@ export function AttendeePortalNav() {
 
 export function AttendeeEventNav({ eventId }: { eventId: string }) {
   const pathname = usePathname();
+  const { inbox } = useAttendeeAttention();
+  const pendingMeetings = inbox?.pendingRequestCount ?? 0;
   const primary = attendeeEventPrimaryItems(eventId);
   const secondary = attendeeEventSecondaryItems(eventId);
 
@@ -101,6 +104,11 @@ export function AttendeeEventNav({ eventId }: { eventId: string }) {
               >
                 <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
                 {item.label}
+                {item.href.endsWith("/meetings") && pendingMeetings > 0 ? (
+                  <span className="ml-1 inline-flex min-w-[1.125rem] items-center justify-center rounded-xs bg-bronze-100 px-1.5 text-[0.6875rem] font-semibold tabular-nums text-bronze-800">
+                    {pendingMeetings > 9 ? "9+" : pendingMeetings}
+                  </span>
+                ) : null}
                 {active ? (
                   <span
                     className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-bronze-500"

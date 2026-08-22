@@ -27,15 +27,20 @@ describe("matchmaking questionnaire", () => {
       "Strategic partnerships",
     ]);
     expect([...OFFERING_OPTIONS]).toContain("Investment opportunities");
-    expect([...INDUSTRY_OPTIONS]).toEqual([
-      "Mining",
-      "Energy",
-      "Telecommunications",
-      "Finance",
-      "Government",
-      "Infrastructure",
-      "Technology",
-    ]);
+    expect([...INDUSTRY_OPTIONS]).toEqual(
+      expect.arrayContaining([
+        "Mining",
+        "Energy",
+        "Telecommunications",
+        "Finance",
+        "Government",
+        "Infrastructure",
+        "Technology",
+        "Manufacturing",
+        "Healthcare",
+      ]),
+    );
+    expect(INDUSTRY_OPTIONS.length).toBeGreaterThan(7);
     expect([...GEOGRAPHY_OPTIONS]).toEqual(
       expect.arrayContaining([
         "South Africa",

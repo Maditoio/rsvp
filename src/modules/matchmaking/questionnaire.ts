@@ -36,11 +36,29 @@ export const OFFERING_OPTIONS = [
 export const INDUSTRY_OPTIONS = [
   "Mining",
   "Energy",
+  "Oil & gas",
+  "Renewables",
   "Telecommunications",
   "Finance",
+  "Banking",
+  "Insurance",
   "Government",
   "Infrastructure",
   "Technology",
+  "Manufacturing",
+  "Agriculture",
+  "Healthcare",
+  "Education",
+  "Real estate",
+  "Transport & logistics",
+  "Retail & consumer",
+  "Media & entertainment",
+  "Legal & professional services",
+  "Hospitality & tourism",
+  "Defence & security",
+  "Water & sanitation",
+  "Construction",
+  "Automotive",
 ] as const;
 
 export const GEOGRAPHY_OPTIONS = [
@@ -83,7 +101,7 @@ const INDUSTRIES = new Set<string>(INDUSTRY_OPTIONS);
 const GEOGRAPHIES = new Set<string>(GEOGRAPHY_OPTIONS);
 const MEETING_PREFERENCES = new Set<string>(MEETING_PREFERENCE_OPTIONS);
 
-export const QUESTION_STEP_COUNT = 6;
+export const QUESTION_STEP_COUNT = 5;
 
 export function matchmakingPath(eventId: string) {
   return `/me/events/${eventId}/matchmaking`;

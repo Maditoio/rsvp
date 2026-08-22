@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import { Card, DecisionCard } from "@/components/ui/card";
 import { RouteDrawer } from "@/components/ui/drawer";
 import { getPublicInvitation } from "@/modules/invitations/public";
-import { getQrForInvitationHolder } from "@/modules/attendees/actions";
-import { turnstileSiteKey } from "@/lib/utils";
+import { turnstileSiteKey, getAppUrl } from "@/lib/utils";
 import { ensureDefaultRegistrationForm } from "@/modules/registrations/form";
 import { getCurrentUser } from "@/lib/authz/require";
 import { prisma } from "@/lib/db/prisma";
@@ -12,6 +11,7 @@ import {
   isQuestionnaireComplete,
   matchmakingPath,
 } from "@/modules/matchmaking/questionnaire";
+import { eventDayOptions } from "@/lib/event-dates";
 import { RegistrationForm } from "./registration-form";
 
 export default async function RegisterPage({
@@ -65,9 +65,14 @@ export default async function RegisterPage({
     );
   }
 
-  const existingQr = invitation.registered
-    ? await getQrForInvitationHolder(token)
-    : null;
+  const event = await prisma.event.findFirst({
+    where: {
+      id: invitation.eventId,
+      organisationId: invitation.organisationId,
+    },
+    select: { startsAt: true, endsAt: true, timezone: true },
+  });
+
   const form = await ensureDefaultRegistrationForm(
     invitation.organisationId,
     invitation.eventId,
@@ -94,6 +99,14 @@ export default async function RegisterPage({
     }
   }
 
+  const appUrl = getAppUrl();
+  const signUpHref = `${appUrl}/sign-up?email_address=${encodeURIComponent(invitation.email)}`;
+  const eventDays = eventDayOptions(
+    event?.startsAt ?? null,
+    event?.endsAt ?? null,
+    event?.timezone ?? "UTC",
+  );
+
   return (
     <RouteDrawer
       title={`Register for ${invitation.eventName}`}
@@ -109,14 +122,22 @@ export default async function RegisterPage({
         <p className="mt-2 text-ink-100">
           Confirm or correct the details we already have from your invitation.
         </p>
+        {eventDays.length > 0 ? (
+          <p className="mt-3 text-sm text-ink-100/90">
+            Event dates: {eventDays.map((day) => day.label).join(" · ")}
+          </p>
+        ) : null}
       </DecisionCard>
       <Card>
         <RegistrationForm
           token={token}
           siteKey={turnstileSiteKey()}
           fields={form.fields}
-          existingQr={existingQr}
+          alreadyRegistered={invitation.registered}
+          invitationEmail={invitation.email}
+          signUpHref={signUpHref}
           matchmakingHref={matchmakingHref}
+          eventDays={eventDays}
           defaults={{
             firstName: invitation.firstName,
             lastName: invitation.lastName,

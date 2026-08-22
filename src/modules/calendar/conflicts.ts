@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/db/prisma";
 import {
+  calendarDateInTimezone,
+  compareCalendarDates,
+  eachCalendarDayInRange,
+} from "@/lib/timezone";
+import {
   fetchGoogleFreeBusy,
   getValidGoogleAccessToken,
   type CalendarConnectionRecord,
@@ -181,6 +186,52 @@ export async function checkGoogleCalendarConflicts(
   return null;
 }
 
+export async function validateMeetingWithinEventDates(
+  eventId: string,
+  startsAt: Date,
+  endsAt: Date,
+): Promise<string | null> {
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { startsAt: true, endsAt: true, timezone: true, name: true },
+  });
+  if (!event?.startsAt || !event?.endsAt) {
+    return "Set the event start and end dates in event settings before scheduling meetings.";
+  }
+
+  const timeZone = event.timezone || "UTC";
+  const eventDays = eachCalendarDayInRange(event.startsAt, event.endsAt, timeZone);
+  if (eventDays.length === 0) {
+    return "This event has no valid calendar dates. Update the event start and end dates.";
+  }
+
+  const startDay = calendarDateInTimezone(startsAt, timeZone);
+  const endDay = calendarDateInTimezone(endsAt, timeZone);
+  const first = eventDays[0];
+  const last = eventDays[eventDays.length - 1];
+
+  const startOk =
+    compareCalendarDates(startDay, first) >= 0 &&
+    compareCalendarDates(startDay, last) <= 0;
+  const endOk =
+    compareCalendarDates(endDay, first) >= 0 &&
+    compareCalendarDates(endDay, last) <= 0;
+
+  if (!startOk || !endOk) {
+    const labels = eventDays.map((day) =>
+      new Intl.DateTimeFormat("en-GB", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        timeZone,
+      }).format(new Date(Date.UTC(day.year, day.month - 1, day.day, 12, 0))),
+    );
+    return `Choose a time on one of the event dates (${labels.join(", ")}). The selected slot falls outside the event calendar.`;
+  }
+
+  return null;
+}
+
 export async function validateMeetingSlot(
   eventId: string,
   attendeeIds: string[],
@@ -191,6 +242,13 @@ export async function validateMeetingSlot(
   if (endsAt <= startsAt) {
     throw new Error("End time must be after start time");
   }
+
+  const eventDateConflict = await validateMeetingWithinEventDates(
+    eventId,
+    startsAt,
+    endsAt,
+  );
+  if (eventDateConflict) throw new Error(eventDateConflict);
 
   if (options?.roomId) {
     const roomConflict = await prisma.meeting.findFirst({

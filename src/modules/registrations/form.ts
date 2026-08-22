@@ -5,6 +5,8 @@ import {
   type FieldType,
   type FormFieldDef,
 } from "@/modules/registrations/defaults";
+import { parseAccessibilityValues } from "@/modules/registrations/accessibility";
+import { isValidEmail } from "@/lib/validation";
 
 export type StoredField = FormFieldDef & { id: string };
 
@@ -78,11 +80,32 @@ function isFieldType(value: string): value is FieldType {
 }
 
 export function parseFormValues(fields: FormFieldDef[], formData: FormData) {
+  const parsed = parseFormValuesRaw(fields, formData);
+  if (!parsed.ok) {
+    throw new Error(parsed.error);
+  }
+  return parsed.data;
+}
+
+export function parseFormValuesSafe(
+  fields: FormFieldDef[],
+  formData: FormData,
+): { ok: true; data: Record<string, string | string[]> } | { ok: false; error: string } {
+  return parseFormValuesRaw(fields, formData);
+}
+
+function parseFormValuesRaw(
+  fields: FormFieldDef[],
+  formData: FormData,
+): { ok: true; data: Record<string, string | string[]> } | { ok: false; error: string } {
   const data: Record<string, string | string[]> = {};
   const errors: string[] = [];
 
   for (const field of fields) {
-    const multi = field.type === "checkbox" || field.type === "multiselect";
+    const multi =
+      field.type === "checkbox" ||
+      field.type === "multiselect" ||
+      field.type === "iconpicker";
     const value = multi
       ? formData.getAll(field.key).map(String).filter(Boolean)
       : String(formData.get(field.key) ?? "").trim();
@@ -93,19 +116,24 @@ export function parseFormValues(fields: FormFieldDef[], formData: FormData) {
     }
 
     if (!Array.isArray(value) && field.type === "email" && value) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      if (!isValidEmail(value)) {
         errors.push(`${field.label} must be a valid email address.`);
       }
+    }
+
+    if (field.type === "iconpicker" && Array.isArray(value)) {
+      data[field.key] = parseAccessibilityValues(value);
+      continue;
     }
 
     data[field.key] = value;
   }
 
   if (errors.length > 0) {
-    throw new Error(errors[0]);
+    return { ok: false, error: errors[0] };
   }
 
-  return data;
+  return { ok: true, data };
 }
 
 export function scalar(data: Record<string, string | string[]>, key: string) {

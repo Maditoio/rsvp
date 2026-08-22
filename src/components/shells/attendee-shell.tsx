@@ -3,6 +3,8 @@ import {
   AttendeeEventNavFromPath,
   AttendeePortalNav,
 } from "@/components/attendee-event-nav";
+import { AttendeeAttentionProvider } from "@/components/attendee-attention-context";
+import { AttendeeNotifications } from "@/components/attendee-notifications";
 import { BrandLogo } from "@/components/brand-logo";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import type { UserWorkspace } from "@/modules/workspaces/types";
@@ -16,6 +18,7 @@ export function AttendeeShell({
   workspaces?: UserWorkspace[];
 }) {
   return (
+    <AttendeeAttentionProvider>
     <div className="min-h-screen bg-stone-50">
       <header className="border-b border-stone-200 bg-stone-0">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
@@ -29,6 +32,7 @@ export function AttendeeShell({
           </div>
           <div className="flex shrink-0 items-center gap-3">
             <WorkspaceSwitcher workspaces={workspaces} compact />
+            <AttendeeNotifications />
             <AttendeePortalNav />
             {hasClerk() ? (
               <UserButton
@@ -45,5 +49,6 @@ export function AttendeeShell({
       </header>
       <main className="mx-auto max-w-6xl px-6 py-8 md:py-10">{children}</main>
     </div>
+    </AttendeeAttentionProvider>
   );
 }

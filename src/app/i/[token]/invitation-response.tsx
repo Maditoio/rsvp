@@ -39,13 +39,13 @@ export function InvitationResponse({
         <p className="text-stone-700">
           {registered
             ? "You have accepted and completed registration."
-            : "You have accepted. Registration is a separate step — complete it to receive your check-in code."}
+            : "You have accepted. Registration is a separate step — complete it to confirm your place."}
         </p>
         <Link
           href={`/i/${encodeURIComponent(token)}/register`}
           className="mt-5 inline-flex rounded-sm bg-ink-600 px-5 py-2.5 text-sm font-medium text-white"
         >
-          {registered ? "View registration and QR" : "Continue to registration"}
+          {registered ? "View registration" : "Continue to registration"}
         </Link>
       </div>
     );

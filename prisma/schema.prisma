@@ -662,15 +662,16 @@ model MatchScore {
 }
 
 model MeetingRequest {
-  id             String               @id @default(cuid())
-  organisationId String
-  eventId        String
-  requesterId    String
-  targetId       String
-  status         MeetingRequestStatus @default(PENDING)
-  message        String?
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  id                 String               @id @default(cuid())
+  organisationId     String
+  eventId            String
+  requesterId        String
+  targetId           String
+  status             MeetingRequestStatus @default(PENDING)
+  message            String?
+  responseTokenHash  String?              @unique
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)

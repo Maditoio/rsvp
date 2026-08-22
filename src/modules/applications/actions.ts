@@ -12,14 +12,21 @@ import { verifyTurnstile } from "@/lib/turnstile";
 import { getAppUrl } from "@/lib/utils";
 import { isCountryName } from "@/lib/countries";
 import {
+  type ActionResult,
+  actionFail,
+  actionOk,
+  publicActionError,
+} from "@/lib/action-result";
+import { emailFieldSchema } from "@/lib/validation";
+import {
   sendApplicationDecisionEmail,
   sendInvitationEmail,
 } from "@/modules/communications/email";
 
 const applySchema = z.object({
-  firstName: z.string().min(1).max(80),
-  lastName: z.string().min(1).max(80),
-  email: z.string().email().transform((value) => value.toLowerCase()),
+  firstName: z.string().trim().min(1, "First name is required").max(80),
+  lastName: z.string().trim().min(1, "Last name is required").max(80),
+  email: emailFieldSchema,
   company: z.string().max(160).optional().or(z.literal("")),
   jobTitle: z.string().max(160).optional().or(z.literal("")),
   country: z
@@ -38,59 +45,68 @@ export async function submitPublicApplication(
   eventSlug: string,
   formData: FormData,
   turnstileToken?: string,
-) {
-  await verifyTurnstile(turnstileToken);
-  const input = applySchema.parse({
-    firstName: String(formData.get("firstName") ?? ""),
-    lastName: String(formData.get("lastName") ?? ""),
-    email: String(formData.get("email") ?? ""),
-    company: String(formData.get("company") ?? ""),
-    jobTitle: String(formData.get("jobTitle") ?? ""),
-    country: String(formData.get("country") ?? ""),
-    message: String(formData.get("message") ?? ""),
-  });
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    await verifyTurnstile(turnstileToken);
+    const input = applySchema.parse({
+      firstName: String(formData.get("firstName") ?? ""),
+      lastName: String(formData.get("lastName") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      company: String(formData.get("company") ?? ""),
+      jobTitle: String(formData.get("jobTitle") ?? ""),
+      country: String(formData.get("country") ?? ""),
+      message: String(formData.get("message") ?? ""),
+    });
 
-  const limited = await rateLimit(`apply:${input.email}`, 5, 60);
-  if (!limited.success) throw new Error("Too many applications. Try again later.");
+    const limited = await rateLimit(`apply:${input.email}`, 5, 60);
+    if (!limited.success) {
+      return actionFail("Too many applications. Try again later.");
+    }
 
-  const event = await prisma.event.findFirst({
-    where: { slug: eventSlug, organisation: { slug: orgSlug } },
-    include: { settings: true, organisation: true },
-  });
-  if (!event?.settings?.allowPublicApplication) {
-    throw new Error("This event is not accepting public applications.");
-  }
+    const event = await prisma.event.findFirst({
+      where: { slug: eventSlug, organisation: { slug: orgSlug } },
+      include: { settings: true, organisation: true },
+    });
+    if (!event?.settings?.allowPublicApplication) {
+      return actionFail("This event is not accepting public applications.");
+    }
 
-  const existing = await prisma.eventApplication.findUnique({
-    where: { eventId_email: { eventId: event.id, email: input.email } },
-  });
-  if (existing) {
-    throw new Error("An application for this email is already on file.");
-  }
+    const existing = await prisma.eventApplication.findUnique({
+      where: { eventId_email: { eventId: event.id, email: input.email } },
+    });
+    if (existing) {
+      return actionFail("An application for this email is already on file.");
+    }
 
-  const application = await prisma.eventApplication.create({
-    data: {
+    const application = await prisma.eventApplication.create({
+      data: {
+        organisationId: event.organisationId,
+        eventId: event.id,
+        ...input,
+        company: input.company || null,
+        jobTitle: input.jobTitle || null,
+        country: input.country || null,
+        message: input.message || null,
+      },
+    });
+
+    await writeAudit({
       organisationId: event.organisationId,
       eventId: event.id,
-      ...input,
-      company: input.company || null,
-      jobTitle: input.jobTitle || null,
-      country: input.country || null,
-      message: input.message || null,
-    },
-  });
+      action: "application.submit",
+      resource: "event_application",
+      resourceId: application.id,
+      ip: (await headers()).get("x-forwarded-for"),
+      metadata: { email: input.email },
+    });
 
-  await writeAudit({
-    organisationId: event.organisationId,
-    eventId: event.id,
-    action: "application.submit",
-    resource: "event_application",
-    resourceId: application.id,
-    ip: (await headers()).get("x-forwarded-for"),
-    metadata: { email: input.email },
-  });
-
-  return { id: application.id };
+    return actionOk({ id: application.id });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return actionFail(error.issues[0]?.message ?? "Check the form and try again.");
+    }
+    return actionFail(publicActionError(error, "Could not submit application."));
+  }
 }
 
 export async function decideApplication(

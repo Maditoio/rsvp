@@ -22,6 +22,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { cn, displayName, humanizeEnum } from "@/lib/utils";
+import { parseDateRange } from "@/lib/validation";
+import { useToast } from "@/components/ui/toast";
 
 type RequestRow = {
   id: string;
@@ -79,6 +81,7 @@ export function AttendeeMeetingsPanel({
   meetings: MeetingRow[];
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [tab, setTab] = useState<TabId>(
     incoming.length > 0 ? "requests" : "upcoming",
   );
@@ -118,6 +121,33 @@ export function AttendeeMeetingsPanel({
 
   return (
     <div className="space-y-8">
+      {incoming.length > 0 ? (
+        <div
+          className="rounded-md border border-bronze-200 bg-bronze-50 px-4 py-4 sm:px-5"
+          role="status"
+        >
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+            Action required
+          </p>
+          <p className="mt-1 font-display text-xl text-ink-800">
+            {incoming.length === 1
+              ? "You have a pending connection request"
+              : `You have ${incoming.length} pending connection requests`}
+          </p>
+          <p className="mt-1 text-sm text-stone-700">
+            Review incoming requests below or use the notification bell to accept
+            or decline.
+          </p>
+          <button
+            type="button"
+            onClick={() => setTab("requests")}
+            className="mt-3 inline-flex text-sm font-semibold text-ink-700 underline-offset-4 hover:underline"
+          >
+            Review requests
+          </button>
+        </div>
+      ) : null}
+
       {warning ? (
         <p className="rounded-md border border-bronze-200 bg-bronze-50 px-3 py-2 text-sm text-bronze-800">
           {warning}
@@ -362,19 +392,42 @@ export function AttendeeMeetingsPanel({
             action={(formData) => {
               setError(null);
               setWarning(null);
-              start(async () => {
-                try {
-                  const result = await respondToMeeting(eventId, formData);
-                  if (result.calendarWarning) {
-                    setWarning(result.calendarWarning);
-                  }
-                  setDrawerMode(null);
-                  router.refresh();
-                } catch (e) {
-                  setError(
-                    e instanceof Error ? e.message : "Could not update request",
-                  );
+              const decision = String(formData.get("decision") ?? "");
+              if (decision !== "accept" && decision !== "decline") {
+                const message = "Choose Accept or Decline before submitting.";
+                setError(message);
+                toast.error(message);
+                return;
+              }
+              const startsAtRaw = String(formData.get("startsAt") ?? "").trim();
+              const endsAtRaw = String(formData.get("endsAt") ?? "").trim();
+              if (startsAtRaw || endsAtRaw) {
+                const slot = parseDateRange(startsAtRaw, endsAtRaw);
+                if (!slot.ok) {
+                  setError(slot.error);
+                  toast.error(slot.error);
+                  return;
                 }
+              }
+              start(async () => {
+                const result = await respondToMeeting(eventId, formData);
+                if (!result.ok) {
+                  setError(result.error);
+                  toast.error(result.error);
+                  return;
+                }
+                if (result.data.calendarWarning) {
+                  setWarning(result.data.calendarWarning);
+                  toast.toast({
+                    message: result.data.calendarWarning,
+                    tone: "default",
+                    title: "Calendar note",
+                  });
+                } else {
+                  toast.success("Meeting request updated.");
+                }
+                setDrawerMode(null);
+                router.refresh();
               });
             }}
           >
@@ -527,19 +580,34 @@ export function AttendeeMeetingsPanel({
             action={(formData) => {
               setError(null);
               setWarning(null);
+              const slot = parseDateRange(
+                String(formData.get("startsAt") ?? ""),
+                String(formData.get("endsAt") ?? ""),
+              );
+              if (!slot.ok) {
+                setError(slot.error);
+                toast.error(slot.error);
+                return;
+              }
               start(async () => {
-                try {
-                  const result = await rescheduleMyMeeting(eventId, formData);
-                  if (result.calendarWarning) {
-                    setWarning(result.calendarWarning);
-                  }
-                  setDrawerMode(null);
-                  router.refresh();
-                } catch (e) {
-                  setError(
-                    e instanceof Error ? e.message : "Could not reschedule meeting",
-                  );
+                const result = await rescheduleMyMeeting(eventId, formData);
+                if (!result.ok) {
+                  setError(result.error);
+                  toast.error(result.error);
+                  return;
                 }
+                if (result.data.calendarWarning) {
+                  setWarning(result.data.calendarWarning);
+                  toast.toast({
+                    message: result.data.calendarWarning,
+                    tone: "default",
+                    title: "Calendar note",
+                  });
+                } else {
+                  toast.success("Meeting rescheduled.");
+                }
+                setDrawerMode(null);
+                router.refresh();
               });
             }}
           >
@@ -620,19 +688,25 @@ export function AttendeeMeetingsPanel({
           const fd = new FormData();
           fd.set("meetingId", cancelTarget.id);
           start(async () => {
-            try {
-              const result = await cancelMyMeeting(eventId, fd);
-              if (result.calendarWarning) {
-                setWarning(result.calendarWarning);
-              }
-              setCancelTarget(null);
-              setDrawerMode(null);
-              router.refresh();
-            } catch (e) {
-              setError(
-                e instanceof Error ? e.message : "Could not cancel meeting",
-              );
+            const result = await cancelMyMeeting(eventId, fd);
+            if (!result.ok) {
+              setError(result.error);
+              toast.error(result.error);
+              return;
             }
+            if (result.data.calendarWarning) {
+              setWarning(result.data.calendarWarning);
+              toast.toast({
+                message: result.data.calendarWarning,
+                tone: "default",
+                title: "Calendar note",
+              });
+            } else {
+              toast.success("Meeting cancelled.");
+            }
+            setCancelTarget(null);
+            setDrawerMode(null);
+            router.refresh();
           });
         }}
       />

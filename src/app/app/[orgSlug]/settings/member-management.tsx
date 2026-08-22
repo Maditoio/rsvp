@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, Td, Th } from "@/components/ui/table";
 import { displayName, humanizeEnum } from "@/lib/utils";
+import { isValidEmail } from "@/lib/validation";
+import { useToast } from "@/components/ui/toast";
 
 const roles: OrgRole[] = ["OWNER", "ADMIN"];
 
@@ -40,6 +42,7 @@ export function MemberManagement({
   canManage: boolean;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
@@ -74,14 +77,23 @@ export function MemberManagement({
               className="space-y-4"
               action={(formData) => {
                 setError(null);
+                const email = String(formData.get("email") ?? "").trim();
+                if (!isValidEmail(email)) {
+                  const message = "Enter a valid email address.";
+                  setError(message);
+                  toast.error(message);
+                  return;
+                }
                 start(async () => {
-                  try {
-                    await addOrganisationMember(orgSlug, formData);
-                    setOpen(false);
-                    router.refresh();
-                  } catch (e) {
-                    setError(e instanceof Error ? e.message : "Could not add member");
+                  const result = await addOrganisationMember(orgSlug, formData);
+                  if (!result.ok) {
+                    setError(result.error);
+                    toast.error(result.error);
+                    return;
                   }
+                  toast.success("Member added.");
+                  setOpen(false);
+                  router.refresh();
                 });
               }}
             >
@@ -199,16 +211,14 @@ export function MemberManagement({
                         action={(formData) => {
                           setError(null);
                           start(async () => {
-                            try {
-                              await removeOrganisationMember(orgSlug, formData);
-                              router.refresh();
-                            } catch (e) {
-                              setError(
-                                e instanceof Error
-                                  ? e.message
-                                  : "Could not remove member",
-                              );
+                            const result = await removeOrganisationMember(orgSlug, formData);
+                            if (!result.ok) {
+                              setError(result.error);
+                              toast.error(result.error);
+                              return;
                             }
+                            toast.success("Member removed from the organisation.");
+                            router.refresh();
                           });
                         }}
                       >

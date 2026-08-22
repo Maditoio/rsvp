@@ -202,8 +202,8 @@ export function MeetingsPanel({
                                       eventId,
                                       fd,
                                     );
-                                    if (result.calendarWarning) {
-                                      setWarning(result.calendarWarning);
+                                    if (result.ok && result.data.calendarWarning) {
+                                      setWarning(result.data.calendarWarning);
                                     }
                                     router.refresh();
                                   } catch (e) {
@@ -326,9 +326,9 @@ export function MeetingsPanel({
               start(async () => {
                 try {
                   const result = await assignMeetingSlot(orgSlug, eventId, formData);
-                  if (result.calendarWarning) {
-                    setWarning(result.calendarWarning);
-                  }
+                                    if (result.ok && result.data.calendarWarning) {
+                                      setWarning(result.data.calendarWarning);
+                                    }
                   setAssignOpen(false);
                   router.refresh();
                 } catch (e) {
@@ -388,9 +388,9 @@ export function MeetingsPanel({
               start(async () => {
                 try {
                   const result = await rescheduleMeeting(orgSlug, eventId, formData);
-                  if (result.calendarWarning) {
-                    setWarning(result.calendarWarning);
-                  }
+                                    if (result.ok && result.data.calendarWarning) {
+                                      setWarning(result.data.calendarWarning);
+                                    }
                   setRescheduleOpen(false);
                   router.refresh();
                 } catch (e) {
@@ -468,9 +468,9 @@ export function MeetingsPanel({
           start(async () => {
             try {
               const result = await cancelMeeting(orgSlug, eventId, fd);
-              if (result.calendarWarning) {
-                setWarning(result.calendarWarning);
-              }
+                                    if (result.ok && result.data.calendarWarning) {
+                                      setWarning(result.data.calendarWarning);
+                                    }
               setCancelTarget(null);
               router.refresh();
             } catch (e) {

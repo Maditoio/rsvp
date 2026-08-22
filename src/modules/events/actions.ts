@@ -8,6 +8,13 @@ import { writeAudit } from "@/modules/audit/log";
 import { toSlug } from "@/lib/utils";
 import { DEFAULT_CATEGORIES } from "@/modules/events/defaults";
 import { ensureDefaultRegistrationForm } from "@/modules/registrations/form";
+import {
+  type ActionResult,
+  actionFail,
+  actionOk,
+  publicActionError,
+} from "@/lib/action-result";
+import { optionalUrlSchema } from "@/lib/validation";
 
 const eventSchema = z.object({
   name: z.string().min(2).max(160),
@@ -16,7 +23,7 @@ const eventSchema = z.object({
   timezone: z.string().min(1).max(80),
   startsAt: z.string().optional().or(z.literal("")),
   endsAt: z.string().optional().or(z.literal("")),
-  website: z.string().url().optional().or(z.literal("")),
+  website: optionalUrlSchema,
   slug: z
     .string()
     .max(60)
@@ -100,41 +107,52 @@ export async function updateEvent(
   orgSlug: string,
   eventId: string,
   formData: FormData,
-) {
-  const ctx = await requireEvent(orgSlug, eventId, "event.update");
-  const input = eventSchema.parse({
-    name: String(formData.get("name") ?? ""),
-    description: String(formData.get("description") ?? ""),
-    venue: String(formData.get("venue") ?? ""),
-    timezone: String(formData.get("timezone") ?? "UTC"),
-    startsAt: String(formData.get("startsAt") ?? ""),
-    endsAt: String(formData.get("endsAt") ?? ""),
-    website: String(formData.get("website") ?? ""),
-  });
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireEvent(orgSlug, eventId, "event.update");
+    const input = eventSchema.parse({
+      name: String(formData.get("name") ?? ""),
+      description: String(formData.get("description") ?? ""),
+      venue: String(formData.get("venue") ?? ""),
+      timezone: String(formData.get("timezone") ?? "UTC"),
+      startsAt: String(formData.get("startsAt") ?? ""),
+      endsAt: String(formData.get("endsAt") ?? ""),
+      website: String(formData.get("website") ?? ""),
+    });
 
-  await prisma.event.update({
-    where: { id: eventId },
-    data: {
-      name: input.name,
-      description: input.description || null,
-      venue: input.venue || null,
-      timezone: input.timezone,
-      startsAt: parseDate(input.startsAt),
-      endsAt: parseDate(input.endsAt),
-      website: input.website || null,
-    },
-  });
+    const startsAt = parseDate(input.startsAt);
+    const endsAt = parseDate(input.endsAt);
+    if (startsAt && endsAt && endsAt <= startsAt) {
+      return actionFail("End date must be after the start date.");
+    }
 
-  await writeAudit({
-    organisationId: ctx.organisation.id,
-    eventId,
-    userId: ctx.user.id,
-    action: "event.update",
-    resource: "event",
-    resourceId: eventId,
-  });
+    await prisma.event.update({
+      where: { id: eventId },
+      data: {
+        name: input.name,
+        description: input.description || null,
+        venue: input.venue || null,
+        timezone: input.timezone,
+        startsAt,
+        endsAt,
+        website: input.website || null,
+      },
+    });
 
-  revalidatePath(`/app/${orgSlug}/events/${eventId}`);
+    await writeAudit({
+      organisationId: ctx.organisation.id,
+      eventId,
+      userId: ctx.user.id,
+      action: "event.update",
+      resource: "event",
+      resourceId: eventId,
+    });
+
+    revalidatePath(`/app/${orgSlug}/events/${eventId}`);
+    return actionOk();
+  } catch (error) {
+    return actionFail(publicActionError(error, "Could not update event."));
+  }
 }
 
 const eventSettingsSchema = z.object({

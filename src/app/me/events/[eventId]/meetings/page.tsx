@@ -3,6 +3,8 @@ import { requireUser } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { AuthzError } from "@/lib/db/tenant";
 import { displayName } from "@/lib/utils";
+import { Suspense } from "react";
+import { MeetingsResponseToast } from "@/components/meetings-response-toast";
 import { AttendeeMeetingsPanel } from "./meetings-panel";
 
 function formatMeetingDate(date: Date, timezone: string) {
@@ -154,7 +156,11 @@ export default async function AttendeeMeetingsPage({
   });
 
   return (
-    <AttendeeMeetingsPanel
+    <>
+      <Suspense fallback={null}>
+        <MeetingsResponseToast />
+      </Suspense>
+      <AttendeeMeetingsPanel
       eventId={eventId}
       eventName={attendee.event.name}
       rooms={rooms}
@@ -176,5 +182,6 @@ export default async function AttendeeMeetingsPage({
       }))}
       meetings={meetingRows}
     />
+    </>
   );
 }

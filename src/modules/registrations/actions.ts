@@ -4,27 +4,26 @@ import { Prisma } from "@prisma/client";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db/prisma";
 import { generateOpaqueToken } from "@/lib/crypto/tokens";
-import { decryptSecret, encryptSecret } from "@/lib/crypto/secret";
+import { encryptSecret } from "@/lib/crypto/secret";
 import { writeAudit } from "@/modules/audit/log";
 import { getCurrentUser } from "@/lib/authz/require";
 import { rateLimit } from "@/lib/rate-limit";
 import { loadInvitationByToken } from "@/modules/invitations/store";
-import { opaqueQrDataUrl } from "@/lib/qr";
 import { invitationUsable } from "@/modules/invitations/lifecycle";
 import { verifyTurnstile } from "@/lib/turnstile";
 import {
   ensureDefaultRegistrationForm,
-  parseFormValues,
+  parseFormValuesSafe,
   scalar,
 } from "@/modules/registrations/form";
 import { sendRegistrationConfirmationEmail } from "@/modules/communications/email";
 import { getAppUrl } from "@/lib/utils";
+import { matchmakingPath } from "@/modules/matchmaking/questionnaire";
 
 export type RegistrationResult =
   | {
       ok: true;
       attendeeId: string;
-      qrDataUrl: string;
       eventId: string;
       signedIn: boolean;
     }
@@ -46,26 +45,6 @@ function publicErrorMessage(error: unknown) {
     }
   }
   return "Could not complete registration. Please try again.";
-}
-
-async function qrForAttendee(attendee: {
-  id: string;
-  attendanceTokenEnc: string | null;
-  eventId: string;
-}) {
-  if (!attendee.attendanceTokenEnc) {
-    return fail(
-      "This email is already registered for this event, but a check-in code is not available on this link.",
-    );
-  }
-  const user = await currentUserOrNull();
-  return {
-    ok: true as const,
-    attendeeId: attendee.id,
-    qrDataUrl: await opaqueQrDataUrl(decryptSecret(attendee.attendanceTokenEnc)),
-    eventId: attendee.eventId,
-    signedIn: Boolean(user),
-  };
 }
 
 async function currentUserOrNull() {
@@ -102,12 +81,23 @@ export async function submitRegistration(
       invitation.organisationId,
       invitation.eventId,
     );
-    const parsed = parseFormValues(form.fields, formData);
+    const parsedResult = parseFormValuesSafe(form.fields, formData);
+    if (!parsedResult.ok) {
+      return fail(parsedResult.error);
+    }
+    const parsed = parsedResult.data;
     const firstName = scalar(parsed, "firstName");
     const lastName = scalar(parsed, "lastName");
     const email = scalar(parsed, "email").toLowerCase();
     if (!firstName || !lastName || !email) {
       return fail("First name, last name and email are required.");
+    }
+
+    const inviteEmail = invitation.contact.email.trim().toLowerCase();
+    if (email !== inviteEmail) {
+      return fail(
+        "Use the email address on your invitation. The registration email must match your invited address.",
+      );
     }
 
     const user = await currentUserOrNull();
@@ -124,10 +114,15 @@ export async function submitRegistration(
         existing.invitationId === invitation.id ||
         existing.contactId === invitation.contactId;
       if (sameInvitee) {
-        return qrForAttendee(existing);
+        return {
+          ok: true,
+          attendeeId: existing.id,
+          eventId: invitation.eventId,
+          signedIn: Boolean(user),
+        };
       }
       return fail(
-        "This email is already registered for this event. Open the original invitation link to view the check-in code.",
+        "This email is already registered for this event with a different invitation.",
       );
     }
 
@@ -194,6 +189,7 @@ export async function submitRegistration(
       metadata: { invitationId: invitation.id },
     });
 
+    const appUrl = getAppUrl();
     try {
       await sendRegistrationConfirmationEmail({
         organisationId: invitation.organisationId,
@@ -202,7 +198,9 @@ export async function submitRegistration(
         toName: `${firstName} ${lastName}`,
         eventName: invitation.event.name,
         orgName: invitation.organisation.name,
-        passUrl: `${getAppUrl()}/i/${rawToken}/register`,
+        signUpUrl: `${appUrl}/sign-up?email_address=${encodeURIComponent(email)}`,
+        appUrl,
+        matchmakingUrl: `${appUrl}${matchmakingPath(invitation.eventId)}`,
       });
     } catch (error) {
       console.error("registration confirmation email failed", error);
@@ -211,7 +209,6 @@ export async function submitRegistration(
     return {
       ok: true,
       attendeeId: result.attendee.id,
-      qrDataUrl: await opaqueQrDataUrl(qr.raw),
       eventId: invitation.eventId,
       signedIn: Boolean(user),
     };
@@ -221,7 +218,7 @@ export async function submitRegistration(
       error.code === "P2002"
     ) {
       return fail(
-        "This email is already registered for this event. Open the original invitation link to view the check-in code.",
+        "This email is already registered for this event. Open the original invitation link to continue.",
       );
     }
     return fail(publicErrorMessage(error));
