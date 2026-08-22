@@ -234,7 +234,7 @@ export async function assignEventStaff(
   orgSlug: string,
   eventId: string,
   formData: FormData,
-): Promise<ActionResult> {
+): Promise<ActionResult<{ orgAdminWarning?: boolean }>> {
   try {
     const ctx = await requireEvent(orgSlug, eventId, "event.update");
     const input = eventRoleSchema.parse({
@@ -243,19 +243,20 @@ export async function assignEventStaff(
       role: String(formData.get("role") ?? ""),
     });
 
-    const targetUserId =
-      input.userId ||
-      (
-        await prisma.user.findFirst({
+    const targetUser = input.userId
+      ? await prisma.user.findUnique({
+          where: { id: input.userId },
+          select: { id: true, email: true },
+        })
+      : await prisma.user.findFirst({
           where: {
             email: { equals: input.email ?? "", mode: "insensitive" },
           },
-          select: { id: true },
-        })
-      )?.id;
-    if (!targetUserId) {
+          select: { id: true, email: true },
+        });
+    if (!targetUser) {
       return actionFail(
-        "That user has not signed in yet. Ask them to create an account first.",
+        "That user has not signed in yet. Ask them to create an account first, then assign them here — do not add them as an organisation admin unless they should manage the whole organisation.",
       );
     }
 
@@ -263,26 +264,23 @@ export async function assignEventStaff(
       where: {
         organisationId_userId: {
           organisationId: ctx.organisation.id,
-          userId: targetUserId,
+          userId: targetUser.id,
         },
       },
-      include: { user: true },
+      select: { role: true },
     });
-    if (!orgMember) {
-      return actionFail("Only organisation members can be assigned to event staff roles.");
-    }
 
     const assignment = await prisma.eventUser.upsert({
       where: {
         eventId_userId: {
           eventId,
-          userId: targetUserId,
+          userId: targetUser.id,
         },
       },
       create: {
         organisationId: ctx.organisation.id,
         eventId,
-        userId: targetUserId,
+        userId: targetUser.id,
         role: input.role as EventRole,
       },
       update: { role: input.role as EventRole },
@@ -297,15 +295,21 @@ export async function assignEventStaff(
       resourceId: assignment.id,
       ip: await requestIp(),
       metadata: {
-        targetUserId: orgMember.userId,
-        targetEmail: orgMember.user.email,
+        targetUserId: targetUser.id,
+        targetEmail: targetUser.email,
         role: input.role,
+        orgRole: orgMember?.role ?? null,
       },
     });
 
     revalidatePath(`/app/${orgSlug}/events/${eventId}`);
+    revalidatePath(`/app/${orgSlug}/events/${eventId}/staff`);
     revalidatePath(`/app/${orgSlug}/settings`);
-    return actionOk();
+    revalidatePath("/home");
+
+    return actionOk({
+      orgAdminWarning: Boolean(orgMember),
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return actionFail(error.issues[0]?.message ?? "Invalid staff details.");

@@ -93,3 +93,35 @@ export function hasPermission(
 ) {
   return grants.includes(permission);
 }
+
+/**
+ * Resolve grants for an event-scoped action.
+ * Organisation OWNER/ADMIN keep full org permissions on every event.
+ * Otherwise the EventUser role for THIS event is the authority.
+ */
+export function resolveEventAccess(input: {
+  platformAdmin: boolean;
+  orgRole: OrgRole | null;
+  eventRole: EventRole | null;
+  permission: Permission;
+}): { grants: Permission[]; via: "platform" | "org" | "event" } | null {
+  if (input.platformAdmin) {
+    return { grants: ORG_PERMISSIONS.OWNER, via: "platform" };
+  }
+
+  if (input.orgRole) {
+    const orgGrants = ORG_PERMISSIONS[input.orgRole];
+    if (hasPermission(orgGrants, input.permission)) {
+      return { grants: orgGrants, via: "org" };
+    }
+  }
+
+  if (input.eventRole) {
+    const eventGrants = EVENT_PERMISSIONS[input.eventRole];
+    if (hasPermission(eventGrants, input.permission)) {
+      return { grants: eventGrants, via: "event" };
+    }
+  }
+
+  return null;
+}

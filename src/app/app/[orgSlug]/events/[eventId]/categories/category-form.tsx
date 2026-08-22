@@ -1,11 +1,13 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { createCategory } from "@/modules/events/actions";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/toast";
 
 export function CategoryForm({
   orgSlug,
@@ -14,6 +16,8 @@ export function CategoryForm({
   orgSlug: string;
   eventId: string;
 }) {
+  const router = useRouter();
+  const toast = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -43,8 +47,13 @@ export function CategoryForm({
                 await createCategory(orgSlug, eventId, formData);
                 formRef.current?.reset();
                 setOpen(false);
+                toast.success("Category added.");
+                router.refresh();
               } catch (e) {
-                setError(e instanceof Error ? e.message : "Could not create category");
+                const message =
+                  e instanceof Error ? e.message : "Could not create category";
+                setError(message);
+                toast.error(message);
               }
             });
           }}

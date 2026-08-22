@@ -173,3 +173,69 @@ export async function cancelAttendeeRegistration(
 ) {
   await applyDecision(orgSlug, eventId, "cancel", { attendeeId });
 }
+
+/**
+ * Permanently remove an attendee. Checked-in attendees cannot be deleted.
+ * Prefer cancel for soft removal; use this to clear cancelled (or unused) records
+ * so the related invitee can also be deleted.
+ */
+export async function deleteAttendee(
+  orgSlug: string,
+  eventId: string,
+  attendeeId: string,
+) {
+  const ctx = await requireEvent(orgSlug, eventId, "registrations.write");
+
+  const attendee = await prisma.attendee.findFirst({
+    where: {
+      id: attendeeId,
+      eventId,
+      organisationId: ctx.organisation.id,
+    },
+    select: {
+      id: true,
+      email: true,
+      status: true,
+      contactId: true,
+      registrationId: true,
+    },
+  });
+  if (!attendee) throw new Error("Attendee not found");
+  if (attendee.status === "CHECKED_IN") {
+    throw new Error("Cannot delete an attendee after check-in.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (attendee.registrationId) {
+      await tx.registrationResponse.updateMany({
+        where: {
+          id: attendee.registrationId,
+          eventId,
+          organisationId: ctx.organisation.id,
+          status: { not: "CANCELLED" },
+        },
+        data: { status: "CANCELLED" },
+      });
+    }
+    await tx.attendee.delete({ where: { id: attendee.id } });
+  });
+
+  await writeAudit({
+    organisationId: ctx.organisation.id,
+    eventId,
+    userId: ctx.user.id,
+    action: "attendee.delete",
+    resource: "attendee",
+    resourceId: attendee.id,
+    metadata: {
+      email: attendee.email,
+      previousStatus: attendee.status,
+      contactId: attendee.contactId,
+    },
+  });
+
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/registrations`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/attendees`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/invitees`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}`);
+}

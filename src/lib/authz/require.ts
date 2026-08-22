@@ -3,10 +3,10 @@ import type { EventRole, Organisation, User } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { AuthzError } from "@/lib/db/tenant";
 import {
-  EVENT_PERMISSIONS,
   ORG_PERMISSIONS,
   type Permission,
   hasPermission,
+  resolveEventAccess,
 } from "@/lib/authz/permissions";
 import { hasClerk } from "@/lib/utils";
 
@@ -26,6 +26,8 @@ export type AuthContext = {
   eventRole: EventRole | null;
   grants: Permission[];
 };
+
+export { resolveEventAccess };
 
 export async function getCurrentUser(): Promise<User | null> {
   if (!hasClerk()) return null;
@@ -126,14 +128,17 @@ export async function requireOrg(
     };
   }
 
+  // Event-scoped staff may enter the org shell with read-only org access.
+  // Event permissions are applied per-event in requireEvent — never org-wide.
   const staff = await prisma.eventUser.findFirst({
     where: { userId: user.id, organisationId: organisation.id },
+    select: { role: true },
   });
   if (!staff) {
     throw new AuthzError("You do not have access to this organisation", 403);
   }
 
-  const grants: Permission[] = ["org.read", ...EVENT_PERMISSIONS[staff.role]];
+  const grants: Permission[] = ["org.read"];
   if (!hasPermission(grants, permission)) {
     throw new AuthzError("Insufficient organisation permission", 403);
   }
@@ -152,33 +157,62 @@ export async function requireEvent(
   eventId: string,
   permission: Permission,
 ): Promise<AuthContext & { eventId: string }> {
-  const orgCtx = await requireOrg(orgSlug, "org.read");
+  const user = await requireUser();
+  const organisation = await prisma.organisation.findUnique({
+    where: { slug: orgSlug },
+  });
+  if (!organisation) {
+    throw new AuthzError("Organisation not found", 404);
+  }
+
   const event = await prisma.event.findFirst({
-    where: { id: eventId, organisationId: orgCtx.organisation.id },
+    where: { id: eventId, organisationId: organisation.id },
+    select: { id: true },
   });
   if (!event) {
     throw new AuthzError("Event not found", 404);
   }
 
-  if (orgCtx.user.platformAdmin || hasPermission(orgCtx.grants, permission)) {
-    return { ...orgCtx, eventId };
-  }
+  const membership = user.platformAdmin
+    ? null
+    : await prisma.organisationUser.findUnique({
+        where: {
+          organisationId_userId: {
+            organisationId: organisation.id,
+            userId: user.id,
+          },
+        },
+        select: { role: true },
+      });
 
-  const eventMembership = await prisma.eventUser.findUnique({
-    where: { eventId_userId: { eventId, userId: orgCtx.user.id } },
+  const eventMembership = user.platformAdmin
+    ? null
+    : await prisma.eventUser.findUnique({
+        where: {
+          eventId_userId: { eventId, userId: user.id },
+        },
+        select: { role: true },
+      });
+
+  const resolved = resolveEventAccess({
+    platformAdmin: user.platformAdmin,
+    orgRole: membership?.role ?? null,
+    eventRole: eventMembership?.role ?? null,
+    permission,
   });
-  const grants = eventMembership
-    ? EVENT_PERMISSIONS[eventMembership.role]
-    : [];
-  if (!hasPermission(grants, permission)) {
+
+  if (!resolved) {
     throw new AuthzError("Insufficient event permission", 403);
   }
 
   return {
-    ...orgCtx,
+    user,
+    organisation,
     eventId,
-    eventRole: eventMembership?.role ?? null,
-    grants,
+    orgRole: membership?.role ?? (user.platformAdmin ? "OWNER" : null),
+    eventRole:
+      resolved.via === "event" ? (eventMembership?.role ?? null) : null,
+    grants: resolved.grants,
   };
 }
 

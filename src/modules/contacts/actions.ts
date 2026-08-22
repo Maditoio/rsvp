@@ -377,17 +377,37 @@ export async function deleteContact(
     select: {
       id: true,
       email: true,
-      attendees: { select: { id: true }, take: 1 },
+      attendees: { select: { id: true, status: true } },
     },
   });
   if (!contact) throw new Error("Invitee not found");
-  if (contact.attendees.length > 0) {
+
+  const activeAttendees = contact.attendees.filter(
+    (row) => row.status !== "CANCELLED",
+  );
+  if (activeAttendees.length > 0) {
     throw new Error(
-      "This invitee has already registered. Remove them from attendees first, or cancel their invitation instead.",
+      "This invitee still has an active registration. Cancel them under Attendees first, then delete the invitee.",
     );
   }
 
-  await prisma.contact.delete({ where: { id: contact.id } });
+  const cancelledIds = contact.attendees
+    .filter((row) => row.status === "CANCELLED")
+    .map((row) => row.id);
+
+  await prisma.$transaction(async (tx) => {
+    if (cancelledIds.length > 0) {
+      await tx.attendee.deleteMany({
+        where: {
+          id: { in: cancelledIds },
+          eventId,
+          organisationId: ctx.organisation.id,
+          status: "CANCELLED",
+        },
+      });
+    }
+    await tx.contact.delete({ where: { id: contact.id } });
+  });
 
   await writeAudit({
     organisationId: ctx.organisation.id,
@@ -396,9 +416,14 @@ export async function deleteContact(
     action: "contact.delete",
     resource: "contact",
     resourceId: contact.id,
-    metadata: { email: contact.email },
+    metadata: {
+      email: contact.email,
+      removedCancelledAttendees: cancelledIds.length,
+    },
   });
 
   revalidatePath(`/app/${orgSlug}/events/${eventId}/invitees`);
   revalidatePath(`/app/${orgSlug}/events/${eventId}/invitations`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/attendees`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/registrations`);
 }

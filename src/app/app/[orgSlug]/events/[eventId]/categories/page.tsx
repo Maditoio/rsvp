@@ -2,9 +2,8 @@ import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
-import { Card } from "@/components/ui/card";
-import { Table, Td, Th } from "@/components/ui/table";
 import { CategoryForm } from "./category-form";
+import { CategoryList } from "./category-list";
 
 export default async function CategoriesPage({
   params,
@@ -15,40 +14,33 @@ export default async function CategoriesPage({
   );
   const categories = await prisma.invitationCategory.findMany({
     where: { eventId, organisationId: ctx.organisation.id },
-    include: { _count: { select: { invitations: true } } },
+    include: {
+      _count: { select: { invitations: true, attendees: true } },
+    },
     orderBy: { name: "asc" },
   });
-  const canCreate = hasPermission(ctx.grants, "event.update");
+  const canManage = hasPermission(ctx.grants, "event.update");
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-gray-800">Invitation categories</h1>
-      <p className="mt-1 text-sm text-gray-600">
+      <h1 className="font-display text-3xl text-ink-800">Invitation categories</h1>
+      <p className="mt-1 text-sm text-stone-700">
         Categories are configured per event. They are not a hard-coded list of
         VIP / speaker / delegate labels.
       </p>
-      {canCreate ? <CategoryForm orgSlug={orgSlug} eventId={eventId} /> : null}
+      {canManage ? <CategoryForm orgSlug={orgSlug} eventId={eventId} /> : null}
       <div className="mt-6">
-        {categories.length === 0 ? (
-          <Card>No categories yet.</Card>
-        ) : (
-          <Table>
-            <thead>
-              <tr className="border-b border-gray-100">
-                <Th>Name</Th>
-                <Th>Invitations</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map((category) => (
-                <tr key={category.id} className="border-b border-gray-50">
-                  <Td className="font-medium">{category.name}</Td>
-                  <Td>{category._count.invitations}</Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        )}
+        <CategoryList
+          orgSlug={orgSlug}
+          eventId={eventId}
+          canManage={canManage}
+          categories={categories.map((category) => ({
+            id: category.id,
+            name: category.name,
+            invitationCount: category._count.invitations,
+            attendeeCount: category._count.attendees,
+          }))}
+        />
       </div>
     </div>
   );

@@ -271,3 +271,46 @@ export async function createCategory(
   });
   revalidatePath(`/app/${orgSlug}/events/${eventId}/categories`);
 }
+
+export async function deleteCategory(
+  orgSlug: string,
+  eventId: string,
+  categoryId: string,
+) {
+  const ctx = await requireEvent(orgSlug, eventId, "event.update");
+
+  const category = await prisma.invitationCategory.findFirst({
+    where: {
+      id: categoryId,
+      eventId,
+      organisationId: ctx.organisation.id,
+    },
+    select: {
+      id: true,
+      name: true,
+      _count: { select: { invitations: true, attendees: true } },
+    },
+  });
+  if (!category) throw new Error("Category not found");
+
+  await prisma.invitationCategory.delete({ where: { id: category.id } });
+
+  await writeAudit({
+    organisationId: ctx.organisation.id,
+    eventId,
+    userId: ctx.user.id,
+    action: "category.delete",
+    resource: "invitation_category",
+    resourceId: category.id,
+    metadata: {
+      name: category.name,
+      invitations: category._count.invitations,
+      attendees: category._count.attendees,
+    },
+  });
+
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/categories`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/invitees`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/invitations`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/attendees`);
+}

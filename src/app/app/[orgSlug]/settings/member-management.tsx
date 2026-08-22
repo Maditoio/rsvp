@@ -60,8 +60,9 @@ export function MemberManagement({
               Organisation members
             </h2>
             <p className="mt-1 text-[0.9375rem] text-stone-700">
-              Add existing signed-in users by email. Access is always scoped to
-              your current organisation on the server.
+              Owners and admins can manage the whole organisation. For event-day
+              check-in helpers, use Event → Staff → Check-in staff instead — do not
+              add them here.
             </p>
           </div>
           <Button type="button" onClick={() => setOpen(true)}>

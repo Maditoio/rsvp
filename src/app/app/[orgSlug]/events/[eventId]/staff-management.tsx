@@ -65,7 +65,9 @@ export function StaffManagement({
             </p>
             <h2 className="mt-1 font-display text-2xl text-ink-800">Event staff access</h2>
             <p className="mt-1 text-sm text-stone-700">
-              Grant scoped event roles to existing organisation members only.
+              Assign people who have already signed in. For check-in only access,
+              do <span className="font-semibold">not</span> add them as organisation
+              owners/admins — assign Check-in staff here so they land on Event day.
             </p>
           </div>
           <Button type="button" onClick={() => setOpen(true)}>
@@ -75,7 +77,7 @@ export function StaffManagement({
             open={open}
             onClose={() => setOpen(false)}
             title="Assign event staff"
-            description="Grant a scoped event role to an existing organisation member."
+            description="Grant a scoped event role. Check-in staff only need a signed-in account — not organisation admin membership."
           >
             <form
               className="space-y-4"
@@ -95,14 +97,22 @@ export function StaffManagement({
                     toast.error(result.error);
                     return;
                   }
-                  toast.success("Staff member assigned.");
+                  if (result.data?.orgAdminWarning) {
+                    toast.success(
+                      "Staff assigned — but they are still an organisation owner/admin, so they keep full organiser access. Remove them under Organisation settings → Members for check-in-only access.",
+                    );
+                  } else {
+                    toast.success(
+                      "Staff assigned. They will see an Event day workspace after refresh.",
+                    );
+                  }
                   setOpen(false);
                   router.refresh();
                 });
               }}
             >
               <div>
-                <Label htmlFor="staff-email">Member email</Label>
+                <Label htmlFor="staff-email">Staff email</Label>
                 <Input
                   id="staff-email"
                   name="email"
@@ -110,6 +120,9 @@ export function StaffManagement({
                   placeholder="name@example.com"
                   required
                 />
+                <p className="mt-1 text-xs text-stone-500">
+                  They must create an account with this email first.
+                </p>
               </div>
               <div>
                 <Label htmlFor="staff-role">Event role</Label>

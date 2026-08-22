@@ -29,6 +29,7 @@ import {
 } from "@/components/table-pagination";
 import { COUNTRIES } from "@/lib/countries";
 import { displayName, humanizeEnum } from "@/lib/utils";
+import { useToast } from "@/components/ui/toast";
 
 type InviteeRow = {
   id: string;
@@ -72,6 +73,7 @@ export function InviteesPanel({
   canInvite: boolean;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const selectAllRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -556,7 +558,7 @@ export function InviteesPanel({
         title="Delete this invitee"
         description={
           deleteTarget
-            ? `Remove ${displayName(deleteTarget)} (${deleteTarget.email}) from this event. Their invitations will be removed as well.`
+            ? `Remove ${displayName(deleteTarget)} (${deleteTarget.email}) from this event. Cancelled attendee records for this invitee will be cleared. Active registrations must be cancelled under Attendees first.`
             : "Remove this invitee from the event."
         }
         confirmLabel="Delete invitee"
@@ -573,9 +575,13 @@ export function InviteesPanel({
               setSelected((list) => list.filter((id) => id !== deleteTarget.id));
               setDeleteTarget(null);
               setNotice(`${displayName(deleteTarget)} has been removed.`);
+              toast.success(`${displayName(deleteTarget)} has been removed.`);
               router.refresh();
             } catch (e) {
-              setError(e instanceof Error ? e.message : "Could not delete invitee");
+              const message =
+                e instanceof Error ? e.message : "Could not delete invitee";
+              setError(message);
+              toast.error(message);
               setDeleteTarget(null);
             }
           });
