@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { Download, Upload } from "lucide-react";
@@ -54,31 +53,32 @@ export function AgendaImport({
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        <Link
-          href={templateHref}
-          className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-stone-300 bg-stone-0 px-3 text-sm font-semibold text-ink-700 hover:bg-stone-50"
-        >
-          <Download className="size-3.5" aria-hidden />
-          Download template
-        </Link>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={pending}
-          onClick={() => fileRef.current?.click()}
-        >
-          <Upload className="size-3.5" aria-hidden />
-          {pending ? "Reading…" : "Import CSV"}
-        </Button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".csv,.xls,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          className="hidden"
-          onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
-        />
-      </div>
+      <Button
+        type="button"
+        className="gap-1.5"
+        onClick={() => {
+          window.location.href = templateHref;
+        }}
+      >
+        <Download className="size-4" aria-hidden />
+        Download
+      </Button>
+      <Button
+        type="button"
+        className="gap-1.5"
+        disabled={pending}
+        onClick={() => fileRef.current?.click()}
+      >
+        <Upload className="size-4" aria-hidden />
+        {pending ? "Reading…" : "Import"}
+      </Button>
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".csv,.xls,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        className="hidden"
+        onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
+      />
 
       <Drawer
         open={open}

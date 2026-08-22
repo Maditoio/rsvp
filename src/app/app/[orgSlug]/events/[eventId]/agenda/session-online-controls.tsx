@@ -155,7 +155,7 @@ export function SessionOnlineControls({
             const active = provider.status === "active";
             const isTeams = provider.id === "TEAMS";
             const connected = isTeams && teamsConnected;
-            const logoColored = isTeams && (connected || Boolean(teamsMeeting));
+            const logoColored = isTeams && Boolean(teamsMeeting);
 
             return (
               <div

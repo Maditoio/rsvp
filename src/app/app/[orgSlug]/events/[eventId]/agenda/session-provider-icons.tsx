@@ -85,12 +85,12 @@ export function ZoomMark({
         viewBox="0 0 24 24"
         fill="none"
         aria-hidden
-        className={cn("shrink-0 text-stone-400", className)}
+        className={cn("shrink-0", className)}
       >
-        <rect width="24" height="24" rx="4" fill="currentColor" opacity="0.35" />
+        <rect width="24" height="24" rx="4" fill="currentColor" className="text-stone-300" />
         <path
           fill="currentColor"
-          opacity="0.55"
+          className="text-stone-400"
           d="M5.5 8.5h7.2c.7 0 1.3.6 1.3 1.3v4.4c0 .7-.6 1.3-1.3 1.3H5.5c-.7 0-1.3-.6-1.3-1.3V9.8c0-.7.6-1.3 1.3-1.3zm9.2 1.2 3.6-2.1c.5-.3 1.2 0 1.2.6v6.6c0 .6-.7.9-1.2.6l-3.6-2.1v-3.6z"
         />
       </svg>
@@ -117,26 +117,24 @@ export function ZoomMark({
 
 export function SessionProviderIcons({
   format,
-  teamsLinked,
-  microsoftConnected,
+  teamsMeetingUrl,
+  zoomMeetingUrl,
   className,
 }: {
   format: "PHYSICAL" | "ONLINE" | "HYBRID";
-  teamsLinked: boolean;
-  microsoftConnected: boolean;
+  teamsMeetingUrl?: string | null;
+  zoomMeetingUrl?: string | null;
   className?: string;
 }) {
   if (format === "PHYSICAL") return null;
 
-  const teamsActive = teamsLinked || microsoftConnected;
-
   return (
     <div
-      className={cn("flex items-center gap-1", className)}
+      className={cn("flex items-center gap-1.5", className)}
       aria-label="Online meeting providers"
     >
-      <TeamsMark muted={!teamsActive} />
-      <ZoomMark muted />
+      <TeamsMark muted={!teamsMeetingUrl} />
+      <ZoomMark muted={!zoomMeetingUrl} />
     </div>
   );
 }

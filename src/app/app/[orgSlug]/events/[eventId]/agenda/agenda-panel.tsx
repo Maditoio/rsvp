@@ -66,15 +66,16 @@ function compactTimeLabel(row: SessionRow) {
 function SessionListRow({
   row,
   canManage,
-  microsoftConnected,
   onEdit,
 }: {
   row: SessionRow;
   canManage: boolean;
-  microsoftConnected: boolean;
   onEdit: () => void;
 }) {
-  const teamsLinked = Boolean(row.teamsMeeting?.joinUrl);
+  const teamsMeetingUrl =
+    row.teamsMeeting?.provider === "TEAMS" ? row.teamsMeeting.joinUrl : null;
+  const zoomMeetingUrl =
+    row.teamsMeeting?.provider === "ZOOM" ? row.teamsMeeting.joinUrl : null;
   const secondary =
     row.location ||
     (row.format === "ONLINE"
@@ -84,21 +85,22 @@ function SessionListRow({
         : null);
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
+    <div className="flex items-center gap-4 px-4 py-3.5">
+      <div className="w-[7.25rem] shrink-0 self-start pt-0.5">
+        <span className="inline-flex items-start gap-1 font-mono text-[0.75rem] leading-snug text-stone-500">
+          <Clock3 className="mt-0.5 size-3 shrink-0" aria-hidden />
+          {compactTimeLabel(row)}
+        </span>
+      </div>
+
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <p className="truncate font-medium text-ink-800">{row.title}</p>
-          <span className="inline-flex shrink-0 items-center gap-1 font-mono text-[0.75rem] text-stone-500">
-            <Clock3 className="size-3" aria-hidden />
-            {compactTimeLabel(row)}
-          </span>
-        </div>
+        <p className="truncate font-medium text-ink-800">{row.title}</p>
         {secondary ? (
           <p className="mt-0.5 truncate text-sm text-stone-500">{secondary}</p>
         ) : null}
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-3 self-center">
         {row.format !== "PHYSICAL" ? (
           <Badge tone="muted" className="hidden sm:inline-flex">
             {formatLabel(row.format)}
@@ -106,8 +108,8 @@ function SessionListRow({
         ) : null}
         <SessionProviderIcons
           format={row.format}
-          teamsLinked={teamsLinked}
-          microsoftConnected={microsoftConnected}
+          teamsMeetingUrl={teamsMeetingUrl}
+          zoomMeetingUrl={zoomMeetingUrl}
         />
         <span
           className="inline-flex items-center gap-1 text-xs text-stone-500"
@@ -216,7 +218,6 @@ export function AgendaPanel({
               key={row.id}
               row={row}
               canManage={canManage}
-              microsoftConnected={microsoftConnected}
               onEdit={() => openEdit(row)}
             />
           ))}
