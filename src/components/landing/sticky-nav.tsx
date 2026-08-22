@@ -17,12 +17,11 @@ export function StickyNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 top-0 z-50 transition-all duration-300"
-      style={{
-        background: scrolled ? "rgba(255,255,255,0.97)" : "transparent",
-        boxShadow: scrolled ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
-        backdropFilter: scrolled ? "blur(8px)" : "none",
-      }}
+      className={`fixed inset-x-0 top-0 z-50 border-b transition-all duration-300 ${
+        scrolled
+          ? "border-stone-200 bg-stone-0/97 shadow-sm backdrop-blur-sm"
+          : "border-transparent bg-transparent"
+      }`}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <Link href="/" className="inline-flex items-center gap-2.5 hover:opacity-90">
@@ -34,30 +33,23 @@ export function StickyNav() {
             className="rounded-sm"
             priority
           />
-          <span
-            className="font-display text-xl font-semibold"
-            style={{ color: scrolled ? "#3D3630" : "#FFFFFF" }}
-          >
-            Bizcon
-          </span>
+          <span className="font-display text-xl font-semibold text-ink-700">Bizcon</span>
         </Link>
         <div className="hidden items-center gap-6 sm:flex">
           <Link
             href="/sign-in"
-            className="text-sm font-medium transition-colors"
-            style={{ color: scrolled ? "#7A7067" : "#D5CEC4" }}
+            className="text-sm font-medium text-stone-600 transition-colors hover:text-ink-700"
           >
             Sign in
           </Link>
           <Link
             href="/sign-up"
-            className="inline-flex h-9 items-center rounded-sm px-5 text-sm font-semibold text-white transition-colors"
-            style={{ background: "#B8864E" }}
+            className="inline-flex h-9 items-center rounded-sm bg-ink-700 px-5 text-sm font-semibold text-white transition-colors hover:bg-ink-800"
           >
             Start organising
           </Link>
         </div>
-        <MobileMenu scrolled={scrolled} />
+        <MobileMenu />
       </div>
     </nav>
   );
