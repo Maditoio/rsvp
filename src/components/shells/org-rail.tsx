@@ -17,6 +17,8 @@ import type { Permission } from "@/lib/authz/permissions";
 import { orgPrimaryNav, isNavActive } from "@/components/nav";
 import { NavLink } from "@/components/nav-link";
 import { BrandLogo, BrandMark } from "@/components/brand-logo";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import type { UserWorkspace } from "@/modules/workspaces/types";
 import { cn } from "@/lib/utils";
 
 /* ── Persisted collapse state ── */
@@ -146,12 +148,12 @@ function AccountPopover({
             </div>
           )}
           <Link
-            href="/me"
+            href="/home"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 hover:text-ink-700"
           >
             <UserRound className="size-3.5" strokeWidth={1.75} />
-            Attendee portal
+            All workspaces
           </Link>
           {orgRole != null && (
             <Link
@@ -191,11 +193,13 @@ export function OrgRail({
   orgSlug,
   grants,
   orgRole,
+  workspaces = [],
 }: {
   orgName: string;
   orgSlug: string;
   grants?: Permission[];
   orgRole?: "OWNER" | "ADMIN" | null;
+  workspaces?: UserWorkspace[];
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -272,6 +276,12 @@ export function OrgRail({
 
       {/* Footer */}
       <div className="mt-auto border-t border-stone-100 p-3 pb-3">
+        {!collapsed && workspaces.length > 0 ? (
+          <div className="mb-2 px-1">
+            <WorkspaceSwitcher workspaces={workspaces} compact />
+          </div>
+        ) : null}
+
         <NavLink
           href={`/app/${orgSlug}/settings?tab=integrations`}
           label="Integrations"

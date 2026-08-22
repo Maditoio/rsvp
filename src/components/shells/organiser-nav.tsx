@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Menu, Plug, UserRound, X } from "lucide-react";
+import { Menu, Plug, X } from "lucide-react";
 import { hasPermission, type Permission } from "@/lib/authz/permissions";
 import {
   eventNav,
@@ -12,6 +11,8 @@ import {
   parseOrganiserEventId,
 } from "@/components/nav";
 import { NavLink } from "@/components/nav-link";
+import { WorkspaceSwitcher } from "@/components/workspace-switcher";
+import type { UserWorkspace } from "@/modules/workspaces/types";
 import { useEventNav } from "@/components/shells/event-nav-scope";
 
 /** Flat list used only for the mobile/small-screen drawer. */
@@ -88,12 +89,14 @@ export function OrganiserMobileNav({
   orgSlug,
   grants,
   orgRole,
+  workspaces = [],
   trailing,
 }: {
   orgName: string;
   orgSlug: string;
   grants?: Permission[];
   orgRole?: "OWNER" | "ADMIN" | null;
+  workspaces?: UserWorkspace[];
   trailing: ReactNode;
 }) {
   const pathname = usePathname();
@@ -110,6 +113,9 @@ export function OrganiserMobileNav({
           <p className="mt-1 text-sm text-ink-700">{orgName}</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          {workspaces.length > 0 ? (
+            <WorkspaceSwitcher workspaces={workspaces} compact />
+          ) : null}
           <button
             type="button"
             aria-expanded={open}
@@ -134,13 +140,6 @@ export function OrganiserMobileNav({
             orgRole={orgRole}
             onNavigate={() => setOpenForPath(null)}
           />
-          <Link
-            href="/me"
-            className="mt-4 flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:text-ink-700"
-          >
-            <UserRound className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
-            Attendee portal
-          </Link>
         </div>
       ) : null}
     </div>

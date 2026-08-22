@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { safe } from "@/lib/authz/safe";
 import { displayName } from "@/lib/utils";
@@ -44,6 +45,27 @@ export default async function PlatformPage() {
 
       <Card>
         <PlatformAdminControls />
+      </Card>
+
+      <Card>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+              Navigation
+            </p>
+            <h2 className="mt-1 font-display text-2xl text-ink-800">Product surfaces</h2>
+            <p className="mt-1 text-sm text-stone-700">
+              Browse every workspace, organiser route, event staff entry point, and
+              attendee portal URL across tenants.
+            </p>
+          </div>
+          <Link
+            href="/platform/surfaces"
+            className="inline-flex h-10 items-center justify-center rounded-sm bg-ink-700 px-4 text-sm font-semibold text-white hover:bg-ink-800"
+          >
+            Open surface catalog
+          </Link>
+        </div>
       </Card>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">

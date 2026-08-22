@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/db/prisma";
 import { requirePlatformAdmin } from "@/lib/authz/require";
 import { writeAudit } from "@/modules/audit/log";
+import { buildPlatformSurfaceCatalog } from "./surfaces";
+import type { PlatformSurfaceGroup } from "./surfaces";
 
 export async function getPlatformOverview() {
   const user = await requirePlatformAdmin();
@@ -110,4 +112,34 @@ export async function getPlatformOverview() {
 
 export async function listPlatformOrganisations() {
   return (await getPlatformOverview()).recentOrganisations;
+}
+
+export async function getPlatformSurfaceCatalog(): Promise<PlatformSurfaceGroup[]> {
+  const user = await requirePlatformAdmin();
+  await writeAudit({
+    userId: user.id,
+    action: "platform.surfaces.read",
+    resource: "platform",
+    ip: (await headers()).get("x-forwarded-for"),
+    metadata: { reason: "platform_surface_catalog" },
+  });
+
+  const [organisations, events] = await Promise.all([
+    prisma.organisation.findMany({
+      select: { slug: true, name: true },
+      orderBy: { name: "asc" },
+      take: 12,
+    }),
+    prisma.event.findMany({
+      select: {
+        id: true,
+        name: true,
+        organisation: { select: { slug: true, name: true } },
+      },
+      orderBy: [{ startsAt: "desc" }, { name: "asc" }],
+      take: 8,
+    }),
+  ]);
+
+  return buildPlatformSurfaceCatalog({ organisations, events });
 }

@@ -1,5 +1,5 @@
 import { EventNavScope } from "@/components/shells/event-nav-scope";
-import { EventPanel } from "@/components/shells/event-panel";
+import { EventLayoutFrame } from "@/components/shells/event-layout-frame";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { prisma } from "@/lib/db/prisma";
@@ -21,13 +21,14 @@ export default async function EventLayout({
       eventName={event?.name ?? "Event"}
       grants={ctx.grants}
     >
-      <EventPanel
+      <EventLayoutFrame
         orgSlug={orgSlug}
         eventId={eventId}
         eventName={event?.name ?? "Event"}
         grants={ctx.grants}
-      />
-      <main className="min-w-0 flex-1 overflow-y-auto p-6 md:p-10">{children}</main>
+      >
+        {children}
+      </EventLayoutFrame>
     </EventNavScope>
   );
 }

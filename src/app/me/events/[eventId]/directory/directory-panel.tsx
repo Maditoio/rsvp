@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { Sparkles } from "lucide-react";
 import { requestMeeting } from "@/modules/meetings/actions";
 import { getAiInsight } from "@/modules/matchmaking/ai-actions";
 import type { DirectoryPerson } from "@/modules/matchmaking/basic";
@@ -13,11 +14,17 @@ import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { displayName } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 export type { DirectoryPerson };
+
+const DISCOVERY_STEPS = [
+  "Analysing your objectives…",
+  "Finding best matches…",
+  "Ranking recommendations…",
+] as const;
 
 function bandTone(band: MatchBand): "success" | "default" | "muted" {
   if (band === "strong") return "success";
@@ -58,71 +65,220 @@ function reasonLabels(reasons: MatchReasons): string[] {
   return fallback;
 }
 
-function AiInsightCard({
+function buildConnectMessage(
+  person: DirectoryPerson,
+  eventName: string,
+): string {
+  const firstName = person.firstName?.trim() || displayName(person);
+  return `Hi ${firstName},
+
+I came across your profile through the ${eventName} matchmaking directory and would welcome the opportunity to connect during the event. I believe we may have complementary interests and would value a brief conversation at the summit.
+
+Kind regards`;
+}
+
+function AiDiscoveryLoader({ onComplete }: { onComplete: () => void }) {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const timers = DISCOVERY_STEPS.map((_, index) =>
+      window.setTimeout(() => setStep(index + 1), (index + 1) * 700),
+    );
+    const done = window.setTimeout(onComplete, DISCOVERY_STEPS.length * 700 + 400);
+    return () => {
+      timers.forEach(clearTimeout);
+      clearTimeout(done);
+    };
+  }, [onComplete]);
+
+  return (
+    <div className="rounded-md border border-stone-200 bg-stone-0 px-5 py-8 sm:px-8">
+      <div className="mx-auto max-w-md text-center">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-bronze-100">
+          <Sparkles className="size-5 text-bronze-700" aria-hidden />
+        </div>
+        <p className="mt-4 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+          AI recommendations
+        </p>
+        <p className="mt-2 font-display text-xl text-ink-800">
+          Finding your best matches
+        </p>
+        <p className="mt-2 text-sm text-stone-500">
+          Reviewing objectives, complementarity, and shared context across the
+          directory.
+        </p>
+        <div className="mt-6 space-y-2 text-left">
+          {DISCOVERY_STEPS.map((label, index) => {
+            const done = step > index;
+            const active = step === index;
+            return (
+              <div
+                key={label}
+                className={cn(
+                  "flex items-center gap-3 rounded-sm border px-3 py-2 text-sm transition-colors",
+                  done
+                    ? "border-moss-200 bg-moss-50 text-moss-600"
+                    : active
+                      ? "border-bronze-200 bg-bronze-50 text-bronze-700"
+                      : "border-stone-200 bg-stone-50 text-stone-400",
+                )}
+              >
+                <span
+                  className={cn(
+                    "size-1.5 shrink-0 rounded-full",
+                    done
+                      ? "bg-moss-500"
+                      : active
+                        ? "animate-pulse bg-bronze-500"
+                        : "bg-stone-300",
+                  )}
+                  aria-hidden
+                />
+                {label}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SeeWhyPanel({
   eventId,
   targetId,
+  reasons,
   eventAiEnabled = false,
   attendeeOptIn = false,
   cachedInsight = null,
 }: {
   eventId: string;
   targetId: string;
+  reasons: MatchReasons;
   eventAiEnabled?: boolean;
   attendeeOptIn?: boolean;
   cachedInsight?: string | null;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const [insight, setInsight] = useState<string | null>(cachedInsight);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!eventAiEnabled || !attendeeOptIn) {
-    return (
-      <AiInsightTeaser
-        eventId={eventId}
-        eventAiEnabled={eventAiEnabled}
-        attendeeOptIn={attendeeOptIn}
-      />
-    );
+  const canUseAi = eventAiEnabled && attendeeOptIn;
+  const factors = reasonLabels(reasons);
+
+  async function loadAiSummary() {
+    setLoading(true);
+    setError(null);
+    setExpanded(true);
+    try {
+      const result = await getAiInsight(eventId, targetId);
+      setInsight(result.insight);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not generate summary");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  if (insight) {
+  function handleSeeWhy() {
+    if (canUseAi && !insight) {
+      void loadAiSummary();
+      return;
+    }
+    setExpanded((value) => !value);
+  }
+
+  if (!eventAiEnabled) {
+    return factors.length > 0 ? (
+      <div className="mt-4 border-t border-stone-200 pt-4">
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {expanded ? "Hide match factors" : "See why"}
+        </Button>
+        {expanded ? (
+          <ul className="mt-3 space-y-1.5 text-sm text-stone-700">
+            {factors.map((label) => (
+              <li key={label} className="flex gap-2">
+                <span className="text-stone-400" aria-hidden>
+                  ·
+                </span>
+                <span>{label}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    ) : null;
+  }
+
+  if (!attendeeOptIn) {
     return (
-      <div className="rounded-md border border-stone-200 bg-stone-0 px-3 py-2">
-        <Badge tone="accent">AI insight</Badge>
-        <p className="mt-2 text-sm text-stone-700">{insight}</p>
+      <div className="mt-4 border-t border-stone-200 pt-4">
+        <AiInsightTeaser
+          eventId={eventId}
+          eventAiEnabled={eventAiEnabled}
+          attendeeOptIn={attendeeOptIn}
+        />
       </div>
     );
   }
 
   return (
-    <div className="rounded-md border border-stone-200 bg-stone-0 px-3 py-2">
-      <Badge tone="accent">AI insight</Badge>
-      <p className="mt-2 text-sm text-stone-700">
-        Generate a short explanation of why this connection fits your objectives.
-      </p>
-      {error ? <p className="mt-2 text-xs text-danger">{error}</p> : null}
-      <div className="mt-2">
+    <div className="mt-4 border-t border-stone-200 pt-4">
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
           size="sm"
           variant="secondary"
           disabled={loading}
-          onClick={async () => {
-            setLoading(true);
-            setError(null);
-            try {
-              const result = await getAiInsight(eventId, targetId);
-              setInsight(result.insight);
-            } catch (e) {
-              setError(e instanceof Error ? e.message : "Could not generate insight");
-            } finally {
-              setLoading(false);
-            }
-          }}
+          onClick={handleSeeWhy}
         >
-          {loading ? "Generating…" : "Get AI insight"}
+          <Sparkles className="size-3.5" aria-hidden />
+          {loading
+            ? "Generating summary…"
+            : expanded && insight
+              ? "Hide summary"
+              : "See why"}
         </Button>
+        {!expanded && !insight ? (
+          <span className="text-xs text-stone-500">
+            AI summary of why this connection fits your objectives
+          </span>
+        ) : null}
       </div>
+      {error ? <p className="mt-2 text-xs text-danger">{error}</p> : null}
+      {expanded ? (
+        <div className="mt-3 rounded-sm border border-stone-200 bg-stone-50 px-4 py-3">
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+            AI summary
+          </p>
+          {loading ? (
+            <p className="mt-2 text-sm text-stone-500">
+              Preparing a concise explanation of this recommendation…
+            </p>
+          ) : insight ? (
+            <p className="mt-2 text-sm leading-relaxed text-stone-700">
+              {insight}
+            </p>
+          ) : (
+            <ul className="mt-2 space-y-1.5 text-sm text-stone-700">
+              {factors.map((label) => (
+                <li key={label} className="flex gap-2">
+                  <span className="text-stone-400" aria-hidden>
+                    ·
+                  </span>
+                  <span>{label}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -158,8 +314,8 @@ function ForYouEmpty({
       <div className="rounded-md border border-stone-200 bg-stone-0 px-4 py-4">
         <p className="text-sm text-stone-700">
           Matching is off in your privacy settings, so recommendations are
-          paused. Turn it on to appear in others&apos; For you lists and see
-          yours here.
+          paused. Turn it on to appear in others&apos; recommendation lists and
+          see yours here.
         </p>
         <Link
           href={`/me/events/${eventId}/privacy`}
@@ -198,106 +354,156 @@ function ForYouEmpty({
 function PersonCard({
   person,
   recommended,
+  isTopMatch = false,
   eventId,
   eventAiEnabled,
   attendeeOptIn,
-  onRequest,
+  onConnect,
 }: {
   person: DirectoryPerson;
   recommended?: boolean;
+  isTopMatch?: boolean;
   eventId: string;
   eventAiEnabled?: boolean;
   attendeeOptIn?: boolean;
-  onRequest: (person: DirectoryPerson) => void;
+  onConnect: (person: DirectoryPerson) => void;
 }) {
   const bandText = matchBandLabel(person.band);
-  const why = recommended ? reasonLabels(person.reasons) : [];
+  const initials = [person.firstName?.[0], person.lastName?.[0]]
+    .filter(Boolean)
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
-    <Card>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-medium text-ink-800">{displayName(person)}</p>
-            {recommended && person.band && bandText ? (
-              <Badge tone={bandTone(person.band)}>{bandText}</Badge>
-            ) : null}
+    <article
+      className={cn(
+        "rounded-md border bg-stone-0 p-4 sm:p-5",
+        isTopMatch ? "border-bronze-300" : "border-stone-200",
+      )}
+    >
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 flex-1 gap-4">
+          <div
+            className={cn(
+              "flex size-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+              isTopMatch
+                ? "bg-bronze-100 text-bronze-800"
+                : "bg-stone-100 text-ink-700",
+            )}
+            aria-hidden
+          >
+            {initials || "?"}
           </div>
-          <p className="text-sm text-stone-700">
-            {[person.jobTitle, person.company, person.country]
-              .filter(Boolean)
-              .join(" · ") || "—"}
-          </p>
-          {person.about ? (
-            <p className="mt-2 text-sm text-stone-700">{person.about}</p>
-          ) : null}
-          {person.lookingFor ? (
-            <p className="mt-2 text-xs text-stone-500">Looking for {person.lookingFor}</p>
-          ) : null}
-          {person.offering ? (
-            <p className="text-xs text-stone-500">Offering {person.offering}</p>
-          ) : null}
-          {person.email ? (
-            <p className="mt-2 text-xs text-stone-500">{person.email}</p>
-          ) : null}
-          {person.phone ? (
-            <p className="text-xs text-stone-500">{person.phone}</p>
-          ) : null}
-          {recommended && why.length > 0 ? (
-            <div className="mt-4 border-t border-stone-200 pt-3">
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
-                Why we recommend this connection
-              </p>
-              <ul className="mt-2 list-disc space-y-1.5 pl-4 text-sm text-stone-700">
-                {why.map((label) => (
-                  <li key={label}>{label}</li>
-                ))}
-              </ul>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="text-[1.0625rem] font-semibold text-ink-800">
+                {displayName(person)}
+              </h3>
+              {isTopMatch ? (
+                <Badge tone="accent">Top match</Badge>
+              ) : null}
+              {recommended && person.band && bandText ? (
+                <Badge tone={bandTone(person.band)}>{bandText}</Badge>
+              ) : null}
             </div>
-          ) : null}
-          {person.sharedInterests.length > 0 || person.interests.length > 0 ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {person.sharedInterests.map((interest) => (
-                <Badge key={interest} tone="accent">
-                  {interest}
-                </Badge>
-              ))}
-              {person.interests
-                .filter((interest) => !person.sharedInterests.includes(interest))
-                .map((interest) => (
-                  <Badge key={interest} tone="muted">
+            <p className="mt-1 text-sm text-stone-700">
+              {[person.jobTitle, person.company, person.country]
+                .filter(Boolean)
+                .join(" · ") || "—"}
+            </p>
+            {person.about ? (
+              <p className="mt-3 text-sm leading-relaxed text-stone-700">
+                {person.about}
+              </p>
+            ) : null}
+            {(person.lookingFor || person.offering) && (
+              <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+                {person.lookingFor ? (
+                  <div>
+                    <dt className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+                      Looking for
+                    </dt>
+                    <dd className="mt-0.5 text-sm text-stone-700">
+                      {person.lookingFor}
+                    </dd>
+                  </div>
+                ) : null}
+                {person.offering ? (
+                  <div>
+                    <dt className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+                      Offering
+                    </dt>
+                    <dd className="mt-0.5 text-sm text-stone-700">
+                      {person.offering}
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
+            )}
+            {person.sharedInterests.length > 0 || person.interests.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {person.sharedInterests.map((interest) => (
+                  <Badge key={interest} tone="success">
                     {interest}
                   </Badge>
                 ))}
-            </div>
-          ) : null}
-          {recommended ? (
-            <div className="mt-3">
-              <AiInsightCard
+                {person.interests
+                  .filter((interest) => !person.sharedInterests.includes(interest))
+                  .slice(0, 4)
+                  .map((interest) => (
+                    <Badge key={interest} tone="muted">
+                      {interest}
+                    </Badge>
+                  ))}
+              </div>
+            ) : null}
+            {(person.email || person.phone) && (
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-500">
+                {person.email ? <span>{person.email}</span> : null}
+                {person.phone ? <span>{person.phone}</span> : null}
+              </div>
+            )}
+            {recommended ? (
+              <SeeWhyPanel
                 eventId={eventId}
                 targetId={person.id}
+                reasons={person.reasons}
                 eventAiEnabled={eventAiEnabled}
                 attendeeOptIn={attendeeOptIn}
                 cachedInsight={person.aiInsight}
               />
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          onClick={() => onRequest(person)}
-        >
-          Request meeting
-        </Button>
+
+        <div className="flex shrink-0 flex-row flex-wrap gap-2 lg:flex-col lg:items-stretch">
+          {recommended && eventAiEnabled ? (
+            <p className="w-full text-right text-xs text-stone-500 lg:mb-1">
+              Match score{" "}
+              <span className="font-mono font-medium text-ink-700">
+                {person.score}
+              </span>
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            variant={isTopMatch ? "primary" : "secondary"}
+            className="lg:min-w-[8rem]"
+            onClick={() => onConnect(person)}
+          >
+            Connect
+          </Button>
+        </div>
       </div>
-    </Card>
+    </article>
   );
 }
 
 export function DirectoryPanel({
   eventId,
+  eventName,
   forYou,
   people,
   eventAiEnabled = false,
@@ -306,6 +512,7 @@ export function DirectoryPanel({
   matchmakingEnabled = false,
 }: {
   eventId: string;
+  eventName: string;
   forYou: DirectoryPerson[];
   people: DirectoryPerson[];
   eventAiEnabled?: boolean;
@@ -318,13 +525,17 @@ export function DirectoryPanel({
   const [target, setTarget] = useState<DirectoryPerson | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [discoveryReady, setDiscoveryReady] = useState(!eventAiEnabled);
 
   const empty = forYou.length === 0 && people.length === 0;
+  const showAiDiscovery = eventAiEnabled && forYou.length > 0;
+  const topMatch = forYou[0] ?? null;
+  const otherMatches = forYou.slice(1);
   const hasStrongOrGood = forYou.some(
     (person) => person.band === "strong" || person.band === "good",
   );
 
-  function openRequest(person: DirectoryPerson) {
+  function openConnect(person: DirectoryPerson) {
     setTarget(person);
     setError(null);
     setOpen(true);
@@ -351,21 +562,43 @@ export function DirectoryPanel({
         <>
           <section className="space-y-4">
             <div>
-              <h2 className="text-[1.125rem] font-semibold text-ink-700">For you</h2>
-              <p className="mt-1 text-sm text-stone-500">
-                Highest complementarity from looking-for, offering, and shared
-                objectives.
-              </p>
+              {showAiDiscovery ? (
+                <>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Sparkles className="size-4 text-bronze-600" aria-hidden />
+                    <h2 className="text-[1.125rem] font-semibold text-ink-700">
+                      AI recommendations
+                    </h2>
+                  </div>
+                  <p className="mt-1 text-sm text-stone-500">
+                    Ranked by complementarity across objectives, industries, and
+                    shared context.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-[1.125rem] font-semibold text-ink-700">
+                    For you
+                  </h2>
+                  <p className="mt-1 text-sm text-stone-500">
+                    Highest complementarity from looking-for, offering, and
+                    shared objectives.
+                  </p>
+                </>
+              )}
             </div>
+
             {forYou.length === 0 ? (
               <ForYouEmpty
                 eventId={eventId}
                 questionnaireComplete={questionnaireComplete}
                 matchmakingEnabled={matchmakingEnabled}
               />
+            ) : showAiDiscovery && !discoveryReady ? (
+              <AiDiscoveryLoader onComplete={() => setDiscoveryReady(true)} />
             ) : (
               <>
-                {!hasStrongOrGood ? (
+                {!hasStrongOrGood && !showAiDiscovery ? (
                   <p className="text-sm text-stone-500">
                     No strong or good matches yet — these are possible
                     connections. Refine your{" "}
@@ -378,24 +611,55 @@ export function DirectoryPanel({
                     for better ranking.
                   </p>
                 ) : null}
-                {forYou.map((person) => (
-                  <PersonCard
-                    key={person.id}
-                    person={person}
-                    recommended
-                    eventId={eventId}
-                    eventAiEnabled={eventAiEnabled}
-                    attendeeOptIn={attendeeOptIn}
-                    onRequest={openRequest}
-                  />
-                ))}
+
+                {topMatch ? (
+                  <div className="space-y-3">
+                    {showAiDiscovery ? (
+                      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+                        Top match
+                      </p>
+                    ) : null}
+                    <PersonCard
+                      person={topMatch}
+                      recommended
+                      isTopMatch={showAiDiscovery}
+                      eventId={eventId}
+                      eventAiEnabled={eventAiEnabled}
+                      attendeeOptIn={attendeeOptIn}
+                      onConnect={openConnect}
+                    />
+                  </div>
+                ) : null}
+
+                {otherMatches.length > 0 ? (
+                  <div className="space-y-3">
+                    {showAiDiscovery ? (
+                      <p className="pt-2 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+                        More recommendations
+                      </p>
+                    ) : null}
+                    {otherMatches.map((person) => (
+                      <PersonCard
+                        key={person.id}
+                        person={person}
+                        recommended
+                        eventId={eventId}
+                        eventAiEnabled={eventAiEnabled}
+                        attendeeOptIn={attendeeOptIn}
+                        onConnect={openConnect}
+                      />
+                    ))}
+                  </div>
+                ) : null}
               </>
             )}
           </section>
 
           <section className="space-y-4">
             <div>
-              <h2 className="text-[1.125rem] font-semibold text-ink-700">Directory</h2>
+              <h2 className="text-[1.125rem] font-semibold text-ink-700">
+                Directory
+              </h2>
               <p className="mt-1 text-sm text-stone-500">
                 Other visible attendees at this event.
               </p>
@@ -410,7 +674,7 @@ export function DirectoryPanel({
                   key={person.id}
                   person={person}
                   eventId={eventId}
-                  onRequest={openRequest}
+                  onConnect={openConnect}
                 />
               ))
             )}
@@ -421,10 +685,10 @@ export function DirectoryPanel({
       <Drawer
         open={open}
         onClose={() => setOpen(false)}
-        title="Request a meeting"
+        title="Connect"
         description={
           target
-            ? `Send a request to ${displayName(target)}. They must accept before a meeting is created.`
+            ? `Send a connection request to ${displayName(target)}. They must accept before a meeting can be arranged.`
             : undefined
         }
       >
@@ -448,13 +712,26 @@ export function DirectoryPanel({
           >
             <input type="hidden" name="targetId" value={target.id} />
             <div>
-              <Label htmlFor="message">Note (optional)</Label>
-              <Textarea id="message" name="message" />
+              <Label htmlFor="message">Message</Label>
+              <Textarea
+                key={target.id}
+                id="message"
+                name="message"
+                rows={7}
+                defaultValue={buildConnectMessage(target, eventName)}
+              />
             </div>
             {error ? <p className="text-sm text-danger">{error}</p> : null}
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
               <Button disabled={pending}>
-                {pending ? "Sending…" : "Send request"}
+                {pending ? "Sending…" : "Connect"}
               </Button>
             </div>
           </form>

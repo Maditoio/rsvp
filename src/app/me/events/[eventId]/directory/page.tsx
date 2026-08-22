@@ -29,13 +29,15 @@ export default async function DirectoryPage({
           {attendee.event.name}
         </p>
         <h1 className="mt-1 font-display text-3xl text-ink-800">Directory</h1>
-        <p className="mt-1 text-sm text-stone-700">
-          Matched on shared objectives — complementary looking-for and offering,
-          industries, geographies, and meeting preferences.
+        <p className="mt-1 max-w-2xl text-sm text-stone-700">
+          {directory.eventAiEnabled
+            ? "AI-assisted discovery ranks attendees by complementarity. Review recommendations, see why a match fits, then connect."
+            : "Matched on shared objectives — complementary looking-for and offering, industries, geographies, and meeting preferences."}
         </p>
       </div>
       <DirectoryPanel
         eventId={eventId}
+        eventName={attendee.event.name}
         forYou={directory.forYou}
         people={directory.people}
         eventAiEnabled={directory.eventAiEnabled}

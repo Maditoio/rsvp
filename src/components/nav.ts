@@ -116,7 +116,19 @@ export function eventNavGroups(
     {
       label: "Event day",
       items: [
-        { href: `${base}/check-in`, label: "Check-in", permission: "checkin.perform", icon: QrCode },
+        {
+          href: `${base}/day`,
+          label: "Event day",
+          permission: "checkin.perform",
+          icon: QrCode,
+          exact: true,
+        },
+        {
+          href: `${base}/day/lookup`,
+          label: "Delegate lookup",
+          permission: "checkin.perform",
+          icon: Users,
+        },
         { href: `${base}/agenda`, label: "Agenda", permission: "event.read", icon: CalendarDays },
         { href: `${base}/meetings`, label: "Meetings", permission: "event.read", icon: Handshake },
       ],

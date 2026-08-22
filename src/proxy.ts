@@ -2,7 +2,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const isProtected = createRouteMatcher(["/app(.*)", "/me(.*)", "/platform(.*)"]);
+const isProtected = createRouteMatcher(["/app(.*)", "/me(.*)", "/platform(.*)", "/home(.*)"]);
 
 function clerkKeysAreValid() {
   const publishable = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
