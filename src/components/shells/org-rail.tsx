@@ -220,12 +220,12 @@ export function OrgRail({
   return (
     <aside
       className={cn(
-        "relative hidden h-full shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-stone-200 bg-stone-0 transition-[width] duration-[220ms] ease-out md:flex motion-reduce:transition-none",
+        "relative hidden h-full shrink-0 flex-col border-r border-stone-200 bg-stone-0 transition-[width] duration-[220ms] ease-out md:flex motion-reduce:transition-none",
         collapsed ? "w-16" : "w-[220px]",
       )}
       style={{ willChange: "width" }}
     >
-      {/* Toggle button */}
+      {/* Toggle button — sits on the rail edge; must not be inside overflow-x-hidden */}
       <button
         type="button"
         onClick={toggle}
@@ -239,6 +239,7 @@ export function OrgRail({
         )}
       </button>
 
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
       {/* Header */}
       <div className="border-b border-stone-100 p-5 pr-6">
         {collapsed ? (
@@ -291,6 +292,7 @@ export function OrgRail({
         />
 
         <AccountPopover orgSlug={orgSlug} orgRole={orgRole} collapsed={collapsed} />
+      </div>
       </div>
     </aside>
   );
