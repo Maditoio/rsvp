@@ -2,20 +2,22 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Clock3, Users } from "lucide-react";
 import { deleteSession, saveSession } from "@/modules/sessions/actions";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, Td, Th } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { parseOptionalDateRange } from "@/lib/validation";
+import { AgendaImport } from "./agenda-import";
 import {
   SessionOnlineControls,
   type SessionOnlineMeeting,
 } from "./session-online-controls";
+import { SessionProviderIcons } from "./session-provider-icons";
 
 type SessionRow = {
   id: string;
@@ -49,6 +51,82 @@ function formatLabel(format: SessionRow["format"]) {
     default:
       return "Physical";
   }
+}
+
+function compactTimeLabel(row: SessionRow) {
+  if (!row.startsAt && !row.endsAt) return "TBC";
+  const start = row.startsAt || "TBC";
+  if (!row.endsAt) return start;
+  const endTime = row.endsAt.includes(",")
+    ? row.endsAt.split(", ").slice(1).join(", ")
+    : row.endsAt;
+  return `${start} – ${endTime}`;
+}
+
+function SessionListRow({
+  row,
+  canManage,
+  microsoftConnected,
+  onEdit,
+}: {
+  row: SessionRow;
+  canManage: boolean;
+  microsoftConnected: boolean;
+  onEdit: () => void;
+}) {
+  const teamsLinked = Boolean(row.teamsMeeting?.joinUrl);
+  const secondary =
+    row.location ||
+    (row.format === "ONLINE"
+      ? "Online"
+      : row.format === "HYBRID"
+        ? "Hybrid session"
+        : null);
+
+  return (
+    <div className="flex items-center gap-3 px-4 py-3">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <p className="truncate font-medium text-ink-800">{row.title}</p>
+          <span className="inline-flex shrink-0 items-center gap-1 font-mono text-[0.75rem] text-stone-500">
+            <Clock3 className="size-3" aria-hidden />
+            {compactTimeLabel(row)}
+          </span>
+        </div>
+        {secondary ? (
+          <p className="mt-0.5 truncate text-sm text-stone-500">{secondary}</p>
+        ) : null}
+      </div>
+
+      <div className="flex shrink-0 items-center gap-2">
+        {row.format !== "PHYSICAL" ? (
+          <Badge tone="muted" className="hidden sm:inline-flex">
+            {formatLabel(row.format)}
+          </Badge>
+        ) : null}
+        <SessionProviderIcons
+          format={row.format}
+          teamsLinked={teamsLinked}
+          microsoftConnected={microsoftConnected}
+        />
+        <span
+          className="inline-flex items-center gap-1 text-xs text-stone-500"
+          title="Attendees who picked this session"
+        >
+          <Users className="size-3" aria-hidden />
+          <span className="font-mono">
+            {row.registrations}
+            {row.capacity !== null ? `/${row.capacity}` : ""}
+          </span>
+        </span>
+        {canManage ? (
+          <Button type="button" size="sm" variant="secondary" onClick={onEdit}>
+            Edit
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 export function AgendaPanel({
@@ -108,78 +186,41 @@ export function AgendaPanel({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
             Programme
           </p>
           <h1 className="mt-1 font-display text-3xl text-ink-800">Agenda</h1>
           <p className="mt-1 text-sm text-stone-700">
-            Sessions attendees can add to their personal agenda. Online and
-            hybrid sessions can include a Microsoft Teams meeting.
+            Sessions attendees can add to their personal agenda. Import from a
+            spreadsheet or add sessions one at a time.
           </p>
         </div>
         {canManage ? (
-          <Button type="button" onClick={openCreate}>
-            Add session
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <AgendaImport orgSlug={orgSlug} eventId={eventId} />
+            <Button type="button" onClick={openCreate}>
+              Add session
+            </Button>
+          </div>
         ) : null}
       </div>
 
       {sessions.length === 0 ? (
         <p className="text-sm text-stone-700">No sessions yet.</p>
       ) : (
-        <Table>
-          <thead>
-            <tr>
-              <Th>Session</Th>
-              <Th>When</Th>
-              <Th>Format</Th>
-              <Th>Location</Th>
-              <Th>Picked</Th>
-              {canManage ? <Th></Th> : null}
-            </tr>
-          </thead>
-          <tbody>
-            {sessions.map((row) => (
-              <tr key={row.id}>
-                <Td>
-                  <p className="font-medium text-ink-800">{row.title}</p>
-                  {row.description ? (
-                    <p className="text-xs text-stone-500">{row.description}</p>
-                  ) : null}
-                  {row.teamsMeeting?.joinUrl ? (
-                    <Badge className="mt-2" tone="info">
-                      Teams
-                    </Badge>
-                  ) : null}
-                </Td>
-                <Td className="text-stone-700">
-                  {row.startsAt || "TBC"}
-                  {row.endsAt ? ` – ${row.endsAt}` : ""}
-                </Td>
-                <Td className="text-stone-700">{formatLabel(row.format)}</Td>
-                <Td>{row.location || "—"}</Td>
-                <Td>
-                  {row.registrations}
-                  {row.capacity !== null ? ` / ${row.capacity}` : ""}
-                </Td>
-                {canManage ? (
-                  <Td>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => openEdit(row)}
-                    >
-                      Edit
-                    </Button>
-                  </Td>
-                ) : null}
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <div className="divide-y divide-stone-100 rounded-md border border-stone-200 bg-stone-0">
+          {sessions.map((row) => (
+            <SessionListRow
+              key={row.id}
+              row={row}
+              canManage={canManage}
+              microsoftConnected={microsoftConnected}
+              onEdit={() => openEdit(row)}
+            />
+          ))}
+        </div>
       )}
 
       <Drawer

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, ExternalLink, Lock } from "lucide-react";
+import { Check, Copy, ExternalLink } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -12,47 +12,13 @@ import {
   removeSessionTeamsMeeting,
 } from "@/modules/meetings/session-teams-actions";
 import { ONLINE_MEETING_PROVIDERS } from "@/modules/meetings/providers";
+import { TeamsMark, ZoomMark } from "./session-provider-icons";
 
 export type SessionOnlineMeeting = {
   provider: "TEAMS" | "ZOOM";
   joinUrl: string | null;
   providerMeetingId: string | null;
 };
-
-function TeamsMark() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        fill="#5059C9"
-        d="M16.5 7.2c1.2 0 2.2-1 2.2-2.2S17.7 2.8 16.5 2.8 14.3 3.8 14.3 5s1 2.2 2.2 2.2z"
-      />
-      <path
-        fill="#7B83EB"
-        d="M19.8 8.5h-3.2c-.7 0-1.3.4-1.6 1v5.3c0 1.3 1.1 2.4 2.4 2.4h.1c1.5 0 2.7-1.2 2.7-2.7v-4.6c0-.8-.6-1.4-1.4-1.4z"
-      />
-      <path
-        fill="#4B53BC"
-        d="M8.8 7.8c1.5 0 2.7-1.2 2.7-2.7S10.3 2.4 8.8 2.4 6.1 3.6 6.1 5.1s1.2 2.7 2.7 2.7z"
-      />
-      <path
-        fill="#7B83EB"
-        d="M13.2 9H4.5C3.7 9 3 9.7 3 10.5v5.8C3 18.2 4.8 20 7 20h3.5c2.2 0 4-1.8 4-4v-5.5c0-.8-.7-1.5-1.5-1.5h.2z"
-      />
-    </svg>
-  );
-}
-
-function ZoomMark() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect width="24" height="24" rx="4" fill="#2D8CFF" />
-      <path
-        fill="#fff"
-        d="M5.5 8.5h7.2c.7 0 1.3.6 1.3 1.3v4.4c0 .7-.6 1.3-1.3 1.3H5.5c-.7 0-1.3-.6-1.3-1.3V9.8c0-.7.6-1.3 1.3-1.3zm9.2 1.2 3.6-2.1c.5-.3 1.2 0 1.2.6v6.6c0 .6-.7.9-1.2.6l-3.6-2.1v-3.6z"
-      />
-    </svg>
-  );
-}
 
 export function SessionOnlineControls({
   orgSlug,
@@ -106,6 +72,7 @@ export function SessionOnlineControls({
 
   const teamsMeeting =
     meeting?.provider === "TEAMS" && meeting.joinUrl ? meeting : null;
+  const teamsConnected = microsoftConnected && !microsoftNeedsReconnect;
 
   function copyLink() {
     if (!teamsMeeting?.joinUrl) return;
@@ -187,42 +154,59 @@ export function SessionOnlineControls({
           {ONLINE_MEETING_PROVIDERS.map((provider) => {
             const active = provider.status === "active";
             const isTeams = provider.id === "TEAMS";
+            const connected = isTeams && teamsConnected;
+            const logoColored = isTeams && (connected || Boolean(teamsMeeting));
+
             return (
               <div
                 key={provider.id}
                 className={cn(
-                  "flex items-center gap-2 rounded-sm border px-2.5 py-2",
+                  "flex items-center gap-2.5 rounded-sm border px-2.5 py-2",
                   active
                     ? "border-stone-200 bg-stone-0"
-                    : "border-dashed border-stone-200 bg-stone-0 opacity-80",
+                    : "border-dashed border-stone-200 bg-stone-0",
                 )}
               >
-                {isTeams ? <TeamsMark /> : <ZoomMark />}
+                {isTeams ? (
+                  <TeamsMark muted={!logoColored} />
+                ) : (
+                  <ZoomMark muted />
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <p
                       className={cn(
                         "text-sm font-semibold",
-                        active ? "text-ink-700" : "text-stone-600",
+                        active ? "text-ink-700" : "text-stone-500",
                       )}
                     >
                       {provider.label}
                     </p>
-                    {active ? (
-                      <Check className="size-3.5 text-moss-600" aria-hidden />
-                    ) : (
-                      <span className="inline-flex items-center gap-0.5 rounded-xs bg-bronze-100 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-bronze-600">
-                        <Lock className="size-2.5" aria-hidden />
+                    {isTeams && connected ? (
+                      <span className="inline-flex items-center gap-0.5 text-[0.6875rem] font-semibold text-moss-700">
+                        <Check className="size-3" aria-hidden />
+                        Connected
+                      </span>
+                    ) : null}
+                    {!active ? (
+                      <span className="text-[0.6875rem] font-semibold text-stone-500">
                         Coming soon
                       </span>
-                    )}
+                    ) : null}
+                    {isTeams && microsoftNeedsReconnect ? (
+                      <span className="text-[0.6875rem] font-semibold text-bronze-600">
+                        Reconnect required
+                      </span>
+                    ) : null}
                   </div>
                   <p className="text-[0.75rem] leading-tight text-stone-500">
-                    {provider.description}
+                    {isTeams && !connected
+                      ? "Connect your Microsoft account to create Teams meetings."
+                      : provider.description}
                   </p>
                 </div>
-                {active ? (
-                  !microsoftConnected || microsoftNeedsReconnect ? (
+                {active && isTeams ? (
+                  !teamsConnected ? (
                     <button
                       type="button"
                       disabled={pending}
