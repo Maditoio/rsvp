@@ -10,19 +10,11 @@ import {
   Handshake,
   LayoutDashboard,
   QrCode,
-  Shield,
   User,
-  UserCog,
 } from "lucide-react";
 import { useAttendeeAttention } from "@/components/attendee-attention-context";
 import { isNavActive, parseAttendeeEventId } from "@/components/nav";
 import { cn } from "@/lib/utils";
-
-const portalItems = [
-  { href: "/me", label: "My events", icon: Calendar },
-  { href: "/me/profile", label: "My profile", icon: User },
-  { href: "/me/account", label: "Account", icon: UserCog },
-] as const;
 
 function attendeeEventPrimaryItems(eventId: string) {
   const base = `/me/events/${eventId}`;
@@ -40,37 +32,16 @@ function attendeeEventSecondaryItems(eventId: string) {
   const base = `/me/events/${eventId}`;
   return [
     { href: `${base}/profile`, label: "Profile", icon: User },
-    { href: `${base}/privacy`, label: "Privacy", icon: Shield },
     { href: `${base}/qr`, label: "Check-in", icon: QrCode },
   ];
 }
 
-export function AttendeePortalNav() {
-  const pathname = usePathname();
-
+function isProfileSectionActive(pathname: string, eventId: string) {
+  const base = `/me/events/${eventId}`;
   return (
-    <nav className="hidden items-center gap-1 text-sm sm:flex">
-      {portalItems.map((item) => {
-        const active =
-          item.href === "/me"
-            ? pathname === "/me"
-            : isNavActive(pathname, item.href);
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-stone-600 transition-colors hover:bg-stone-100 hover:text-ink-800",
-              active && "bg-stone-100 font-medium text-ink-800",
-            )}
-          >
-            <Icon className="size-3.5 shrink-0" strokeWidth={1.75} aria-hidden />
-            <span className="hidden lg:inline">{item.label}</span>
-          </Link>
-        );
-      })}
-    </nav>
+    pathname === `${base}/profile` ||
+    pathname.startsWith(`${base}/privacy`) ||
+    pathname.startsWith(`${base}/matchmaking`)
   );
 }
 
@@ -124,7 +95,10 @@ export function AttendeeEventNav({ eventId }: { eventId: string }) {
           aria-label="Account for this event"
         >
           {secondary.map((item) => {
-            const active = isNavActive(pathname, item.href);
+            const active =
+              item.href.endsWith("/profile")
+                ? isProfileSectionActive(pathname, eventId)
+                : isNavActive(pathname, item.href);
             const Icon = item.icon;
             return (
               <Link
@@ -148,7 +122,10 @@ export function AttendeeEventNav({ eventId }: { eventId: string }) {
         aria-label="More for this event"
       >
         {secondary.map((item) => {
-          const active = isNavActive(pathname, item.href);
+          const active =
+            item.href.endsWith("/profile")
+              ? isProfileSectionActive(pathname, eventId)
+              : isNavActive(pathname, item.href);
           return (
             <Link
               key={item.href}

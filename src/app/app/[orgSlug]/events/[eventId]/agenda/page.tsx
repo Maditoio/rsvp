@@ -4,6 +4,7 @@ import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
 import { microsoftConnectedForUser } from "@/modules/meetings/session-teams-actions";
+import { formatSessionSchedule } from "@/lib/session-schedule";
 import { AgendaPanel } from "./agenda-panel";
 
 export default async function AgendaPage({
@@ -11,6 +12,12 @@ export default async function AgendaPage({
 }: PageProps<"/app/[orgSlug]/events/[eventId]/agenda">) {
   const { orgSlug, eventId } = await params;
   const ctx = await safe(() => requireEvent(orgSlug, eventId, "event.read"));
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, organisationId: ctx.organisation.id },
+    select: { timezone: true },
+  });
+  const timezone = event?.timezone || "UTC";
+
   const [sessions, microsoft] = await Promise.all([
     prisma.session.findMany({
       where: { eventId, organisationId: ctx.organisation.id },
@@ -40,16 +47,22 @@ export default async function AgendaPage({
           canManage={hasPermission(ctx.grants, "event.update")}
           microsoftConnected={microsoft.connected}
           microsoftNeedsReconnect={microsoft.needsReconnect}
+          timezone={timezone}
           sessions={sessions.map((row) => {
             const teams = row.onlineMeetings[0];
+            const schedule = formatSessionSchedule(
+              row.startsAt,
+              row.endsAt,
+              timezone,
+            );
             return {
               id: row.id,
               title: row.title,
               description: row.description,
               location: row.location,
               format: row.format,
-              startsAt: row.startsAt?.toLocaleString("en-GB") ?? "",
-              endsAt: row.endsAt?.toLocaleString("en-GB") ?? "",
+              dateLabel: schedule.dateLabel,
+              timeLabel: schedule.timeLabel,
               startsAtValue: row.startsAt?.toISOString() ?? "",
               endsAtValue: row.endsAt?.toISOString() ?? "",
               capacity: row.capacity,

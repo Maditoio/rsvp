@@ -119,22 +119,61 @@ export function SessionProviderIcons({
   format,
   teamsMeetingUrl,
   zoomMeetingUrl,
+  onTeamsClick,
+  onZoomClick,
+  interactive = false,
   className,
 }: {
   format: "PHYSICAL" | "ONLINE" | "HYBRID";
   teamsMeetingUrl?: string | null;
   zoomMeetingUrl?: string | null;
+  onTeamsClick?: () => void;
+  onZoomClick?: () => void;
+  /** When true, icons are buttons (organiser list). */
+  interactive?: boolean;
   className?: string;
 }) {
   if (format === "PHYSICAL") return null;
 
+  const teamsTitle = teamsMeetingUrl
+    ? "Open Teams meeting"
+    : "Connect Microsoft Teams";
+  const zoomTitle = zoomMeetingUrl ? "Open Zoom meeting" : "Set up Zoom meeting";
+
+  const iconButtonClass =
+    "rounded-sm p-1 transition-colors hover:bg-stone-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ink-700";
+
   return (
     <div
-      className={cn("flex items-center gap-1.5", className)}
+      className={cn("flex items-center gap-1", className)}
       aria-label="Online meeting providers"
     >
-      <TeamsMark muted={!teamsMeetingUrl} />
-      <ZoomMark muted={!zoomMeetingUrl} />
+      {interactive && onTeamsClick ? (
+        <button
+          type="button"
+          onClick={onTeamsClick}
+          title={teamsTitle}
+          aria-label={teamsTitle}
+          className={iconButtonClass}
+        >
+          <TeamsMark muted={!teamsMeetingUrl} />
+        </button>
+      ) : (
+        <TeamsMark muted={!teamsMeetingUrl} />
+      )}
+      {interactive && onZoomClick ? (
+        <button
+          type="button"
+          onClick={onZoomClick}
+          title={zoomTitle}
+          aria-label={zoomTitle}
+          className={iconButtonClass}
+        >
+          <ZoomMark muted={!zoomMeetingUrl} />
+        </button>
+      ) : (
+        <ZoomMark muted={!zoomMeetingUrl} />
+      )}
     </div>
   );
 }

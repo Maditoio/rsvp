@@ -23,10 +23,22 @@ import { generateOpaqueToken } from "@/lib/crypto/tokens";
 import { sendMeetingRequestEmail } from "@/modules/communications/email";
 import { meetingMessageSchema } from "@/lib/validation";
 import { createNotification } from "@/modules/notifications/service";
+import { recomputeMatchScoresForAttendee } from "@/modules/matchmaking/score";
 import { getAppUrl, displayName } from "@/lib/utils";
 import { loadMeetingRequestByToken } from "@/modules/meetings/respond-token";
 
 export type MeetingActionResult = ActionResult<{ calendarWarning?: string }>;
+
+async function refreshMatchScoresForPair(
+  eventId: string,
+  requesterId: string,
+  targetId: string,
+) {
+  await Promise.all([
+    recomputeMatchScoresForAttendee(eventId, requesterId),
+    recomputeMatchScoresForAttendee(eventId, targetId),
+  ]);
+}
 
 async function myAttendee(eventId: string) {
   const user = await requireUser();
@@ -205,7 +217,13 @@ async function applyMeetingRequestDecision(input: {
       where: { id: request.id },
       data: { status: "DECLINED", responseTokenHash: null },
     });
+    await refreshMatchScoresForPair(
+      input.eventId,
+      request.requesterId,
+      request.targetId,
+    );
     revalidatePath(`/me/events/${input.eventId}/meetings`);
+    revalidatePath(`/me/events/${input.eventId}/directory`);
     return actionOk({});
   }
 
@@ -280,7 +298,14 @@ async function applyMeetingRequestDecision(input: {
     calendarWarning = await scheduleMeetingCalendars(meeting.id);
   }
 
+  await refreshMatchScoresForPair(
+    input.eventId,
+    request.requesterId,
+    request.targetId,
+  );
+
   revalidatePath(`/me/events/${input.eventId}/meetings`);
+  revalidatePath(`/me/events/${input.eventId}/directory`);
   return actionOk({ calendarWarning });
 }
 

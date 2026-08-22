@@ -370,6 +370,15 @@ function PersonCard({
   onConnect: (person: DirectoryPerson) => void;
 }) {
   const bandText = matchBandLabel(person.band);
+  const connectionLabel =
+    person.connectionStatus === "connected"
+      ? "Meeting scheduled"
+      : person.connectionStatus === "pending_sent"
+        ? "Request sent"
+        : person.connectionStatus === "pending_received"
+          ? "Respond in Meetings"
+          : null;
+  const canConnect = person.connectionStatus === "none";
   const initials = [person.firstName?.[0], person.lastName?.[0]]
     .filter(Boolean)
     .join("")
@@ -406,6 +415,15 @@ function PersonCard({
               ) : null}
               {recommended && person.band && bandText ? (
                 <Badge tone={bandTone(person.band)}>{bandText}</Badge>
+              ) : null}
+              {connectionLabel ? (
+                <Badge
+                  tone={
+                    person.connectionStatus === "connected" ? "success" : "muted"
+                  }
+                >
+                  {connectionLabel}
+                </Badge>
               ) : null}
             </div>
             <p className="mt-1 text-sm text-stone-700">
@@ -487,15 +505,24 @@ function PersonCard({
               </span>
             </p>
           ) : null}
-          <Button
-            type="button"
-            size="sm"
-            variant={isTopMatch ? "primary" : "secondary"}
-            className="lg:min-w-[8rem]"
-            onClick={() => onConnect(person)}
-          >
-            Connect
-          </Button>
+          {canConnect ? (
+            <Button
+              type="button"
+              size="sm"
+              variant={isTopMatch ? "primary" : "secondary"}
+              className="lg:min-w-[8rem]"
+              onClick={() => onConnect(person)}
+            >
+              Connect
+            </Button>
+          ) : person.connectionStatus === "pending_received" ? (
+            <Link
+              href={`/me/events/${eventId}/meetings`}
+              className="inline-flex h-9 items-center justify-center rounded-sm border border-stone-300 px-3 text-[0.8125rem] font-semibold text-ink-700 hover:bg-stone-50 lg:min-w-[8rem]"
+            >
+              Open Meetings
+            </Link>
+          ) : null}
         </div>
       </div>
     </article>

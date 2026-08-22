@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { forwardRef, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Copy, ExternalLink } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -20,29 +20,35 @@ export type SessionOnlineMeeting = {
   providerMeetingId: string | null;
 };
 
-export function SessionOnlineControls({
-  orgSlug,
-  eventId,
-  sessionId,
-  sessionTitle,
-  whenLabel,
-  format,
-  meeting,
-  microsoftConnected,
-  microsoftNeedsReconnect,
-  teamsStatus,
-}: {
-  orgSlug: string;
-  eventId: string;
-  sessionId: string | null;
-  sessionTitle: string;
-  whenLabel: string;
-  format: "PHYSICAL" | "ONLINE" | "HYBRID";
-  meeting: SessionOnlineMeeting | null;
-  microsoftConnected: boolean;
-  microsoftNeedsReconnect: boolean;
-  teamsStatus?: string | null;
-}) {
+export const SessionOnlineControls = forwardRef<
+  HTMLDivElement,
+  {
+    orgSlug: string;
+    eventId: string;
+    sessionId: string | null;
+    sessionTitle: string;
+    whenLabel: string;
+    format: "PHYSICAL" | "ONLINE" | "HYBRID";
+    meeting: SessionOnlineMeeting | null;
+    microsoftConnected: boolean;
+    microsoftNeedsReconnect: boolean;
+    teamsStatus?: string | null;
+  }
+>(function SessionOnlineControls(
+  {
+    orgSlug,
+    eventId,
+    sessionId,
+    sessionTitle,
+    whenLabel,
+    format,
+    meeting,
+    microsoftConnected,
+    microsoftNeedsReconnect,
+    teamsStatus,
+  },
+  ref,
+) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -64,7 +70,7 @@ export function SessionOnlineControls({
 
   if (!sessionId) {
     return (
-      <p className="text-[0.8125rem] text-stone-500">
+      <p ref={ref} className="text-[0.8125rem] text-stone-500">
         Save the session first, then connect Microsoft Teams.
       </p>
     );
@@ -83,7 +89,7 @@ export function SessionOnlineControls({
   }
 
   return (
-    <div className="space-y-2 border-t border-stone-100 pt-3">
+    <div ref={ref} className="space-y-2 border-t border-stone-100 pt-3">
       <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-500">
         Online platform
       </p>
@@ -304,4 +310,4 @@ export function SessionOnlineControls({
       />
     </div>
   );
-}
+});

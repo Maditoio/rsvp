@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Clock3, Users } from "lucide-react";
+import { CalendarDays, Clock3, MapPin, Users } from "lucide-react";
 import { deleteSession, saveSession } from "@/modules/sessions/actions";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
@@ -25,8 +25,8 @@ type SessionRow = {
   description: string | null;
   location: string | null;
   format: "PHYSICAL" | "ONLINE" | "HYBRID";
-  startsAt: string;
-  endsAt: string;
+  dateLabel: string;
+  timeLabel: string | null;
   startsAtValue: string;
   endsAtValue: string;
   capacity: number | null;
@@ -53,51 +53,81 @@ function formatLabel(format: SessionRow["format"]) {
   }
 }
 
-function compactTimeLabel(row: SessionRow) {
-  if (!row.startsAt && !row.endsAt) return "TBC";
-  const start = row.startsAt || "TBC";
-  if (!row.endsAt) return start;
-  const endTime = row.endsAt.includes(",")
-    ? row.endsAt.split(", ").slice(1).join(", ")
-    : row.endsAt;
-  return `${start} – ${endTime}`;
-}
-
 function SessionListRow({
   row,
   canManage,
   onEdit,
+  onEditOnline,
 }: {
   row: SessionRow;
   canManage: boolean;
   onEdit: () => void;
+  onEditOnline: () => void;
 }) {
   const teamsMeetingUrl =
     row.teamsMeeting?.provider === "TEAMS" ? row.teamsMeeting.joinUrl : null;
   const zoomMeetingUrl =
     row.teamsMeeting?.provider === "ZOOM" ? row.teamsMeeting.joinUrl : null;
-  const secondary =
+  const locationLabel =
     row.location ||
     (row.format === "ONLINE"
       ? "Online"
       : row.format === "HYBRID"
-        ? "Hybrid session"
+        ? "Hybrid"
         : null);
 
-  return (
-    <div className="flex items-center gap-4 px-4 py-3.5">
-      <div className="w-[7.25rem] shrink-0 self-start pt-0.5">
-        <span className="inline-flex items-start gap-1 font-mono text-[0.75rem] leading-snug text-stone-500">
-          <Clock3 className="mt-0.5 size-3 shrink-0" aria-hidden />
-          {compactTimeLabel(row)}
-        </span>
-      </div>
+  function handleTeamsClick() {
+    if (teamsMeetingUrl) {
+      window.open(teamsMeetingUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    onEditOnline();
+  }
 
-      <div className="min-w-0 flex-1">
+  function handleZoomClick() {
+    if (zoomMeetingUrl) {
+      window.open(zoomMeetingUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    onEditOnline();
+  }
+
+  return (
+    <div className="flex items-start gap-4 px-4 py-3.5 sm:items-center">
+      <div className="min-w-0 flex-1 space-y-1">
         <p className="truncate font-medium text-ink-800">{row.title}</p>
-        {secondary ? (
-          <p className="mt-0.5 truncate text-sm text-stone-500">{secondary}</p>
-        ) : null}
+        <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-stone-600">
+          <div className="inline-flex items-center gap-1.5">
+            <CalendarDays
+              className="size-3.5 shrink-0 text-stone-400"
+              aria-hidden
+            />
+            <dt className="sr-only">Date</dt>
+            <dd>{row.dateLabel}</dd>
+          </div>
+          {row.timeLabel ? (
+            <div className="inline-flex items-center gap-1.5">
+              <Clock3
+                className="size-3.5 shrink-0 text-stone-400"
+                aria-hidden
+              />
+              <dt className="sr-only">Time</dt>
+              <dd className="font-mono text-[0.8125rem] text-stone-700">
+                {row.timeLabel}
+              </dd>
+            </div>
+          ) : null}
+          {locationLabel ? (
+            <div className="inline-flex items-center gap-1.5">
+              <MapPin
+                className="size-3.5 shrink-0 text-stone-400"
+                aria-hidden
+              />
+              <dt className="sr-only">Location</dt>
+              <dd className="truncate">{locationLabel}</dd>
+            </div>
+          ) : null}
+        </dl>
       </div>
 
       <div className="flex shrink-0 items-center gap-3 self-center">
@@ -106,11 +136,22 @@ function SessionListRow({
             {formatLabel(row.format)}
           </Badge>
         ) : null}
-        <SessionProviderIcons
-          format={row.format}
-          teamsMeetingUrl={teamsMeetingUrl}
-          zoomMeetingUrl={zoomMeetingUrl}
-        />
+        {canManage && row.format !== "PHYSICAL" ? (
+          <SessionProviderIcons
+            format={row.format}
+            teamsMeetingUrl={teamsMeetingUrl}
+            zoomMeetingUrl={zoomMeetingUrl}
+            interactive
+            onTeamsClick={handleTeamsClick}
+            onZoomClick={handleZoomClick}
+          />
+        ) : row.format !== "PHYSICAL" ? (
+          <SessionProviderIcons
+            format={row.format}
+            teamsMeetingUrl={teamsMeetingUrl}
+            zoomMeetingUrl={zoomMeetingUrl}
+          />
+        ) : null}
         <span
           className="inline-flex items-center gap-1 text-xs text-stone-500"
           title="Attendees who picked this session"
@@ -134,6 +175,7 @@ function SessionListRow({
 export function AgendaPanel({
   orgSlug,
   eventId,
+  timezone,
   sessions,
   canManage,
   microsoftConnected,
@@ -141,6 +183,7 @@ export function AgendaPanel({
 }: {
   orgSlug: string;
   eventId: string;
+  timezone: string;
   sessions: SessionRow[];
   canManage: boolean;
   microsoftConnected: boolean;
@@ -148,9 +191,11 @@ export function AgendaPanel({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const onlineSectionRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<SessionRow | null>(null);
   const [format, setFormat] = useState<SessionRow["format"]>("PHYSICAL");
+  const [focusOnline, setFocusOnline] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -167,9 +212,22 @@ export function AgendaPanel({
     setOpen(true);
   }, [focusSessionId, sessions, canManage]);
 
+  useEffect(() => {
+    if (!focusOnline || !open) return;
+    const timer = window.setTimeout(() => {
+      onlineSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+      setFocusOnline(false);
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [focusOnline, open]);
+
   function openCreate() {
     setEditing(null);
     setFormat("PHYSICAL");
+    setFocusOnline(false);
     setError(null);
     setOpen(true);
   }
@@ -177,14 +235,23 @@ export function AgendaPanel({
   function openEdit(row: SessionRow) {
     setEditing(row);
     setFormat(row.format);
+    setFocusOnline(false);
+    setError(null);
+    setOpen(true);
+  }
+
+  function openEditOnline(row: SessionRow) {
+    setEditing(row);
+    setFormat(row.format);
+    setFocusOnline(true);
     setError(null);
     setOpen(true);
   }
 
   const whenLabel =
-    editing && (editing.startsAt || editing.endsAt)
-      ? `${editing.startsAt || "TBC"}${editing.endsAt ? ` – ${editing.endsAt}` : ""}`
-      : "";
+    editing && editing.timeLabel
+      ? `${editing.dateLabel} · ${editing.timeLabel}`
+      : editing?.dateLabel ?? "";
 
   return (
     <div className="space-y-6">
@@ -195,9 +262,14 @@ export function AgendaPanel({
           </p>
           <h1 className="mt-1 font-display text-3xl text-ink-800">Agenda</h1>
           <p className="mt-1 text-sm text-stone-700">
-            Sessions attendees can add to their personal agenda. Import from a
-            spreadsheet or add sessions one at a time.
+            Download the template, fill in all sessions, then import the file to
+            build the programme. You can also add or edit sessions one at a time.
           </p>
+          {canManage ? (
+            <p className="mt-2 text-xs text-stone-500">
+              Times shown in {timezone.replace(/_/g, " ")}
+            </p>
+          ) : null}
         </div>
         {canManage ? (
           <div className="flex flex-wrap items-center gap-2">
@@ -219,6 +291,7 @@ export function AgendaPanel({
               row={row}
               canManage={canManage}
               onEdit={() => openEdit(row)}
+              onEditOnline={() => openEditOnline(row)}
             />
           ))}
         </div>
@@ -363,6 +436,7 @@ export function AgendaPanel({
 
           {canManage ? (
             <SessionOnlineControls
+              ref={onlineSectionRef}
               orgSlug={orgSlug}
               eventId={eventId}
               sessionId={editing?.id ?? null}

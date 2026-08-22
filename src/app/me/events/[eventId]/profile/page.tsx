@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db/prisma";
 import { requireUser } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
@@ -33,10 +34,24 @@ export default async function AttendeeProfilePage({
           {attendee.event.name}
         </p>
         <h1 className="mt-1 font-display text-3xl text-ink-800">Profile</h1>
-        <p className="mt-1 text-sm text-stone-700">
+        <p className="mt-1 max-w-2xl text-sm text-stone-700">
           Visible attendees see this in the directory, subject to your privacy
-          settings.
+          settings. Matching answers and visibility are managed separately.
         </p>
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          <Link
+            href={`/me/events/${eventId}/privacy`}
+            className="font-semibold text-ink-700 underline-offset-4 hover:underline"
+          >
+            Privacy &amp; matching settings
+          </Link>
+          <Link
+            href={`/me/events/${eventId}/matchmaking`}
+            className="text-stone-600 underline-offset-4 hover:text-ink-700 hover:underline"
+          >
+            Matching questionnaire
+          </Link>
+        </div>
       </div>
       <ProfileForm
         eventId={eventId}
