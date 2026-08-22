@@ -571,7 +571,13 @@ export function InviteesPanel({
           setNotice(null);
           start(async () => {
             try {
-              await deleteContact(orgSlug, eventId, deleteTarget.id);
+              const result = await deleteContact(orgSlug, eventId, deleteTarget.id);
+              if (!result.ok) {
+                setError(result.error);
+                toast.error(result.error);
+                setDeleteTarget(null);
+                return;
+              }
               setSelected((list) => list.filter((id) => id !== deleteTarget.id));
               setDeleteTarget(null);
               setNotice(`${displayName(deleteTarget)} has been removed.`);

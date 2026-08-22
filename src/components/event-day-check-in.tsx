@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/toast";
 
 type BarcodeDetectorLike = {
   detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue: string }>>;
@@ -128,6 +129,7 @@ export function EventDayCheckIn({
   orgSlug: string;
   eventId: string;
 }) {
+  const toast = useToast();
   const [token, setToken] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<CheckInView | null>(null);
@@ -143,6 +145,11 @@ export function EventDayCheckIn({
   const streamRef = useRef<MediaStream | null>(null);
   const scanning = useRef(false);
 
+  function showError(message: string) {
+    setError(message);
+    toast.error(message);
+  }
+
   function resetScanner() {
     setToken("");
     setView(null);
@@ -155,6 +162,11 @@ export function EventDayCheckIn({
   function applyResult(result: { view: CheckInView; outcome: CheckInOutcome }) {
     setView(result.view);
     setOutcome(result.outcome);
+    if (result.outcome === "checked_in") {
+      toast.success(`${result.view.name} checked in.`);
+    } else if (result.outcome === "already_checked_in") {
+      toast.error(`${result.view.name} is already checked in.`);
+    }
   }
 
   useEffect(() => {
@@ -182,7 +194,7 @@ export function EventDayCheckIn({
           await videoRef.current.play();
         }
       } catch {
-        setError("Camera permission was denied.");
+        showError("Camera permission was denied.");
         setCameraOn(false);
       }
     })();
@@ -198,14 +210,14 @@ export function EventDayCheckIn({
           setToken(raw);
           setCameraOn(false);
           start(async () => {
-            try {
-              setError(null);
-              const result = await performCheckIn(orgSlug, eventId, raw);
-              applyResult(result);
-            } catch (e) {
-              setError(e instanceof Error ? e.message : "Scan failed");
+            setError(null);
+            const result = await performCheckIn(orgSlug, eventId, raw);
+            if (!result.ok) {
+              showError(result.error);
               scanning.current = false;
+              return;
             }
+            applyResult(result.data);
           });
         }
       } catch {
@@ -219,25 +231,26 @@ export function EventDayCheckIn({
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- scanner effect keyed to camera session
   }, [cameraOn, eventId, orgSlug]);
 
   function runLookup() {
     const raw = token.trim();
     if (!raw) {
-      setError("Paste or scan an attendance token.");
+      showError("Paste or scan an attendance token.");
       return;
     }
     setError(null);
     start(async () => {
-      try {
-        const result = await lookupCheckIn(orgSlug, eventId, raw);
-        setView(result);
-        setOutcome(result.alreadyCheckedIn ? "already_checked_in" : "ready");
-      } catch (e) {
+      const result = await lookupCheckIn(orgSlug, eventId, raw);
+      if (!result.ok) {
         setView(null);
         setOutcome(null);
-        setError(e instanceof Error ? e.message : "Lookup failed");
+        showError(result.error);
+        return;
       }
+      setView(result.data);
+      setOutcome(result.data.alreadyCheckedIn ? "already_checked_in" : "ready");
     });
   }
 
@@ -246,12 +259,12 @@ export function EventDayCheckIn({
     if (!raw) return;
     setError(null);
     start(async () => {
-      try {
-        const result = await performCheckIn(orgSlug, eventId, raw);
-        applyResult(result);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Check-in failed");
+      const result = await performCheckIn(orgSlug, eventId, raw);
+      if (!result.ok) {
+        showError(result.error);
+        return;
       }
+      applyResult(result.data);
     });
   }
 
@@ -300,7 +313,11 @@ export function EventDayCheckIn({
             muted
           />
         ) : null}
-        {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
+        {error ? (
+          <p className="mt-3 rounded-sm border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        ) : null}
       </Card>
 
       {view && outcome ? (

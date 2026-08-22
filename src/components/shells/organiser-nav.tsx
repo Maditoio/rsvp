@@ -102,19 +102,40 @@ export function OrganiserMobileNav({
   const pathname = usePathname();
   const [openForPath, setOpenForPath] = useState<string | null>(null);
   const open = openForPath === pathname;
+  const isEventDay = /\/events\/[^/]+\/day(?:\/|$)/.test(pathname);
 
   return (
     <div className="w-full">
-      <div className="flex items-start justify-between gap-3">
-        <div className="md:hidden">
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-bronze-600">
-            Organisation workspace
-          </p>
-          <p className="mt-1 text-sm text-ink-700">{orgName}</p>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          {workspaces.length > 0 ? (
-            <WorkspaceSwitcher workspaces={workspaces} compact />
+      <div className="flex items-center gap-2">
+        {isEventDay ? (
+          workspaces.length > 0 ? (
+            <WorkspaceSwitcher
+              workspaces={workspaces}
+              compact
+              menuAlign="left"
+            />
+          ) : null
+        ) : (
+          <>
+            <div className="min-w-0 flex-1 md:hidden">
+              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-bronze-600">
+                Organisation workspace
+              </p>
+              <p className="mt-1 truncate text-sm text-ink-700">{orgName}</p>
+            </div>
+            {workspaces.length > 0 ? (
+              <div className="hidden sm:block">
+                <WorkspaceSwitcher workspaces={workspaces} compact />
+              </div>
+            ) : null}
+          </>
+        )}
+
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {!isEventDay && workspaces.length > 0 ? (
+            <div className="sm:hidden">
+              <WorkspaceSwitcher workspaces={workspaces} compact />
+            </div>
           ) : null}
           <button
             type="button"

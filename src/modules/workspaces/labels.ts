@@ -1,5 +1,18 @@
 import type { EventRole } from "@prisma/client";
 
+export function eventRoleLabel(role: EventRole): string {
+  switch (role) {
+    case "CHECKIN_STAFF":
+      return "Check-in staff";
+    case "REGISTRATION_MANAGER":
+      return "Registration manager";
+    case "EVENT_ADMINISTRATOR":
+      return "Event administrator";
+    default:
+      return "Event staff";
+  }
+}
+
 /** Human-readable copy for event-staff workspaces (extensible for Phase 4 roles). */
 export function eventRoleWorkspaceDescription(role: EventRole): string {
   switch (role) {

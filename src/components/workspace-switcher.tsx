@@ -53,9 +53,12 @@ function groupWorkspaces(workspaces: UserWorkspace[]) {
 export function WorkspaceSwitcher({
   workspaces,
   compact = false,
+  menuAlign = "right",
 }: {
   workspaces: UserWorkspace[];
   compact?: boolean;
+  /** Dropdown opens toward this side of the trigger. */
+  menuAlign?: "left" | "right";
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -120,7 +123,7 @@ export function WorkspaceSwitcher({
         aria-haspopup="listbox"
         className={cn(
           "inline-flex max-w-full items-center gap-2 rounded-sm border border-stone-200 bg-stone-0 px-2.5 py-1.5 text-sm text-ink-700 hover:bg-stone-50",
-          compact ? "max-w-[11rem]" : "min-w-[10rem]",
+          compact ? "max-w-[9.5rem]" : "min-w-[10rem]",
         )}
       >
         <CurrentIcon
@@ -142,7 +145,12 @@ export function WorkspaceSwitcher({
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-30 mt-1 w-72 rounded-md border border-stone-200 bg-white py-1 shadow-lg">
+        <div
+          className={cn(
+            "absolute z-30 mt-1 w-72 rounded-md border border-stone-200 bg-white py-1 shadow-lg",
+            menuAlign === "left" ? "left-0" : "right-0",
+          )}
+        >
           <div className="border-b border-stone-100 px-3 py-2">
             <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
               Workspaces

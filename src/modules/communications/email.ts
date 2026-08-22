@@ -290,6 +290,46 @@ export async function sendReminderEmail(input: {
   });
 }
 
+export async function sendEventStaffRoleEmail(input: {
+  organisationId: string;
+  eventId: string;
+  toEmail: string;
+  toName: string;
+  eventName: string;
+  orgName: string;
+  roleLabel: string;
+  previousRoleLabel?: string | null;
+  workspaceUrl: string;
+  roleDescription: string;
+}) {
+  const changed = Boolean(input.previousRoleLabel);
+  const subject = changed
+    ? `Your role at ${input.eventName} is now ${input.roleLabel}`
+    : `You've been assigned as ${input.roleLabel} for ${input.eventName}`;
+
+  const body = changed
+    ? `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, your staff role for <strong>${escapeHtml(input.eventName)}</strong> (${escapeHtml(input.orgName)}) has been updated from ${escapeHtml(input.previousRoleLabel!)} to <strong>${escapeHtml(input.roleLabel)}</strong>.</p>
+       <p style="color:#5F5A4D">${escapeHtml(input.roleDescription)}.</p>
+       <p style="color:#8B8578;font-size:13px">Sign in with <strong>${escapeHtml(input.toEmail)}</strong> to open your workspace.</p>`
+    : `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} has assigned you as <strong>${escapeHtml(input.roleLabel)}</strong> for <strong>${escapeHtml(input.eventName)}</strong>.</p>
+       <p style="color:#5F5A4D">${escapeHtml(input.roleDescription)}.</p>
+       <p style="color:#8B8578;font-size:13px">Sign in with <strong>${escapeHtml(input.toEmail)}</strong> to open your workspace.</p>`;
+
+  return deliver({
+    organisationId: input.organisationId,
+    eventId: input.eventId,
+    toEmail: input.toEmail,
+    subject,
+    html: letter(
+      changed ? `Your role has been updated` : `You have a new staff role`,
+      "Staff access",
+      body,
+      input.workspaceUrl,
+      "Open workspace",
+    ),
+  });
+}
+
 export async function sendApplicationDecisionEmail(input: {
   organisationId: string;
   eventId: string;

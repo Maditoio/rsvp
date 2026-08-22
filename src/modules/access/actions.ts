@@ -14,6 +14,13 @@ import {
   publicActionError,
 } from "@/lib/action-result";
 import { emailFieldSchema, isValidEmail, normalizeEmail } from "@/lib/validation";
+import { getAppUrl } from "@/lib/utils";
+import { sendEventStaffRoleEmail } from "@/modules/communications/email";
+import {
+  eventRoleDefaultHref,
+  eventRoleLabel,
+  eventRoleWorkspaceDescription,
+} from "@/modules/workspaces/labels";
 
 const addOrgMemberSchema = z.object({
   email: emailFieldSchema,
@@ -44,6 +51,44 @@ const eventRoleSchema = z
 
 async function requestIp() {
   return (await headers()).get("x-forwarded-for");
+}
+
+async function eventNameForStaffEmail(eventId: string, organisationId: string) {
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, organisationId },
+    select: { name: true },
+  });
+  return event?.name ?? "your event";
+}
+
+async function notifyEventStaffRole(input: {
+  organisationId: string;
+  orgSlug: string;
+  orgName: string;
+  eventId: string;
+  toEmail: string;
+  toName: string;
+  role: EventRole;
+  previousRole?: EventRole | null;
+}) {
+  const eventName = await eventNameForStaffEmail(
+    input.eventId,
+    input.organisationId,
+  );
+  await sendEventStaffRoleEmail({
+    organisationId: input.organisationId,
+    eventId: input.eventId,
+    toEmail: input.toEmail,
+    toName: input.toName,
+    eventName,
+    orgName: input.orgName,
+    roleLabel: eventRoleLabel(input.role),
+    previousRoleLabel: input.previousRole
+      ? eventRoleLabel(input.previousRole)
+      : null,
+    roleDescription: eventRoleWorkspaceDescription(input.role),
+    workspaceUrl: `${getAppUrl()}${eventRoleDefaultHref(input.orgSlug, input.eventId, input.role)}`,
+  });
 }
 
 async function ensureOwnerInvariant(organisationId: string, userId: string, nextRole?: OrgRole) {
@@ -246,19 +291,29 @@ export async function assignEventStaff(
     const targetUser = input.userId
       ? await prisma.user.findUnique({
           where: { id: input.userId },
-          select: { id: true, email: true },
+          select: { id: true, email: true, firstName: true, lastName: true },
         })
       : await prisma.user.findFirst({
           where: {
             email: { equals: input.email ?? "", mode: "insensitive" },
           },
-          select: { id: true, email: true },
+          select: { id: true, email: true, firstName: true, lastName: true },
         });
     if (!targetUser) {
       return actionFail(
         "That user has not signed in yet. Ask them to create an account first, then assign them here — do not add them as an organisation admin unless they should manage the whole organisation.",
       );
     }
+
+    const existing = await prisma.eventUser.findUnique({
+      where: {
+        eventId_userId: {
+          eventId,
+          userId: targetUser.id,
+        },
+      },
+      select: { role: true },
+    });
 
     const orgMember = await prisma.organisationUser.findUnique({
       where: {
@@ -270,6 +325,7 @@ export async function assignEventStaff(
       select: { role: true },
     });
 
+    const nextRole = input.role as EventRole;
     const assignment = await prisma.eventUser.upsert({
       where: {
         eventId_userId: {
@@ -281,9 +337,9 @@ export async function assignEventStaff(
         organisationId: ctx.organisation.id,
         eventId,
         userId: targetUser.id,
-        role: input.role as EventRole,
+        role: nextRole,
       },
-      update: { role: input.role as EventRole },
+      update: { role: nextRole },
     });
 
     await writeAudit({
@@ -298,9 +354,30 @@ export async function assignEventStaff(
         targetUserId: targetUser.id,
         targetEmail: targetUser.email,
         role: input.role,
+        previousRole: existing?.role ?? null,
         orgRole: orgMember?.role ?? null,
       },
     });
+
+    const roleChanged = !existing || existing.role !== nextRole;
+    if (roleChanged) {
+      try {
+        await notifyEventStaffRole({
+          organisationId: ctx.organisation.id,
+          orgSlug,
+          orgName: ctx.organisation.name,
+          eventId,
+          toEmail: targetUser.email,
+          toName:
+            [targetUser.firstName, targetUser.lastName].filter(Boolean).join(" ") ||
+            targetUser.email,
+          role: nextRole,
+          previousRole: existing?.role ?? null,
+        });
+      } catch (error) {
+        console.error("event staff role email failed", error);
+      }
+    }
 
     revalidatePath(`/app/${orgSlug}/events/${eventId}`);
     revalidatePath(`/app/${orgSlug}/events/${eventId}/staff`);
@@ -334,9 +411,15 @@ export async function changeEventStaffRole(
       role: String(formData.get("role") ?? ""),
     });
 
+  const previous = await prisma.eventUser.findUnique({
+    where: { eventId_userId: { eventId, userId: input.userId } },
+    select: { role: true },
+  });
+
+  const nextRole = input.role as EventRole;
   const assignment = await prisma.eventUser.update({
     where: { eventId_userId: { eventId, userId: input.userId } },
-    data: { role: input.role as EventRole },
+    data: { role: nextRole },
     include: { user: true },
   });
 
@@ -352,8 +435,29 @@ export async function changeEventStaffRole(
       targetUserId: assignment.userId,
       targetEmail: assignment.user.email,
       role: input.role,
+      previousRole: previous?.role ?? null,
     },
   });
+
+  if (!previous || previous.role !== nextRole) {
+    try {
+      await notifyEventStaffRole({
+        organisationId: ctx.organisation.id,
+        orgSlug,
+        orgName: ctx.organisation.name,
+        eventId,
+        toEmail: assignment.user.email,
+        toName:
+          [assignment.user.firstName, assignment.user.lastName]
+            .filter(Boolean)
+            .join(" ") || assignment.user.email,
+        role: nextRole,
+        previousRole: previous?.role ?? null,
+      });
+    } catch (error) {
+      console.error("event staff role email failed", error);
+    }
+  }
 
   revalidatePath(`/app/${orgSlug}/events/${eventId}`);
 }

@@ -39,7 +39,7 @@ export function OrganiserShell({
           />
         </Suspense>
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <header className="border-b border-stone-200 bg-stone-0 px-6 py-4 md:hidden">
+          <header className="border-b border-stone-200 bg-stone-0 px-4 py-3 md:hidden sm:px-6 sm:py-4">
             <Suspense fallback={null}>
               <OrganiserMobileNav
                 orgName={orgName}

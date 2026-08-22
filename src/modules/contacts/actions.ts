@@ -8,6 +8,11 @@ import { prisma } from "@/lib/db/prisma";
 import { writeAudit } from "@/modules/audit/log";
 import { generateOpaqueToken } from "@/lib/crypto/tokens";
 import {
+  actionFail,
+  actionOk,
+  publicActionError,
+} from "@/lib/action-result";
+import {
   contactCreateFromFormData,
   contactCreateSchema,
   guessColumnMap,
@@ -366,64 +371,71 @@ export async function deleteContact(
   eventId: string,
   contactId: string,
 ) {
-  const ctx = await requireEvent(orgSlug, eventId, "invitees.write");
+  try {
+    const ctx = await requireEvent(orgSlug, eventId, "invitees.write");
 
-  const contact = await prisma.contact.findFirst({
-    where: {
-      id: contactId,
-      eventId,
-      organisationId: ctx.organisation.id,
-    },
-    select: {
-      id: true,
-      email: true,
-      attendees: { select: { id: true, status: true } },
-    },
-  });
-  if (!contact) throw new Error("Invitee not found");
-
-  const activeAttendees = contact.attendees.filter(
-    (row) => row.status !== "CANCELLED",
-  );
-  if (activeAttendees.length > 0) {
-    throw new Error(
-      "This invitee still has an active registration. Cancel them under Attendees first, then delete the invitee.",
-    );
-  }
-
-  const cancelledIds = contact.attendees
-    .filter((row) => row.status === "CANCELLED")
-    .map((row) => row.id);
-
-  await prisma.$transaction(async (tx) => {
-    if (cancelledIds.length > 0) {
-      await tx.attendee.deleteMany({
-        where: {
-          id: { in: cancelledIds },
-          eventId,
-          organisationId: ctx.organisation.id,
-          status: "CANCELLED",
-        },
-      });
+    const contact = await prisma.contact.findFirst({
+      where: {
+        id: contactId,
+        eventId,
+        organisationId: ctx.organisation.id,
+      },
+      select: {
+        id: true,
+        email: true,
+        attendees: { select: { id: true, status: true } },
+      },
+    });
+    if (!contact) {
+      return actionFail("Invitee not found for this event.");
     }
-    await tx.contact.delete({ where: { id: contact.id } });
-  });
 
-  await writeAudit({
-    organisationId: ctx.organisation.id,
-    eventId,
-    userId: ctx.user.id,
-    action: "contact.delete",
-    resource: "contact",
-    resourceId: contact.id,
-    metadata: {
-      email: contact.email,
-      removedCancelledAttendees: cancelledIds.length,
-    },
-  });
+    const activeAttendees = contact.attendees.filter(
+      (row) => row.status !== "CANCELLED",
+    );
+    if (activeAttendees.length > 0) {
+      return actionFail(
+        "This invitee still has an active registration. Cancel them under Attendees first, then delete the invitee.",
+      );
+    }
 
-  revalidatePath(`/app/${orgSlug}/events/${eventId}/invitees`);
-  revalidatePath(`/app/${orgSlug}/events/${eventId}/invitations`);
-  revalidatePath(`/app/${orgSlug}/events/${eventId}/attendees`);
-  revalidatePath(`/app/${orgSlug}/events/${eventId}/registrations`);
+    const cancelledIds = contact.attendees
+      .filter((row) => row.status === "CANCELLED")
+      .map((row) => row.id);
+
+    await prisma.$transaction(async (tx) => {
+      if (cancelledIds.length > 0) {
+        await tx.attendee.deleteMany({
+          where: {
+            id: { in: cancelledIds },
+            eventId,
+            organisationId: ctx.organisation.id,
+            status: "CANCELLED",
+          },
+        });
+      }
+      await tx.contact.delete({ where: { id: contact.id } });
+    });
+
+    await writeAudit({
+      organisationId: ctx.organisation.id,
+      eventId,
+      userId: ctx.user.id,
+      action: "contact.delete",
+      resource: "contact",
+      resourceId: contact.id,
+      metadata: {
+        email: contact.email,
+        removedCancelledAttendees: cancelledIds.length,
+      },
+    });
+
+    revalidatePath(`/app/${orgSlug}/events/${eventId}/invitees`);
+    revalidatePath(`/app/${orgSlug}/events/${eventId}/invitations`);
+    revalidatePath(`/app/${orgSlug}/events/${eventId}/attendees`);
+    revalidatePath(`/app/${orgSlug}/events/${eventId}/registrations`);
+    return actionOk();
+  } catch (error) {
+    return actionFail(publicActionError(error, "Could not delete invitee."));
+  }
 }

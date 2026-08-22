@@ -64,7 +64,12 @@ export function RegistrationStatusActions({
         } else if (next === "cancel") {
           await cancelAttendeeRegistration(orgSlug, eventId, subjectId);
         } else {
-          await deleteAttendee(orgSlug, eventId, subjectId);
+          const result = await deleteAttendee(orgSlug, eventId, subjectId);
+          if (!result.ok) {
+            setError(result.error);
+            toast.error(result.error);
+            return;
+          }
         }
         setIntent(null);
         toast.success(

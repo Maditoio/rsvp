@@ -1,9 +1,16 @@
+import type { CheckInView } from "@/lib/authz/fields";
+import type { ActionResult } from "@/lib/action-result";
+
 export type CheckInOutcome = "ready" | "checked_in" | "already_checked_in";
 
-export type CheckInActionResult = {
+export type CheckInActionResult = ActionResult<{
   outcome: CheckInOutcome;
-  view: import("@/lib/authz/fields").CheckInView;
-};
+  view: CheckInView;
+}>;
+
+export type CheckInLookupResult = ActionResult<CheckInView>;
+
+export type CheckInSearchResult = ActionResult<CheckInSearchRow[]>;
 
 export type CheckInSearchRow = {
   attendeeId: string;

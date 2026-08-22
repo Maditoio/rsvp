@@ -1,7 +1,11 @@
 import type { EventRole, OrgRole } from "@prisma/client";
 import { EventRole as EventRoleEnum } from "@prisma/client";
 import { eventNavGroups, eventSettingsItem } from "@/components/nav";
-import { eventRoleDefaultHref, eventRoleWorkspaceDescription } from "@/modules/workspaces/labels";
+import {
+  eventRoleDefaultHref,
+  eventRoleLabel,
+  eventRoleWorkspaceDescription,
+} from "@/modules/workspaces/labels";
 import { WORKSPACE_KIND_LABELS, type WorkspaceKind } from "@/modules/workspaces/types";
 
 export type PlatformSurfaceLink = {
@@ -22,12 +26,6 @@ export type PlatformSurfaceGroup = {
 const ORG_ROLE_LABELS: Record<OrgRole, string> = {
   OWNER: "Organisation owner",
   ADMIN: "Organisation admin",
-};
-
-const EVENT_ROLE_LABELS: Record<EventRole, string> = {
-  EVENT_ADMINISTRATOR: "Event administrator",
-  REGISTRATION_MANAGER: "Registration manager",
-  CHECKIN_STAFF: "Check-in staff",
 };
 
 const ATTENDEE_EVENT_ROUTES = [
@@ -120,21 +118,21 @@ function eventDayLinks(
       href: base,
       label: "Scan check-in",
       description: `${eventName} · QR scan and immediate check-in`,
-      roleLabel: EVENT_ROLE_LABELS.CHECKIN_STAFF,
+      roleLabel: eventRoleLabel("CHECKIN_STAFF"),
       kind: "event_operations",
     },
     {
       href: `${base}/lookup`,
       label: "Delegate lookup",
       description: `${eventName} · Search by name or company`,
-      roleLabel: EVENT_ROLE_LABELS.CHECKIN_STAFF,
+      roleLabel: eventRoleLabel("CHECKIN_STAFF"),
       kind: "event_operations",
     },
     {
       href: `/app/${orgSlug}/events/${eventId}/check-in`,
       label: "Check-in (redirect)",
       description: `${eventName} · Legacy URL redirects to event day scan`,
-      roleLabel: EVENT_ROLE_LABELS.CHECKIN_STAFF,
+      roleLabel: eventRoleLabel("CHECKIN_STAFF"),
       kind: "event_operations",
     },
   ];
@@ -150,7 +148,7 @@ function eventRoleLinks(
     href: eventRoleDefaultHref(orgSlug, eventId, role),
     label: eventName,
     description: eventRoleWorkspaceDescription(role),
-    roleLabel: EVENT_ROLE_LABELS[role],
+    roleLabel: eventRoleLabel(role),
     kind: "event_operations" as const,
   }));
 }
@@ -249,4 +247,4 @@ export function buildPlatformSurfaceCatalog(input: {
   return groups;
 }
 
-export { EVENT_ROLE_LABELS, ORG_ROLE_LABELS, ATTENDEE_EVENT_ROUTES };
+export { ORG_ROLE_LABELS, ATTENDEE_EVENT_ROUTES };

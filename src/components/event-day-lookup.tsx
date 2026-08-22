@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/toast";
 
 export function EventDayLookup({
   orgSlug,
@@ -19,6 +20,7 @@ export function EventDayLookup({
   orgSlug: string;
   eventId: string;
 }) {
+  const toast = useToast();
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<CheckInSearchRow[]>([]);
   const [selected, setSelected] = useState<CheckInSearchRow | null>(null);
@@ -26,25 +28,30 @@ export function EventDayLookup({
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
+  function showError(message: string) {
+    setError(message);
+    toast.error(message);
+  }
+
   function runSearch() {
     const term = query.trim();
     if (term.length < 2) {
-      setError("Enter at least two characters.");
+      showError("Enter at least two characters.");
       return;
     }
     setError(null);
     setSelected(null);
     setOutcome(null);
     start(async () => {
-      try {
-        const results = await searchCheckInAttendees(orgSlug, eventId, term);
-        setRows(results);
-        if (results.length === 0) {
-          setError("No matching delegates found.");
-        }
-      } catch (e) {
+      const result = await searchCheckInAttendees(orgSlug, eventId, term);
+      if (!result.ok) {
         setRows([]);
-        setError(e instanceof Error ? e.message : "Search failed");
+        showError(result.error);
+        return;
+      }
+      setRows(result.data);
+      if (result.data.length === 0) {
+        showError("No matching delegates found.");
       }
     });
   }
@@ -52,31 +59,36 @@ export function EventDayLookup({
   function checkIn(row: CheckInSearchRow) {
     setError(null);
     start(async () => {
-      try {
-        const result = await performCheckInByAttendeeId(
-          orgSlug,
-          eventId,
-          row.attendeeId,
-        );
-        setSelected({
-          ...row,
-          alreadyCheckedIn: result.view.alreadyCheckedIn,
-          checkedInAt: result.view.checkedInAt,
-        });
-        setOutcome(result.outcome);
-        setRows((current) =>
-          current.map((item) =>
-            item.attendeeId === row.attendeeId
-              ? {
-                  ...item,
-                  alreadyCheckedIn: result.view.alreadyCheckedIn,
-                  checkedInAt: result.view.checkedInAt,
-                }
-              : item,
-          ),
-        );
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Check-in failed");
+      const result = await performCheckInByAttendeeId(
+        orgSlug,
+        eventId,
+        row.attendeeId,
+      );
+      if (!result.ok) {
+        showError(result.error);
+        return;
+      }
+      setSelected({
+        ...row,
+        alreadyCheckedIn: result.data.view.alreadyCheckedIn,
+        checkedInAt: result.data.view.checkedInAt,
+      });
+      setOutcome(result.data.outcome);
+      setRows((current) =>
+        current.map((item) =>
+          item.attendeeId === row.attendeeId
+            ? {
+                ...item,
+                alreadyCheckedIn: result.data.view.alreadyCheckedIn,
+                checkedInAt: result.data.view.checkedInAt,
+              }
+            : item,
+        ),
+      );
+      if (result.data.outcome === "checked_in") {
+        toast.success(`${row.name} checked in.`);
+      } else {
+        toast.error(`${row.name} is already checked in.`);
       }
     });
   }
@@ -100,7 +112,11 @@ export function EventDayLookup({
         <p className="mt-2 text-xs text-stone-500">
           Staff see name, company, category, and check-in status only.
         </p>
-        {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
+        {error ? (
+          <p className="mt-3 rounded-sm border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger">
+            {error}
+          </p>
+        ) : null}
       </Card>
 
       {rows.length > 0 ? (

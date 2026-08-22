@@ -7,11 +7,21 @@ import { maskAttendeeForCheckIn } from "@/lib/authz/fields";
 import { writeAudit } from "@/modules/audit/log";
 import { rateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
+import {
+  actionFail,
+  actionOk,
+  publicActionError,
+} from "@/lib/action-result";
 import type {
   CheckInActionResult,
+  CheckInLookupResult,
   CheckInOutcome,
+  CheckInSearchResult,
   CheckInSearchRow,
 } from "./types";
+
+const NOT_FOUND_MESSAGE =
+  "No attendee found for this event. Check the QR code or search by name on Lookup.";
 
 function eventDayPaths(orgSlug: string, eventId: string) {
   return [
@@ -29,7 +39,7 @@ function revalidateCheckIn(orgSlug: string, eventId: string) {
 async function assertScanRateLimit(userId: string) {
   const limited = await rateLimit(`qr:${userId}`, 60, 60);
   if (!limited.success) {
-    throw new Error("Too many scans. Slow down.");
+    throw new Error("Too many scans. Please wait a moment and try again.");
   }
 }
 
@@ -105,32 +115,33 @@ async function recordCheckIn(
   });
 }
 
-function toActionResult(
+function toSuccess(
   view: ReturnType<typeof maskAttendeeForCheckIn>,
   outcome: CheckInOutcome,
 ): CheckInActionResult {
-  return { view, outcome };
+  return actionOk({ view, outcome });
 }
 
 export async function lookupCheckIn(
   orgSlug: string,
   eventId: string,
   rawToken: string,
-) {
-  const ctx = await requireEvent(orgSlug, eventId, "checkin.perform");
-  await assertScanRateLimit(ctx.user.id);
+): Promise<CheckInLookupResult> {
+  try {
+    const ctx = await requireEvent(orgSlug, eventId, "checkin.perform");
+    await assertScanRateLimit(ctx.user.id);
 
-  const attendee = await loadAttendeeByToken(
-    ctx.organisation.id,
-    eventId,
-    rawToken,
-  );
+    const attendee = await loadAttendeeByToken(
+      ctx.organisation.id,
+      eventId,
+      rawToken,
+    );
+    if (!attendee) return actionFail(NOT_FOUND_MESSAGE);
 
-  if (!attendee) {
-    throw new Error("Attendee not found for this event");
+    return actionOk(maskAttendeeForCheckIn(attendee));
+  } catch (error) {
+    return actionFail(publicActionError(error, "Could not look up this attendee."));
   }
-
-  return maskAttendeeForCheckIn(attendee);
 }
 
 export async function performCheckIn(
@@ -138,30 +149,36 @@ export async function performCheckIn(
   eventId: string,
   rawToken: string,
 ): Promise<CheckInActionResult> {
-  const ctx = await requireEvent(orgSlug, eventId, "checkin.perform");
-  await assertScanRateLimit(ctx.user.id);
+  try {
+    const ctx = await requireEvent(orgSlug, eventId, "checkin.perform");
+    await assertScanRateLimit(ctx.user.id);
 
-  const attendee = await loadAttendeeByToken(
-    ctx.organisation.id,
-    eventId,
-    rawToken,
-  );
-  if (!attendee) {
-    throw new Error("Attendee not found for this event");
+    const attendee = await loadAttendeeByToken(
+      ctx.organisation.id,
+      eventId,
+      rawToken,
+    );
+    if (!attendee) return actionFail(NOT_FOUND_MESSAGE);
+
+    const view = maskAttendeeForCheckIn(attendee);
+    if (view.alreadyCheckedIn) {
+      return toSuccess(view, "already_checked_in");
+    }
+
+    await recordCheckIn(ctx, view.attendeeId);
+    revalidateCheckIn(orgSlug, eventId);
+
+    const updated = await loadAttendeeByToken(
+      ctx.organisation.id,
+      eventId,
+      rawToken,
+    );
+    if (!updated) return actionFail(NOT_FOUND_MESSAGE);
+
+    return toSuccess(maskAttendeeForCheckIn(updated), "checked_in");
+  } catch (error) {
+    return actionFail(publicActionError(error, "Could not complete check-in."));
   }
-
-  const view = maskAttendeeForCheckIn(attendee);
-  if (view.alreadyCheckedIn) {
-    return toActionResult(view, "already_checked_in");
-  }
-
-  await recordCheckIn(ctx, view.attendeeId);
-  revalidateCheckIn(orgSlug, eventId);
-
-  const updated = maskAttendeeForCheckIn(
-    (await loadAttendeeByToken(ctx.organisation.id, eventId, rawToken))!,
-  );
-  return toActionResult(updated, "checked_in");
 }
 
 export async function performCheckInByAttendeeId(
@@ -169,67 +186,79 @@ export async function performCheckInByAttendeeId(
   eventId: string,
   attendeeId: string,
 ): Promise<CheckInActionResult> {
-  const ctx = await requireEvent(orgSlug, eventId, "checkin.perform");
-  await assertScanRateLimit(ctx.user.id);
+  try {
+    const ctx = await requireEvent(orgSlug, eventId, "checkin.perform");
+    await assertScanRateLimit(ctx.user.id);
 
-  const attendee = await loadAttendeeById(
-    ctx.organisation.id,
-    eventId,
-    attendeeId,
-  );
-  if (!attendee) {
-    throw new Error("Attendee not found for this event");
+    const attendee = await loadAttendeeById(
+      ctx.organisation.id,
+      eventId,
+      attendeeId,
+    );
+    if (!attendee) return actionFail(NOT_FOUND_MESSAGE);
+
+    const view = maskAttendeeForCheckIn(attendee);
+    if (view.alreadyCheckedIn) {
+      return toSuccess(view, "already_checked_in");
+    }
+
+    await recordCheckIn(ctx, attendeeId);
+    revalidateCheckIn(orgSlug, eventId);
+
+    const updated = await loadAttendeeById(
+      ctx.organisation.id,
+      eventId,
+      attendeeId,
+    );
+    if (!updated) return actionFail(NOT_FOUND_MESSAGE);
+
+    return toSuccess(maskAttendeeForCheckIn(updated), "checked_in");
+  } catch (error) {
+    return actionFail(publicActionError(error, "Could not complete check-in."));
   }
-
-  const view = maskAttendeeForCheckIn(attendee);
-  if (view.alreadyCheckedIn) {
-    return toActionResult(view, "already_checked_in");
-  }
-
-  await recordCheckIn(ctx, attendeeId);
-  revalidateCheckIn(orgSlug, eventId);
-
-  const updated = maskAttendeeForCheckIn(
-    (await loadAttendeeById(ctx.organisation.id, eventId, attendeeId))!,
-  );
-  return toActionResult(updated, "checked_in");
 }
 
 export async function searchCheckInAttendees(
   orgSlug: string,
   eventId: string,
   query: string,
-): Promise<CheckInSearchRow[]> {
-  const ctx = await requireEvent(orgSlug, eventId, "checkin.perform");
-  const term = query.trim();
-  if (term.length < 2) {
-    return [];
+): Promise<CheckInSearchResult> {
+  try {
+    const ctx = await requireEvent(orgSlug, eventId, "checkin.perform");
+    const term = query.trim();
+    if (term.length < 2) {
+      return actionOk([]);
+    }
+
+    const attendees = await prisma.attendee.findMany({
+      where: {
+        eventId,
+        organisationId: ctx.organisation.id,
+        OR: [
+          { firstName: { contains: term, mode: "insensitive" } },
+          { lastName: { contains: term, mode: "insensitive" } },
+          { company: { contains: term, mode: "insensitive" } },
+        ],
+      },
+      select: attendeeCheckInSelect,
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+      take: 12,
+    });
+
+    const rows: CheckInSearchRow[] = attendees.map((row) => {
+      const view = maskAttendeeForCheckIn(row);
+      return {
+        attendeeId: view.attendeeId,
+        name: view.name,
+        company: view.company,
+        category: view.category,
+        alreadyCheckedIn: view.alreadyCheckedIn,
+        checkedInAt: view.checkedInAt,
+      };
+    });
+
+    return actionOk(rows);
+  } catch (error) {
+    return actionFail(publicActionError(error, "Could not search delegates."));
   }
-
-  const attendees = await prisma.attendee.findMany({
-    where: {
-      eventId,
-      organisationId: ctx.organisation.id,
-      OR: [
-        { firstName: { contains: term, mode: "insensitive" } },
-        { lastName: { contains: term, mode: "insensitive" } },
-        { company: { contains: term, mode: "insensitive" } },
-      ],
-    },
-    select: attendeeCheckInSelect,
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    take: 12,
-  });
-
-  return attendees.map((row) => {
-    const view = maskAttendeeForCheckIn(row);
-    return {
-      attendeeId: view.attendeeId,
-      name: view.name,
-      company: view.company,
-      category: view.category,
-      alreadyCheckedIn: view.alreadyCheckedIn,
-      checkedInAt: view.checkedInAt,
-    };
-  });
 }
