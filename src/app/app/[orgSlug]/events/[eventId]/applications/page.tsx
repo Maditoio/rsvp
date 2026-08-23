@@ -4,6 +4,7 @@ import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { ApplicationsPanel } from "./applications-panel";
 
 export default async function ApplicationsPage({
@@ -20,20 +21,22 @@ export default async function ApplicationsPage({
     <div>
       {applications.length === 0 ? (
         <Card>
-          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-            Public applications
-          </p>
-          <h1 className="mt-1 font-display text-3xl text-slate-900">Applications</h1>
-          <p className="mt-2 text-sm text-slate-700">
-            No applications yet. Enable public applications in{" "}
-            <Link
-              href={`/app/${orgSlug}/events/${eventId}/settings`}
-              className="text-slate-700 underline"
-            >
-              event settings
-            </Link>{" "}
-            to publish an Apply to attend page.
-          </p>
+          <PageHeader
+            eyebrow="Public applications"
+            title="Applications"
+            description={
+              <>
+                No applications yet. Enable public applications in{" "}
+                <Link
+                  href={`/app/${orgSlug}/events/${eventId}/settings`}
+                  className="text-slate-700 underline"
+                >
+                  event settings
+                </Link>{" "}
+                to publish an Apply to attend page.
+              </>
+            }
+          />
         </Card>
       ) : (
         <ApplicationsPanel

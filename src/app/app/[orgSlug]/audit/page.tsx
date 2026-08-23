@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { requireOrg } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { displayName } from "@/lib/utils";
 import { AuditTable } from "./audit-table";
 
@@ -24,10 +25,11 @@ export default async function AuditPage({
 
   return (
     <div className="flex-1 p-6 md:p-10">
-      <h1 className="font-display text-3xl text-slate-900">Audit logs</h1>
-      <p className="mt-1 mb-6 text-[0.8125rem] text-slate-500">
-        Invite, register, check-in and admin actions for this organisation.
-      </p>
+      <PageHeader
+        title="Audit logs"
+        description="Invite, register, check-in and admin actions for this organisation."
+        className="mb-6"
+      />
       {logs.length === 0 ? (
         <Card>No audit entries yet.</Card>
       ) : (

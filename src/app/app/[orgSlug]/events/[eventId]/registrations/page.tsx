@@ -6,6 +6,7 @@ import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
 import { displayName } from "@/lib/utils";
 import { RegistrationsTable } from "./registrations-table";
+import { PageHeader } from "@/components/ui/page-header";
 
 type RegistrationData = {
   firstName?: string;
@@ -51,11 +52,11 @@ export default async function RegistrationsPage({
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-slate-900">Registrations</h1>
-      <p className="mt-1 mb-6 text-[0.8125rem] text-slate-500">
-        Invitation accepted is not registered. A registration response is created
-        only after the invitee completes the form.
-      </p>
+      <PageHeader
+        title="Registrations"
+        description="Invitation accepted is not registered. A registration response is created only after the invitee completes the form."
+        className="mb-6"
+      />
       {rows.length === 0 ? (
         <div className="rounded-xl bg-white shadow-sm px-5 py-8">
           <p className="text-slate-700">No registration responses yet.</p>

@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { EventDayOption } from "@/lib/event-dates";
 
 export function AttendanceDatesPicker({
@@ -19,7 +20,7 @@ export function AttendanceDatesPicker({
     return (
       <div className="space-y-2">
         <Label>Attendance dates</Label>
-        <p className="text-sm text-slate-500">
+        <p className="text-body text-slate-500">
           Event dates have not been published yet. The organiser will confirm your
           attendance separately.
         </p>
@@ -33,7 +34,7 @@ export function AttendanceDatesPicker({
         Which day(s) will you attend?
         {required ? " *" : ""}
       </Label>
-      <p className="text-sm text-slate-500">
+      <p className="text-body text-slate-500">
         Select every event date you plan to attend.
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
@@ -41,19 +42,18 @@ export function AttendanceDatesPicker({
           <label
             key={option.value}
             className={cn(
-              "flex cursor-pointer items-center gap-3 rounded-md border px-4 py-3 text-sm transition-colors has-[:checked]:border-indigo-600 has-[:checked]:bg-slate-50",
-              "border-slate-200 bg-white hover:border-slate-200",
+              "flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-body shadow-xs transition-colors",
+              "border-slate-200 bg-white hover:border-slate-300",
+              "has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50",
             )}
           >
-            <input
-              type="checkbox"
+            <Checkbox
               name={name}
               value={option.value}
               defaultChecked={defaultSelected.includes(option.value)}
               required={required && defaultSelected.length === 0}
-              className="size-4 accent-indigo-600"
             />
-            <span className="text-slate-900">{option.label}</span>
+            <span className="font-medium text-slate-900">{option.label}</span>
           </label>
         ))}
       </div>

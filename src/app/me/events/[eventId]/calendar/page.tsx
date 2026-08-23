@@ -6,6 +6,7 @@ import { getAppUrl } from "@/lib/utils";
 import { getGoogleAuthUrl } from "@/modules/calendar/google";
 import { getMicrosoftAuthUrl, microsoftConfigured } from "@/modules/calendar/microsoft";
 import { CalendarPanel } from "./calendar-panel";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function CalendarPage({
   params,
@@ -41,15 +42,11 @@ export default async function CalendarPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-          {attendee.event.name}
-        </p>
-        <h1 className="mt-1 font-display text-3xl text-slate-900">Calendar</h1>
-        <p className="mt-1 text-sm text-slate-700">
-          Connect your calendar to automatically receive meeting invites.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow={attendee.event.name}
+        title="Calendar"
+        description="Connect your calendar to automatically receive meeting invites."
+      />
       <CalendarPanel
         eventId={eventId}
         connections={connections}

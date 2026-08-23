@@ -103,7 +103,7 @@ export function AttendeeNotifications() {
       >
         <Bell className="size-4" strokeWidth={1.75} aria-hidden />
         {badgeCount > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 flex min-w-[1.125rem] items-center justify-center rounded-xs bg-indigo-600 px-1 text-[0.625rem] font-semibold leading-none text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex min-w-[1.125rem] items-center justify-center rounded-full bg-indigo-600 px-1 text-[0.625rem] font-semibold leading-none text-white">
             {badgeCount > 9 ? "9+" : badgeCount}
           </span>
         ) : null}

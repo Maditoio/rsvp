@@ -147,7 +147,7 @@ function SoonCard({ item }: { item: SoonIntegration }) {
     <div className="flex min-h-[132px] flex-col rounded-md border border-dashed border-slate-200 bg-white p-5">
       <div className="flex items-start gap-3">
         <IconTile>{item.icon}</IconTile>
-        <span className="ml-auto inline-flex rounded-xs bg-amber-500/15 px-2 py-0.5 text-[0.8125rem] font-semibold text-indigo-600">
+        <span className="ml-auto inline-flex rounded-full bg-amber-500/15 px-2 py-0.5 text-[0.8125rem] font-semibold text-indigo-600">
           SOON
         </span>
       </div>

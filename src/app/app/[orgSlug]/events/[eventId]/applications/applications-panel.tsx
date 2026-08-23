@@ -11,6 +11,8 @@ import {
 import { ActionsMenu } from "@/components/data-table/actions-menu";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
+import { PageHeader } from "@/components/ui/page-header";
+import { Radio } from "@/components/ui/radio";
 import { StatusBadge } from "@/components/status-badge";
 import { displayName, humanizeEnum } from "@/lib/utils";
 
@@ -111,16 +113,11 @@ export function ApplicationsPanel({
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-          Public applications
-        </p>
-        <h1 className="mt-1 font-display text-3xl text-slate-900">Applications</h1>
-        <p className="mt-1 text-[0.8125rem] text-slate-500">
-          Approving creates an invitation. Rejected applicants do not gain event
-          access.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Public applications"
+        title="Applications"
+        description="Approving creates an invitation. Rejected applicants do not gain event access."
+      />
 
       <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
         <DataTable
@@ -181,24 +178,12 @@ export function ApplicationsPanel({
             ) : null}
             {current.status === "PENDING" ? (
               <div className="grid grid-cols-2 gap-2">
-                <label className="rounded-md border border-slate-200 p-3 text-sm">
-                  <input
-                    type="radio"
-                    name="decision"
-                    value="approve"
-                    required
-                    className="mr-2"
-                  />
+                <label className="flex items-center gap-2 rounded-md border border-slate-200 p-3 text-body">
+                  <Radio name="decision" value="approve" required />
                   Approve
                 </label>
-                <label className="rounded-md border border-slate-200 p-3 text-sm">
-                  <input
-                    type="radio"
-                    name="decision"
-                    value="reject"
-                    required
-                    className="mr-2"
-                  />
+                <label className="flex items-center gap-2 rounded-md border border-slate-200 p-3 text-body">
+                  <Radio name="decision" value="reject" required />
                   Reject
                 </label>
               </div>

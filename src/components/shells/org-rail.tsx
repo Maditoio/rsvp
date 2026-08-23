@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -17,8 +17,6 @@ import type { Permission } from "@/lib/authz/permissions";
 import { orgPrimaryNav, isNavActive } from "@/components/nav";
 import { NavLink } from "@/components/nav-link";
 import { BrandLogo, BrandMark } from "@/components/brand-logo";
-import { WorkspaceSwitcher } from "@/components/workspace-switcher";
-import type { UserWorkspace } from "@/modules/workspaces/types";
 import { cn } from "@/lib/utils";
 
 /* ── Persisted collapse state ── */
@@ -32,11 +30,8 @@ function subscribe(fn: () => void) {
     listeners.delete(fn);
   };
 }
-function getSnapshot() {
+function readCollapsed() {
   return window.localStorage.getItem(STORAGE_KEY) === "1";
-}
-function getServerSnapshot() {
-  return false;
 }
 
 /** Collapse/expand the organisation rail (sidenav 1). */
@@ -47,10 +42,18 @@ export function setOrgRailCollapsed(collapsed: boolean) {
 }
 
 export function useOrgRailCollapsed() {
-  const collapsed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(readCollapsed());
+    const onChange = () => setCollapsed(readCollapsed());
+    return subscribe(onChange);
+  }, []);
+
   const toggle = useCallback(() => {
     setOrgRailCollapsed(!collapsed);
   }, [collapsed]);
+
   return [collapsed, toggle] as const;
 }
 
@@ -193,17 +196,17 @@ export function OrgRail({
   orgSlug,
   grants,
   orgRole,
-  workspaces = [],
 }: {
   orgName: string;
   orgSlug: string;
   grants?: Permission[];
   orgRole?: "OWNER" | "ADMIN" | null;
-  workspaces?: UserWorkspace[];
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [mounted, setMounted] = useState(false);
   const [collapsed, toggle] = useOrgRailCollapsed();
+  const showCollapsed = mounted && collapsed;
   const primary = useMemo(() => orgPrimaryNav(orgSlug, grants), [orgSlug, grants]);
   const settingsPath = `/app/${orgSlug}/settings`;
   const integrationsActive =
@@ -211,17 +214,22 @@ export function OrgRail({
     (pathname === settingsPath && searchParams.get("tab") === "integrations");
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (window.localStorage.getItem(STORAGE_KEY) !== null) return;
     if (window.innerWidth < 1280) {
       setOrgRailCollapsed(true);
     }
-  }, []);
+  }, [mounted]);
 
   return (
     <aside
       className={cn(
         "relative hidden h-full shrink-0 flex-col bg-white shadow-[2px_0_12px_rgba(15,23,42,0.03)] transition-[width] duration-[220ms] ease-out md:flex motion-reduce:transition-none",
-        collapsed ? "w-16" : "w-[220px]",
+        showCollapsed ? "w-16" : "w-[220px]",
       )}
       style={{ willChange: "width" }}
     >
@@ -229,8 +237,8 @@ export function OrgRail({
       <button
         type="button"
         onClick={toggle}
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label={showCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        title={showCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         className={cn(
           "absolute -right-[18px] top-5 z-10 inline-flex size-9 items-center justify-center rounded-full",
           "bg-white text-slate-500 shadow-md",
@@ -240,7 +248,7 @@ export function OrgRail({
           "active:scale-95",
         )}
       >
-        {collapsed ? (
+        {showCollapsed ? (
           <ChevronRight className="size-4" strokeWidth={2} />
         ) : (
           <ChevronLeft className="size-4" strokeWidth={2} />
@@ -250,7 +258,7 @@ export function OrgRail({
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
       {/* Header */}
       <div className="p-5 pr-6">
-        {collapsed ? (
+        {showCollapsed ? (
           <Link href={`/app/${orgSlug}`} className="mx-auto block w-fit">
             <BrandMark size={34} />
           </Link>
@@ -278,28 +286,22 @@ export function OrgRail({
             label={item.label}
             icon={item.icon}
             active={isNavActive(pathname, item.href, item.exact)}
-            collapsed={collapsed}
+            collapsed={showCollapsed}
           />
         ))}
       </nav>
 
       {/* Footer */}
       <div className="mt-auto border-t border-slate-100 p-3 pb-3">
-        {!collapsed && workspaces.length > 0 ? (
-          <div className="mb-2 px-1">
-            <WorkspaceSwitcher workspaces={workspaces} compact />
-          </div>
-        ) : null}
-
         <NavLink
           href={`/app/${orgSlug}/settings?tab=integrations`}
           label="Integrations"
           icon={Plug}
           active={integrationsActive}
-          collapsed={collapsed}
+          collapsed={showCollapsed}
         />
 
-        <AccountPopover orgSlug={orgSlug} orgRole={orgRole} collapsed={collapsed} />
+        <AccountPopover orgSlug={orgSlug} orgRole={orgRole} collapsed={showCollapsed} />
       </div>
       </div>
     </aside>

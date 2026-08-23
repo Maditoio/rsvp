@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { hasPermission, type Permission } from "@/lib/authz/permissions";
 import {
   eventNavGroups,
@@ -38,22 +39,24 @@ function PanelContent({
     () => eventSettingsItem(orgSlug, eventId),
     [orgSlug, eventId],
   );
+  const eventOverviewHref = `/app/${orgSlug}/events/${eventId}`;
 
   return (
     <>
       {/* Event switcher */}
       <div className="p-4">
-        <div className="flex items-center justify-between rounded-xl bg-white shadow-sm px-[14px] py-[10px] shadow-xs focus-within:border-indigo-500 focus-within:shadow-[0_0_0_4px_rgba(99,102,241,0.12)]">
+        <Link
+          href={eventOverviewHref}
+          onClick={onNavigate}
+          className="flex items-center rounded-xl bg-white px-[14px] py-[10px] shadow-sm shadow-xs transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/12"
+        >
           <div className="min-w-0">
-            <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-              Current event
-            </p>
+            <p className="text-label text-indigo-600">Current event</p>
             <p className="truncate text-[0.9375rem] font-semibold text-slate-900">
               {eventName}
             </p>
           </div>
-          <ChevronDown className="size-[15px] shrink-0 text-slate-500" strokeWidth={1.75} />
-        </div>
+        </Link>
       </div>
 
       {/* Grouped nav */}
@@ -65,7 +68,7 @@ function PanelContent({
           if (visible.length === 0) return null;
           return (
             <div key={group.label} className="mb-4">
-              <p className="mb-1 px-2 text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
+              <p className="mb-1 px-2 text-label text-slate-400">
                 {group.label}
               </p>
               <div className="flex flex-col gap-0.5">
@@ -133,16 +136,6 @@ export function EventPanel({
   if (isOverlayMode) {
     return (
       <>
-        <button
-          type="button"
-          onClick={() => setOverlayOpen(true)}
-          className="fixed bottom-4 left-4 z-30 flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md md:hidden lg:hidden"
-          title="Open event navigation"
-          style={{ display: "none" }}
-        >
-          <Menu className="size-5 text-slate-900" strokeWidth={1.75} />
-        </button>
-
         {/* Tablet overlay trigger — shown as a thin strip */}
         <button
           type="button"
@@ -164,11 +157,7 @@ export function EventPanel({
               onClick={closeOverlay}
               aria-label="Close event navigation"
             />
-            <aside
-              className="absolute inset-y-0 left-0 flex w-[264px] flex-col overflow-y-auto overflow-x-hidden bg-white shadow-lg md:left-16"
-              
-              onPointerDown={collapseOrgRail}
-            >
+            <aside className="absolute inset-y-0 left-0 flex w-[264px] flex-col overflow-y-auto overflow-x-hidden bg-white shadow-lg md:left-16">
               <div className="flex items-center justify-end p-2">
                 <button
                   type="button"
@@ -192,13 +181,9 @@ export function EventPanel({
     );
   }
 
-  // Desktop: permanent panel — interacting here collapses the org rail.
+  // Desktop: permanent panel
   return (
-    <aside
-      className="hidden h-full w-[264px] shrink-0 flex-col overflow-y-auto overflow-x-hidden bg-white shadow-[2px_0_12px_rgba(15,23,42,0.03)] md:flex"
-      
-      onPointerDown={collapseOrgRail}
-    >
+    <aside className="hidden h-full w-[264px] shrink-0 flex-col overflow-y-auto overflow-x-hidden bg-white shadow-[2px_0_12px_rgba(15,23,42,0.03)] md:flex">
       <PanelContent
         orgSlug={orgSlug}
         eventId={eventId}

@@ -15,10 +15,13 @@ import {
 } from "lucide-react";
 import { respondToMeeting, cancelMyMeeting, rescheduleMyMeeting } from "@/modules/meetings/actions";
 import { Button, ButtonPlusIcon } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
+import { Radio } from "@/components/ui/radio";
 import { Badge } from "@/components/ui/badge";
 import { cn, displayName, humanizeEnum } from "@/lib/utils";
 import { parseDateRange } from "@/lib/validation";
@@ -153,27 +156,20 @@ export function AttendeeMeetingsPanel({
         </p>
       ) : null}
 
-      {/* Page header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-            {eventName}
-          </p>
-          <h1 className="mt-1 font-display text-3xl text-slate-900 md:text-4xl">
-            Meetings
-          </h1>
-          <p className="mt-1 text-sm text-slate-700">
-            Manage your networking meetings and requests.
-          </p>
-        </div>
-        <Link
-          href={directoryHref}
-          className="inline-flex h-11 items-center gap-1.5 rounded-full bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
-        >
-          <ButtonPlusIcon />
-          Request a meeting
-        </Link>
-      </div>
+      <PageHeader
+        eyebrow={eventName}
+        title="Meetings"
+        description="Manage your networking meetings and requests."
+        actions={
+          <Link
+            href={directoryHref}
+            className="inline-flex h-11 items-center gap-1.5 rounded-full bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
+          >
+            <ButtonPlusIcon />
+            Request a meeting
+          </Link>
+        }
+      />
 
       {/* Summary cards */}
       <div className="grid gap-3 sm:grid-cols-3">
@@ -438,37 +434,20 @@ export function AttendeeMeetingsPanel({
               <p className="text-sm text-slate-700">{current.message}</p>
             ) : null}
             <div className="grid grid-cols-2 gap-2">
-              <label className="rounded-md border border-slate-200 p-3 text-sm">
-                <input
-                  type="radio"
-                  name="decision"
-                  value="accept"
-                  required
-                  className="mr-2"
-                />
+              <label className="flex items-center gap-2 rounded-md border border-slate-200 p-3 text-body">
+                <Radio name="decision" value="accept" required />
                 Accept
               </label>
-              <label className="rounded-md border border-slate-200 p-3 text-sm">
-                <input
-                  type="radio"
-                  name="decision"
-                  value="decline"
-                  required
-                  className="mr-2"
-                />
+              <label className="flex items-center gap-2 rounded-md border border-slate-200 p-3 text-body">
+                <Radio name="decision" value="decline" required />
                 Decline
               </label>
             </div>
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
+            <p className="text-label text-slate-500">
               Optional scheduling
             </p>
-            <label className="flex items-start gap-3 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                name="autoSchedule"
-                value="on"
-                className="mt-1 size-4 accent-indigo-600"
-              />
+            <label className="flex items-start gap-3 text-body text-slate-700">
+              <Checkbox name="autoSchedule" value="on" className="mt-0.5" />
               <span>Auto-schedule (find the first available slot)</span>
             </label>
             {rooms.length > 0 ? (
@@ -833,7 +812,7 @@ function MeetingCard({
             ) : null}
           </div>
           {meeting.durationMins ? (
-            <p className="mt-2 inline-flex rounded-xs border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-600">
+            <p className="mt-2 inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-600">
               {meeting.durationMins} min meeting
             </p>
           ) : null}

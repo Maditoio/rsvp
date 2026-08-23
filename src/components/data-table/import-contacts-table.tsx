@@ -6,6 +6,7 @@ import {
   type DataTableColumn,
 } from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export type ImportContactRow = {
   id: string;
@@ -58,26 +59,22 @@ export function ImportContactsTable({
     {
       id: "select",
       header: (
-        <input
+        <Checkbox
           ref={selectAllRef}
-          type="checkbox"
           checked={allSelected}
           onChange={onToggleAll}
           disabled={selectableIds.length === 0 || busy}
           aria-label="Select all on this list"
-          className="size-4 accent-indigo-600"
         />
       ),
       width: "48px",
       headerClassName: "normal-case tracking-normal",
       cell: (contact) => (
-        <input
-          type="checkbox"
+        <Checkbox
           checked={selected.includes(contact.id)}
           disabled={!contact.email || busy}
           onChange={() => onToggleOne(contact.id)}
           aria-label={`Select ${contact.email || contact.id}`}
-          className="size-4 accent-indigo-600"
         />
       ),
     },

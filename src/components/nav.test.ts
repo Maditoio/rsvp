@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { eventNav, eventNavGroups, eventSettingsItem, parseOrganiserEventId } from "./nav";
+import {
+  eventNav,
+  eventNavGroups,
+  eventSettingsItem,
+  isNavActive,
+  parseOrganiserEventId,
+} from "./nav";
 
 describe("eventNav", () => {
   it("flat list includes each destination once with a single Event settings item", () => {
@@ -38,6 +44,22 @@ describe("eventSettingsItem", () => {
     const item = eventSettingsItem("acme", "evt_1");
     expect(item.label).toBe("Event settings");
     expect(item.href).toBe("/app/acme/events/evt_1/settings");
+  });
+});
+
+describe("isNavActive", () => {
+  const eventsHref = "/app/acme/events";
+
+  it("keeps Events active on the list and new-event routes", () => {
+    expect(isNavActive("/app/acme/events", eventsHref)).toBe(true);
+    expect(isNavActive("/app/acme/events/new", eventsHref)).toBe(true);
+  });
+
+  it("does not keep Events active inside a specific event workspace", () => {
+    expect(isNavActive("/app/acme/events/evt_1", eventsHref)).toBe(false);
+    expect(isNavActive("/app/acme/events/evt_1/settings", eventsHref)).toBe(
+      false,
+    );
   });
 });
 

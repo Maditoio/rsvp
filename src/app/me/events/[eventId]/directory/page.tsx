@@ -4,6 +4,7 @@ import { safe } from "@/lib/authz/safe";
 import { AuthzError } from "@/lib/db/tenant";
 import { rankedDirectory } from "@/modules/matchmaking/basic";
 import { DirectoryPanel } from "./directory-panel";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function DirectoryPage({
   params,
@@ -24,17 +25,15 @@ export default async function DirectoryPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-          {attendee.event.name}
-        </p>
-        <h1 className="mt-1 font-display text-3xl text-slate-900">Directory</h1>
-        <p className="mt-1 max-w-2xl text-sm text-slate-700">
-          {directory.eventAiEnabled
+      <PageHeader
+        eyebrow={attendee.event.name}
+        title="Directory"
+        description={
+          directory.eventAiEnabled
             ? "AI-assisted discovery ranks attendees by complementarity. Review recommendations, see why a match fits, then connect."
-            : "Matched on shared objectives — complementary looking-for and offering, industries, geographies, and meeting preferences."}
-        </p>
-      </div>
+            : "Matched on shared objectives — complementary looking-for and offering, industries, geographies, and meeting preferences."
+        }
+      />
       <DirectoryPanel
         eventId={eventId}
         eventName={attendee.event.name}

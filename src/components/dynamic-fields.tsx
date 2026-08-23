@@ -2,6 +2,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Radio } from "@/components/ui/radio";
 import { COUNTRIES } from "@/lib/countries";
 import type { FormFieldDef } from "@/modules/registrations/defaults";
 
@@ -77,9 +79,8 @@ function FieldControl({
     return (
       <div className="space-y-2">
         {options.map((option) => (
-          <label key={option} className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="radio"
+          <label key={option} className="flex items-center gap-2 text-body text-slate-700">
+            <Radio
               name={field.key}
               value={option}
               defaultChecked={defaultValue === option}
@@ -96,9 +97,8 @@ function FieldControl({
     return (
       <div className="space-y-2">
         {options.map((option) => (
-          <label key={option} className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
+          <label key={option} className="flex items-center gap-2 text-body text-slate-700">
+            <Checkbox
               name={field.key}
               value={option}
               defaultChecked={selectedList.includes(option)}

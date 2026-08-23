@@ -1,3 +1,4 @@
+import { AppFooter } from "@/components/app-footer";
 import { BrandLogo } from "@/components/brand-logo";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import { loadUserWorkspaces } from "@/modules/workspaces/resolve";
@@ -12,7 +13,7 @@ export default async function PlatformLayout({
   const { workspaces } = await safe(() => loadUserWorkspaces());
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-slate-50">
       <header className="bg-white shadow-[0_1px_0_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.03)]">
         <div className="mx-auto flex max-w-5xl flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -29,7 +30,8 @@ export default async function PlatformLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-6 py-10">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">{children}</main>
+      <AppFooter />
     </div>
   );
 }

@@ -19,6 +19,7 @@ import {
 } from "@/components/data-table/data-table";
 import { ActionsMenu } from "@/components/data-table/actions-menu";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Drawer } from "@/components/ui/drawer";
@@ -182,10 +183,8 @@ export function InviteesPanel({
     {
       id: "select",
       header: (
-        <input
+        <Checkbox
           ref={selectAllRef}
-          type="checkbox"
-          className="size-4 accent-indigo-600"
           checked={allFilteredSelected}
           onChange={toggleAllMatching}
           aria-label="Select all matching invitees"
@@ -194,9 +193,7 @@ export function InviteesPanel({
       width: "48px",
       headerClassName: "normal-case tracking-normal",
       cell: (contact) => (
-        <input
-          type="checkbox"
-          className="size-4 accent-indigo-600"
+        <Checkbox
           checked={selected.includes(contact.id)}
           onChange={() => toggleOne(contact.id)}
           aria-label={`Select ${contact.email}`}

@@ -7,10 +7,7 @@ export function PageEyebrow({
 }: HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={cn(
-        "text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600",
-        className,
-      )}
+      className={cn("text-label text-indigo-600", className)}
       {...props}
     />
   );
@@ -41,9 +38,9 @@ export function PageHeader({
     >
       <div>
         {eyebrow ? <PageEyebrow className="mb-2">{eyebrow}</PageEyebrow> : null}
-        <TitleTag className="font-display text-3xl text-slate-900">{title}</TitleTag>
+        <TitleTag className="text-display text-slate-900">{title}</TitleTag>
         {description ? (
-          <p className="mt-1 text-[0.8125rem] text-slate-500">{description}</p>
+          <p className="mt-1 text-body text-slate-500">{description}</p>
         ) : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}

@@ -18,6 +18,7 @@ import {
 } from "@/components/data-table/data-table";
 import { ActionsMenu } from "@/components/data-table/actions-menu";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Drawer } from "@/components/ui/drawer";
@@ -193,10 +194,8 @@ export function InvitationsPanel({
           {
             id: "select",
             header: (
-              <input
+              <Checkbox
                 ref={selectAllRef}
-                type="checkbox"
-                className="size-4 accent-indigo-600"
                 checked={allSendableSelected}
                 disabled={selectableFiltered.length === 0}
                 onChange={toggleAllSendableMatching}
@@ -206,9 +205,7 @@ export function InvitationsPanel({
             width: "48px",
             headerClassName: "normal-case tracking-normal",
             cell: (invitation: InvitationRow) => (
-              <input
-                type="checkbox"
-                className="size-4 accent-indigo-600"
+              <Checkbox
                 checked={selectedInvites.includes(invitation.id)}
                 disabled={!SENDABLE.has(invitation.status)}
                 onChange={() =>
@@ -332,10 +329,8 @@ export function InvitationsPanel({
     {
       id: "select",
       header: (
-        <input
+        <Checkbox
           ref={uninvitedSelectAllRef}
-          type="checkbox"
-          className="size-4 accent-indigo-600"
           checked={allUninvitedSelected}
           onChange={() =>
             setSelectedContacts(
@@ -348,9 +343,7 @@ export function InvitationsPanel({
       width: "48px",
       headerClassName: "normal-case tracking-normal",
       cell: (contact) => (
-        <input
-          type="checkbox"
-          className="size-4 accent-indigo-600"
+        <Checkbox
           checked={selectedContacts.includes(contact.id)}
           onChange={() =>
             setSelectedContacts((list) => toggle(list, contact.id))

@@ -5,8 +5,10 @@ import { useState, useTransition } from "react";
 import { Copy, Check } from "lucide-react";
 import { updateEventSettings } from "@/modules/events/actions";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
 import { QrCodeImage } from "@/components/qr-code";
 
 export function EventSettingsForm({
@@ -45,16 +47,11 @@ export function EventSettingsForm({
 
   return (
     <div className="max-w-xl space-y-6">
-      <div>
-        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-          Event
-        </p>
-        <h1 className="mt-1 font-display text-3xl text-slate-900">Settings</h1>
-        <p className="mt-1 text-sm text-slate-700">
-          Invitation windows, capacity, public applications, and optional AI
-          insights.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Event"
+        title="Settings"
+        description="Invitation windows, capacity, public applications, and optional AI insights."
+      />
       <form
         className="space-y-4"
         action={(formData) => {
@@ -100,13 +97,12 @@ export function EventSettingsForm({
             Leave blank for no overall cap.
           </p>
         </div>
-        <label className="flex items-start gap-3 text-sm text-slate-700">
-          <input
-            type="checkbox"
+        <label className="flex items-start gap-3 text-body text-slate-700">
+          <Checkbox
             name="waitlistEnabled"
             value="on"
             defaultChecked={settings.waitlistEnabled}
-            className="mt-1 size-4 accent-indigo-600"
+            className="mt-0.5"
           />
           <span>
             <span className="font-semibold">Enable waitlist</span>
@@ -115,13 +111,12 @@ export function EventSettingsForm({
             </span>
           </span>
         </label>
-        <label className="flex items-start gap-3 text-sm text-slate-700">
-          <input
-            type="checkbox"
+        <label className="flex items-start gap-3 text-body text-slate-700">
+          <Checkbox
             name="allowPublicApplication"
             value="on"
             defaultChecked={settings.allowPublicApplication}
-            className="mt-1 size-4 accent-indigo-600"
+            className="mt-0.5"
           />
           <span>
             <span className="font-semibold">Allow public applications</span>
@@ -131,13 +126,12 @@ export function EventSettingsForm({
             </span>
           </span>
         </label>
-        <label className="flex items-start gap-3 text-sm text-slate-700">
-          <input
-            type="checkbox"
+        <label className="flex items-start gap-3 text-body text-slate-700">
+          <Checkbox
             name="aiInsightsEnabled"
             value="on"
             defaultChecked={settings.aiInsightsEnabled}
-            className="mt-1 size-4 accent-indigo-600"
+            className="mt-0.5"
           />
           <span>
             <span className="font-semibold">Enable AI insights</span>

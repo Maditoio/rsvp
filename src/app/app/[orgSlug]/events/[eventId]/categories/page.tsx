@@ -5,6 +5,7 @@ import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
 import { CategoryForm } from "./category-form";
 import { CategoryList } from "./category-list";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function CategoriesPage({
   params,
@@ -24,11 +25,11 @@ export default async function CategoriesPage({
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-slate-900">Invitation categories</h1>
-      <p className="mt-1 text-[0.8125rem] text-slate-500">
-        Categories are configured per event. They are not a hard-coded list of
-        VIP / speaker / delegate labels.
-      </p>
+      <PageHeader
+        title="Invitation categories"
+        description="Categories are configured per event. They are not a hard-coded list of VIP / speaker / delegate labels."
+        className="mb-6"
+      />
       {canManage ? <CategoryForm orgSlug={orgSlug} eventId={eventId} /> : null}
       <div className="mt-6">
         <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>

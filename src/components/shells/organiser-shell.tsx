@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { UserButton } from "@clerk/nextjs";
+import { AppFooter } from "@/components/app-footer";
 import { EventNavProvider } from "@/components/shells/event-nav-scope";
 import { OrganiserMobileNav } from "@/components/shells/organiser-nav";
 import { OrgRail } from "@/components/shells/org-rail";
@@ -35,7 +36,6 @@ export function OrganiserShell({
             orgSlug={orgSlug}
             grants={grants}
             orgRole={orgRole}
-            workspaces={workspaces}
           />
         </Suspense>
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -60,6 +60,7 @@ export function OrganiserShell({
             </Suspense>
           </header>
           <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>
+          <AppFooter />
         </div>
       </div>
     </EventNavProvider>

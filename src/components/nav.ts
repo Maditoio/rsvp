@@ -193,5 +193,13 @@ export function parseAttendeeEventId(pathname: string) {
 export function isNavActive(pathname: string, href: string, exact?: boolean) {
   if (pathname === href) return true;
   if (exact) return false;
+  // Org events list should not stay active inside a specific event workspace.
+  // Keep active on /events/new; exclude only real event ids.
+  if (
+    /\/events\/(?!new(?:\/|$))[^/]+(?:\/|$)/.test(pathname) &&
+    href.endsWith("/events")
+  ) {
+    return false;
+  }
   return pathname.startsWith(`${href}/`);
 }

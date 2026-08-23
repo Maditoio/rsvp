@@ -15,9 +15,11 @@ import {
 } from "@/components/data-table/data-table";
 import { ActionsMenu } from "@/components/data-table/actions-menu";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -161,18 +163,11 @@ export function RegistrationFormBuilder({
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-            Registration
-          </p>
-          <h1 className="mt-1 font-display text-3xl text-slate-900">
-            Registration form
-          </h1>
-          <p className="mt-1 text-[0.8125rem] text-slate-500">
-            Invitees complete this form after they accept. Name and email cannot
-            be removed.
-          </p>
-        </div>
+        <PageHeader
+          eyebrow="Registration"
+          title="Registration form"
+          description="Invitees complete this form after they accept. Name and email cannot be removed."
+        />
         {canManage ? (
           <Button type="button" leadingIcon="plus" onClick={openCreate}>
             Add field
@@ -255,9 +250,8 @@ export function RegistrationFormBuilder({
               />
             </div>
           ) : null}
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
+          <label className="flex items-center gap-2 text-body text-slate-700">
+            <Checkbox
               name="required"
               defaultChecked={editing?.required ?? false}
               disabled={Boolean(

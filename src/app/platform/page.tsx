@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { safe } from "@/lib/authz/safe";
 import { displayName } from "@/lib/utils";
 import { getPlatformOverview } from "@/modules/platform/actions";
@@ -21,16 +22,12 @@ export default async function PlatformPage() {
 
   return (
     <div className="space-y-6">
-      <div className="max-w-3xl">
-        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-          Platform oversight
-        </p>
-        <h1 className="mt-1 font-display text-4xl text-slate-900">Platform overview</h1>
-        <p className="mt-2 text-slate-700">
-          Platform operators can inspect tenant growth, existing users, and access
-          distribution without relying on client-supplied tenant identifiers.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Platform oversight"
+        title="Platform overview"
+        description="Platform operators can inspect tenant growth, existing users, and access distribution without relying on client-supplied tenant identifiers."
+        className="max-w-3xl"
+      />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {statCards.map(([label, value]) => (

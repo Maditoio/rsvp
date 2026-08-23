@@ -21,6 +21,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/status-badge";
 import { humanizeEnum } from "@/lib/utils";
@@ -205,17 +206,12 @@ export function MeetingsPanel({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-            Networking
-          </p>
-          <h1 className="mt-1 font-display text-3xl text-slate-900">Meetings</h1>
-          <p className="mt-1 text-sm text-slate-700">
-            Rooms for accepted meetings. Attendees request meetings from the
-            directory.
-          </p>
-        </div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <PageHeader
+          eyebrow="Networking"
+          title="Meetings"
+          description="Rooms for accepted meetings. Attendees request meetings from the directory."
+        />
         {canManage ? (
           <div className="flex items-center gap-2">
             <Button

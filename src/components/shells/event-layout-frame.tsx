@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import type { Permission } from "@/lib/authz/permissions";
 import { EventPanel } from "@/components/shells/event-panel";
 import { EventDayShell } from "@/components/shells/event-day-shell";
+import { setOrgRailCollapsed } from "@/components/shells/org-rail";
 
 export function EventLayoutFrame({
   orgSlug,
@@ -22,6 +24,13 @@ export function EventLayoutFrame({
   const eventDayPrefix = `/app/${orgSlug}/events/${eventId}/day`;
   const isEventDay =
     pathname === eventDayPrefix || pathname.startsWith(`${eventDayPrefix}/`);
+
+  // Collapse org rail when entering an event workspace (not on every panel click).
+  useEffect(() => {
+    if (!isEventDay) {
+      setOrgRailCollapsed(true);
+    }
+  }, [eventId, isEventDay]);
 
   if (isEventDay) {
     return (

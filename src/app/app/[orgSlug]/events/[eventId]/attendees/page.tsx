@@ -4,6 +4,7 @@ import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
 import { AttendeesTable } from "./attendees-table";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function AttendeesPage({
   params,
@@ -29,11 +30,11 @@ export default async function AttendeesPage({
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-slate-900">Attendees</h1>
-      <p className="mt-1 mb-6 text-[0.8125rem] text-slate-500">
-        Registered delegates for this event. An accepted invitation does not
-        create an attendee record on its own.
-      </p>
+      <PageHeader
+        title="Attendees"
+        description="Registered delegates for this event. An accepted invitation does not create an attendee record on its own."
+        className="mb-6"
+      />
       <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
         <AttendeesTable
           orgSlug={orgSlug}

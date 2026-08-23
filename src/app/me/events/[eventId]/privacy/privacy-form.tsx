@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { saveMyPrivacy } from "@/modules/attendees/profile";
 import { matchmakingPath } from "@/modules/matchmaking/questionnaire";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export function PrivacyForm({
   eventId,
@@ -43,12 +44,11 @@ export function PrivacyForm({
         });
       }}
     >
-      <label className="flex items-start gap-3 text-sm text-slate-700">
-        <input
-          type="checkbox"
+      <label className="flex items-start gap-3 text-body text-slate-700">
+        <Checkbox
           name="profileVisible"
           defaultChecked={privacy.profileVisible}
-          className="mt-1 size-4 accent-indigo-600"
+          className="mt-0.5"
         />
         <span>
           <span className="font-semibold">Show my profile in the directory</span>
@@ -65,12 +65,11 @@ export function PrivacyForm({
           </span>
         </span>
       </label>
-      <label className="flex items-start gap-3 text-sm text-slate-700">
-        <input
-          type="checkbox"
+      <label className="flex items-start gap-3 text-body text-slate-700">
+        <Checkbox
           name="matchmakingEnabled"
           defaultChecked={privacy.matchmakingEnabled}
-          className="mt-1 size-4 accent-indigo-600"
+          className="mt-0.5"
         />
         <span>
           <span className="font-semibold">Include me in basic matching</span>
@@ -87,16 +86,15 @@ export function PrivacyForm({
         </span>
       </label>
       <label
-        className={`flex items-start gap-3 text-sm ${
+        className={`flex items-start gap-3 text-body ${
           eventAiEnabled ? "text-slate-700" : "text-slate-500"
         }`}
       >
-        <input
-          type="checkbox"
+        <Checkbox
           name="aiInsightsOptIn"
           defaultChecked={privacy.aiInsightsOptIn}
           disabled={!eventAiEnabled}
-          className="mt-1 size-4 accent-indigo-600 disabled:cursor-not-allowed"
+          className="mt-0.5"
         />
         <span>
           <span className="font-semibold">Allow AI to explain my matches</span>
@@ -107,12 +105,11 @@ export function PrivacyForm({
           </span>
         </span>
       </label>
-      <label className="flex items-start gap-3 text-sm text-slate-700">
-        <input
-          type="checkbox"
+      <label className="flex items-start gap-3 text-body text-slate-700">
+        <Checkbox
           name="showEmail"
           defaultChecked={privacy.showEmail}
-          className="mt-1 size-4 accent-indigo-600"
+          className="mt-0.5"
         />
         <span>
           <span className="font-semibold">Show my email</span>
@@ -121,12 +118,11 @@ export function PrivacyForm({
           </span>
         </span>
       </label>
-      <label className="flex items-start gap-3 text-sm text-slate-700">
-        <input
-          type="checkbox"
+      <label className="flex items-start gap-3 text-body text-slate-700">
+        <Checkbox
           name="showPhone"
           defaultChecked={privacy.showPhone}
-          className="mt-1 size-4 accent-indigo-600"
+          className="mt-0.5"
         />
         <span>
           <span className="font-semibold">Show my phone</span>

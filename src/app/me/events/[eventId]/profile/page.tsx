@@ -5,6 +5,7 @@ import { safe } from "@/lib/authz/safe";
 import { AuthzError } from "@/lib/db/tenant";
 import { isQuestionnaireComplete } from "@/modules/matchmaking/questionnaire";
 import { ProfileForm } from "./profile-form";
+import { PageHeader } from "@/components/ui/page-header";
 
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -29,30 +30,30 @@ export default async function AttendeeProfilePage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-          {attendee.event.name}
-        </p>
-        <h1 className="mt-1 font-display text-3xl text-slate-900">Profile</h1>
-        <p className="mt-1 max-w-2xl text-sm text-slate-700">
-          Visible attendees see this in the directory, subject to your privacy
-          settings. Matching answers and visibility are managed separately.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-          <Link
-            href={`/me/events/${eventId}/privacy`}
-            className="font-semibold text-slate-700 underline-offset-4 hover:underline"
-          >
-            Privacy &amp; matching settings
-          </Link>
-          <Link
-            href={`/me/events/${eventId}/matchmaking`}
-            className="text-slate-600 underline-offset-4 hover:text-slate-700 hover:underline"
-          >
-            Matching questionnaire
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={attendee.event.name}
+        title="Profile"
+        description={
+          <>
+            Visible attendees see this in the directory, subject to your privacy
+            settings. Matching answers and visibility are managed separately.
+            <span className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-body">
+              <Link
+                href={`/me/events/${eventId}/privacy`}
+                className="font-semibold text-slate-700 underline-offset-4 hover:underline"
+              >
+                Privacy &amp; matching settings
+              </Link>
+              <Link
+                href={`/me/events/${eventId}/matchmaking`}
+                className="text-slate-600 underline-offset-4 hover:text-slate-700 hover:underline"
+              >
+                Matching questionnaire
+              </Link>
+            </span>
+          </>
+        }
+      />
       <ProfileForm
         eventId={eventId}
         matchingComplete={isQuestionnaireComplete(attendee.matchProfile?.questionnaire)}

@@ -5,6 +5,7 @@ import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
 import { ButtonPlusIcon } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function EventsPage({
   params,
@@ -19,18 +20,20 @@ export default async function EventsPage({
 
   return (
     <div className="flex-1 p-6 md:p-10">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl text-slate-900">Events</h1>
-        {canCreate ? (
-          <Link
-            href={`/app/${orgSlug}/events/new`}
-            className="inline-flex h-10 items-center gap-1.5 rounded-full bg-indigo-600 px-5 text-sm font-semibold text-white shadow-accent hover:bg-indigo-700"
-          >
-            <ButtonPlusIcon />
-            New event
-          </Link>
-        ) : null}
-      </div>
+      <PageHeader
+        title="Events"
+        actions={
+          canCreate ? (
+            <Link
+              href={`/app/${orgSlug}/events/new`}
+              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-indigo-600 px-5 text-sm font-semibold text-white shadow-accent hover:bg-indigo-700"
+            >
+              <ButtonPlusIcon />
+              New event
+            </Link>
+          ) : undefined
+        }
+      />
       <div className="mt-6 flex flex-col gap-6">
         {events.map((event) => (
           <Link

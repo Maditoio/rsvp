@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
+import { Radio } from "@/components/ui/radio";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -256,21 +258,21 @@ export function AgendaPanel({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-            Programme
-          </p>
-          <h1 className="mt-1 font-display text-3xl text-slate-900">Agenda</h1>
-          <p className="mt-1 text-sm text-slate-700">
-            Download the template, fill in all sessions, then import the file to
-            build the programme. You can also add or edit sessions one at a time.
-          </p>
-          {canManage ? (
-            <p className="mt-2 text-xs text-slate-500">
-              Times shown in {timezone.replace(/_/g, " ")}
-            </p>
-          ) : null}
-        </div>
+        <PageHeader
+          eyebrow="Programme"
+          title="Agenda"
+          description={
+            <>
+              Download the template, fill in all sessions, then import the file to
+              build the programme. You can also add or edit sessions one at a time.
+              {canManage ? (
+                <span className="mt-2 block text-xs text-slate-500">
+                  Times shown in {timezone.replace(/_/g, " ")}
+                </span>
+              ) : null}
+            </>
+          }
+        />
         {canManage ? (
           <div className="flex flex-wrap items-center gap-2">
             <AgendaImport orgSlug={orgSlug} eventId={eventId} />
@@ -375,10 +377,9 @@ export function AgendaPanel({
                     : "border-slate-200 text-slate-700",
                 )}
               >
-                <input
-                  type="radio"
+                <Radio
                   name="formatRadio"
-                  className="accent-indigo-600"
+                  value={value}
                   checked={format === value}
                   onChange={() => setFormat(value)}
                 />

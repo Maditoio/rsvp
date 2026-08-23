@@ -1,4 +1,5 @@
 import { UserButton } from "@clerk/nextjs";
+import { AppFooter } from "@/components/app-footer";
 import {
   AttendeeEventNavFromPath,
 } from "@/components/attendee-event-nav";
@@ -18,7 +19,7 @@ export function AttendeeShell({
 }) {
   return (
     <AttendeeAttentionProvider>
-    <div className="min-h-screen bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-slate-50">
       <header className="bg-white shadow-[0_1px_0_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.03)]">
         <div className="mx-auto flex h-[60px] max-w-6xl items-center justify-between gap-4 px-6">
           <div className="min-w-0">
@@ -40,7 +41,10 @@ export function AttendeeShell({
         </div>
         <AttendeeEventNavFromPath />
       </header>
-      <main className="mx-auto max-w-6xl px-6 py-8 md:py-10">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8 md:py-10">
+        {children}
+      </main>
+      <AppFooter />
     </div>
     </AttendeeAttentionProvider>
   );
