@@ -5,7 +5,6 @@ import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
 import { InvitationsPanel } from "./invitations-panel";
-import { PageHeader } from "@/components/ui/page-header";
 
 const INACTIVE_STATUSES: InvitationStatus[] = [
   "CANCELLED",
@@ -61,12 +60,6 @@ export default async function InvitationsPage({
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Communications"
-        title="Invitations"
-        description="Invitation status is independent of registration. Accepted is not registered."
-        className="mb-6"
-      />
       <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
         <InvitationsPanel
           orgSlug={orgSlug}

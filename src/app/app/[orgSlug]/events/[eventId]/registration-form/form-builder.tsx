@@ -162,18 +162,18 @@ export function RegistrationFormBuilder({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between gap-4">
-        <PageHeader
-          eyebrow="Registration"
-          title="Registration form"
-          description="Invitees complete this form after they accept. Name and email cannot be removed."
-        />
-        {canManage ? (
-          <Button type="button" leadingIcon="plus" onClick={openCreate}>
-            Add field
-          </Button>
-        ) : null}
-      </div>
+      <PageHeader
+        eyebrow="Registration"
+        title="Registration form"
+        description="Invitees complete this form after they accept. Name and email cannot be removed."
+        actions={
+          canManage ? (
+            <Button type="button" leadingIcon="plus" onClick={openCreate}>
+              Add field
+            </Button>
+          ) : undefined
+        }
+      />
 
       <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
         <DataTable

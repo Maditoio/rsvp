@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/select";
 import { OrgRoleTag } from "@/components/ui/role-tag";
 import { displayName, humanizeEnum } from "@/lib/utils";
@@ -153,20 +154,17 @@ export function MemberManagement({
   return (
     <div className="space-y-6">
       {canManage ? (
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h2 className="text-heading text-[1.125rem] font-semibold text-slate-700">
-              Organisation members
-            </h2>
-            <p className="mt-1 text-[0.8125rem] text-slate-500">
-              Owners and admins can manage the whole organisation. For event-day
-              check-in helpers, use Event → Staff → Check-in staff instead — do not
-              add them here.
-            </p>
-          </div>
-          <Button type="button" leadingIcon="plus" onClick={() => setOpen(true)}>
-            Add member
-          </Button>
+        <>
+          <PageHeader
+            title="Organisation members"
+            titleAs="h2"
+            description="Owners and admins can manage the whole organisation. For event-day check-in helpers, use Event → Staff → Check-in staff instead — do not add them here."
+            actions={
+              <Button type="button" leadingIcon="plus" onClick={() => setOpen(true)}>
+                Add member
+              </Button>
+            }
+          />
           <Drawer
             open={open}
             onClose={() => setOpen(false)}
@@ -223,7 +221,7 @@ export function MemberManagement({
               </div>
             </form>
           </Drawer>
-        </div>
+        </>
       ) : (
         <div>
           <h2 className="text-heading text-[1.125rem] font-semibold text-slate-700">

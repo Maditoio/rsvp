@@ -29,8 +29,12 @@ export default async function CategoriesPage({
         title="Invitation categories"
         description="Categories are configured per event. They are not a hard-coded list of VIP / speaker / delegate labels."
         className="mb-6"
+        actions={
+          canManage ? (
+            <CategoryForm orgSlug={orgSlug} eventId={eventId} />
+          ) : undefined
+        }
       />
-      {canManage ? <CategoryForm orgSlug={orgSlug} eventId={eventId} /> : null}
       <div className="mt-6">
         <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
           <CategoryList

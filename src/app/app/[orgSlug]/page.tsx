@@ -27,7 +27,7 @@ export default async function OrgHomePage({
         Manage multiple summits from one tenant. Every record belongs to this
         organisation.
       </p>
-      <div className="mt-8 flex gap-3">
+      <div className="mt-8 flex flex-wrap justify-end gap-3">
         {canCreate ? (
           <Link
             href={`/app/${orgSlug}/events/new`}

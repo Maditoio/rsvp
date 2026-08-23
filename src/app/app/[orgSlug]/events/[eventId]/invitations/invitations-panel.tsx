@@ -22,6 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Drawer } from "@/components/ui/drawer";
+import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/select";
 import { InvitationStatusIcon } from "@/components/invitation-status-icon";
 import { displayName, humanizeEnum } from "@/lib/utils";
@@ -370,44 +371,52 @@ export function InvitationsPanel({
 
   return (
     <div className="space-y-6">
+      <PageHeader
+        eyebrow="Communications"
+        title="Invitations"
+        description="Invitation status is independent of registration. Accepted is not registered."
+        actions={
+          canWrite ? (
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={pending || sendableSelected.length === 0}
+                onClick={() =>
+                  run("send", async () => {
+                    const result = await sendInvitations(
+                      orgSlug,
+                      eventId,
+                      sendableSelected.map((row) => row.id),
+                    );
+                    setSelectedInvites([]);
+                    setMessage(`Sent ${result.sent} invitation(s).`);
+                  })
+                }
+              >
+                {pendingKey === "send"
+                  ? "Sending…"
+                  : `Send ${sendableSelected.length > 0 ? `${sendableSelected.length} ` : ""}selected`}
+              </Button>
+              <Button
+                type="button"
+                leadingIcon="plus"
+                onClick={() => {
+                  setError(null);
+                  setDrawerOpen(true);
+                }}
+              >
+                New invitation
+              </Button>
+            </>
+          ) : undefined
+        }
+      />
+
       {error ? <p className="text-sm text-danger">{error}</p> : null}
       {message ? <p className="text-sm text-success">{message}</p> : null}
 
       <div>
-        {canWrite ? (
-          <div className="mb-3 flex flex-wrap items-center justify-end gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={pending || sendableSelected.length === 0}
-              onClick={() =>
-                run("send", async () => {
-                  const result = await sendInvitations(
-                    orgSlug,
-                    eventId,
-                    sendableSelected.map((row) => row.id),
-                  );
-                  setSelectedInvites([]);
-                  setMessage(`Sent ${result.sent} invitation(s).`);
-                })
-              }
-            >
-              {pendingKey === "send"
-                ? "Sending…"
-                : `Send ${sendableSelected.length > 0 ? `${sendableSelected.length} ` : ""}selected`}
-            </Button>
-            <Button
-              type="button"
-              leadingIcon="plus"
-              onClick={() => {
-                setError(null);
-                setDrawerOpen(true);
-              }}
-            >
-              New invitation
-            </Button>
-          </div>
-        ) : null}
         {invitations.length === 0 ? (
           <Card>No invitations yet.</Card>
         ) : (

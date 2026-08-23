@@ -25,11 +25,9 @@ export function CategoryForm({
 
   return (
     <>
-      <div className="mt-4">
-        <Button type="button" leadingIcon="plus" onClick={() => setOpen(true)}>
-          Add category
-        </Button>
-      </div>
+      <Button type="button" leadingIcon="plus" onClick={() => setOpen(true)}>
+        Add category
+      </Button>
       <Drawer
         open={open}
         onClose={() => setOpen(false)}

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/select";
 import {
   EventRoleTag,
@@ -171,21 +172,24 @@ export function StaffManagement({
   return (
     <div className="space-y-6">
       {canManage ? (
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-              Event operations
-            </p>
-            <h2 className="mt-1 font-display text-2xl text-slate-900">Event staff access</h2>
-            <p className="mt-1 text-[0.8125rem] text-slate-500">
-              Assign people who have already signed in. For check-in only access,
-              do <span className="font-semibold text-slate-700">not</span> add them as organisation
-              owners/admins — assign Check-in staff here so they land on Event day.
-            </p>
-          </div>
-          <Button type="button" leadingIcon="plus" onClick={() => setOpen(true)}>
-            Assign staff
-          </Button>
+        <>
+          <PageHeader
+            eyebrow="Event operations"
+            title="Event staff access"
+            titleAs="h2"
+            description={
+              <>
+                Assign people who have already signed in. For check-in only access,
+                do <span className="font-semibold text-slate-700">not</span> add them as organisation
+                owners/admins — assign Check-in staff here so they land on Event day.
+              </>
+            }
+            actions={
+              <Button type="button" leadingIcon="plus" onClick={() => setOpen(true)}>
+                Assign staff
+              </Button>
+            }
+          />
           <Drawer
             open={open}
             onClose={() => setOpen(false)}
@@ -259,7 +263,7 @@ export function StaffManagement({
               </div>
             </form>
           </Drawer>
-        </div>
+        </>
       ) : null}
 
       {error && !open ? <p className="text-sm text-danger">{error}</p> : null}

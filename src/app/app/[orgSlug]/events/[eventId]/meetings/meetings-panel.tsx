@@ -206,58 +206,58 @@ export function MeetingsPanel({
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <PageHeader
-          eyebrow="Networking"
-          title="Meetings"
-          description="Rooms for accepted meetings. Attendees request meetings from the directory."
-        />
-        {canManage ? (
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={pending}
-              onClick={() => {
-                setError(null);
-                setBulkResult(null);
-                setWarning(null);
-                start(async () => {
-                  try {
-                    const result = await autoScheduleAll(orgSlug, eventId);
-                    const parts = [
-                      `${result.scheduled} of ${result.total} meetings scheduled.`,
-                      result.failed > 0
-                        ? `${result.failed} could not be scheduled.`
-                        : null,
-                      result.error ?? null,
-                      result.calendarWarnings.length > 0
-                        ? result.calendarWarnings.join(" ")
-                        : null,
-                    ].filter(Boolean);
-                    setBulkResult(parts.join(" "));
-                    router.refresh();
-                  } catch (e) {
-                    setError(e instanceof Error ? e.message : "Auto-schedule failed");
-                  }
-                });
-              }}
-            >
-              {pending ? "Scheduling…" : "Auto-schedule all"}
-            </Button>
-            <Button
-              type="button"
-              leadingIcon="plus"
-              onClick={() => {
-                setError(null);
-                setOpen(true);
-              }}
-            >
-              Add room
-            </Button>
-          </div>
-        ) : null}
-      </div>
+      <PageHeader
+        eyebrow="Networking"
+        title="Meetings"
+        description="Rooms for accepted meetings. Attendees request meetings from the directory."
+        actions={
+          canManage ? (
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={pending}
+                onClick={() => {
+                  setError(null);
+                  setBulkResult(null);
+                  setWarning(null);
+                  start(async () => {
+                    try {
+                      const result = await autoScheduleAll(orgSlug, eventId);
+                      const parts = [
+                        `${result.scheduled} of ${result.total} meetings scheduled.`,
+                        result.failed > 0
+                          ? `${result.failed} could not be scheduled.`
+                          : null,
+                        result.error ?? null,
+                        result.calendarWarnings.length > 0
+                          ? result.calendarWarnings.join(" ")
+                          : null,
+                      ].filter(Boolean);
+                      setBulkResult(parts.join(" "));
+                      router.refresh();
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : "Auto-schedule failed");
+                    }
+                  });
+                }}
+              >
+                {pending ? "Scheduling…" : "Auto-schedule all"}
+              </Button>
+              <Button
+                type="button"
+                leadingIcon="plus"
+                onClick={() => {
+                  setError(null);
+                  setOpen(true);
+                }}
+              >
+                Add room
+              </Button>
+            </>
+          ) : undefined
+        }
+      />
 
       {warning ? (
         <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800">

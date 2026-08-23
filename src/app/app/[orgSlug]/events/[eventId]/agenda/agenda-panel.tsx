@@ -257,31 +257,31 @@ export function AgendaPanel({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <PageHeader
-          eyebrow="Programme"
-          title="Agenda"
-          description={
+      <PageHeader
+        eyebrow="Programme"
+        title="Agenda"
+        description={
+          <>
+            Download the template, fill in all sessions, then import the file to
+            build the programme. You can also add or edit sessions one at a time.
+            {canManage ? (
+              <span className="mt-2 block text-xs text-slate-500">
+                Times shown in {timezone.replace(/_/g, " ")}
+              </span>
+            ) : null}
+          </>
+        }
+        actions={
+          canManage ? (
             <>
-              Download the template, fill in all sessions, then import the file to
-              build the programme. You can also add or edit sessions one at a time.
-              {canManage ? (
-                <span className="mt-2 block text-xs text-slate-500">
-                  Times shown in {timezone.replace(/_/g, " ")}
-                </span>
-              ) : null}
+              <AgendaImport orgSlug={orgSlug} eventId={eventId} />
+              <Button type="button" leadingIcon="plus" onClick={openCreate}>
+                Add session
+              </Button>
             </>
-          }
-        />
-        {canManage ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <AgendaImport orgSlug={orgSlug} eventId={eventId} />
-            <Button type="button" leadingIcon="plus" onClick={openCreate}>
-              Add session
-            </Button>
-          </div>
-        ) : null}
-      </div>
+          ) : undefined
+        }
+      />
 
       {sessions.length === 0 ? (
         <p className="text-sm text-slate-700">No sessions yet.</p>

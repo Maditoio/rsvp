@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
 import { isValidEmail } from "@/lib/validation";
 import { useToast } from "@/components/ui/toast";
 
@@ -41,19 +42,18 @@ export function PlatformAdminControls() {
   };
 
   return (
-    <div className="flex items-end justify-between gap-4">
-      <div>
-        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-          Platform control
-        </p>
-        <h2 className="mt-1 font-display text-2xl text-slate-900">Platform admin access</h2>
-        <p className="mt-1 text-sm text-slate-700">
-          Grant or revoke platform access for existing users by email.
-        </p>
-      </div>
-      <Button type="button" onClick={() => setOpen(true)}>
-        Manage admin access
-      </Button>
+    <>
+      <PageHeader
+        eyebrow="Platform control"
+        title="Platform admin access"
+        titleAs="h2"
+        description="Grant or revoke platform access for existing users by email."
+        actions={
+          <Button type="button" onClick={() => setOpen(true)}>
+            Manage admin access
+          </Button>
+        }
+      />
       <Drawer
         open={open}
         onClose={() => setOpen(false)}
@@ -100,6 +100,6 @@ export function PlatformAdminControls() {
           {error ? <p className="text-sm text-danger">{error}</p> : null}
         </form>
       </Drawer>
-    </div>
+    </>
   );
 }
