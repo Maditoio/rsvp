@@ -57,14 +57,14 @@ function SessionCard({
   return (
     <article
       className={cn(
-        "rounded-md border bg-stone-0 p-4 sm:p-5",
-        row.picked ? "border-moss-200" : "border-stone-200",
+        "rounded-md border bg-white p-4 sm:p-5",
+        row.picked ? "border-emerald-200" : "border-slate-200",
       )}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1 space-y-3">
           <div className="flex flex-wrap items-start gap-2">
-            <h2 className="min-w-0 flex-1 text-[1.0625rem] font-semibold leading-snug text-ink-800">
+            <h2 className="min-w-0 flex-1 text-[1.0625rem] font-semibold leading-snug text-slate-900">
               {row.title}
             </h2>
             <div className="flex flex-wrap items-center gap-1.5">
@@ -78,15 +78,15 @@ function SessionCard({
           </div>
 
           {row.description ? (
-            <p className="text-sm leading-relaxed text-stone-600">
+            <p className="text-sm leading-relaxed text-slate-600">
               {row.description}
             </p>
           ) : null}
 
-          <dl className="flex flex-col gap-1.5 text-sm text-stone-700 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:gap-y-1.5">
+          <dl className="flex flex-col gap-1.5 text-sm text-slate-700 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:gap-y-1.5">
             <div className="inline-flex items-center gap-1.5">
               <CalendarDays
-                className="size-3.5 shrink-0 text-stone-400"
+                className="size-3.5 shrink-0 text-slate-400"
                 aria-hidden
               />
               <dt className="sr-only">Date</dt>
@@ -95,7 +95,7 @@ function SessionCard({
             {row.timeLabel ? (
               <div className="inline-flex items-center gap-1.5">
                 <Clock3
-                  className="size-3.5 shrink-0 text-stone-400"
+                  className="size-3.5 shrink-0 text-slate-400"
                   aria-hidden
                 />
                 <dt className="sr-only">Time</dt>
@@ -105,7 +105,7 @@ function SessionCard({
             {locationLabel ? (
               <div className="inline-flex items-center gap-1.5">
                 <MapPin
-                  className="size-3.5 shrink-0 text-stone-400"
+                  className="size-3.5 shrink-0 text-slate-400"
                   aria-hidden
                 />
                 <dt className="sr-only">Location</dt>
@@ -115,7 +115,7 @@ function SessionCard({
             {row.teamsJoinUrl ? (
               <div className="inline-flex items-center gap-1.5">
                 <Video
-                  className="size-3.5 shrink-0 text-stone-400"
+                  className="size-3.5 shrink-0 text-slate-400"
                   aria-hidden
                 />
                 <dt className="sr-only">Platform</dt>
@@ -125,15 +125,15 @@ function SessionCard({
           </dl>
 
           {row.teamsJoinUrl ? (
-            <div className="rounded-sm border border-stone-200 bg-stone-50 px-3 py-2.5">
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2.5">
+              <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
                 Join link
               </p>
               <a
                 href={row.teamsJoinUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-1 inline-flex max-w-full items-center gap-1.5 text-sm font-medium text-ink-700 underline decoration-stone-300 underline-offset-2 hover:text-ink-800"
+                className="mt-1 inline-flex max-w-full items-center gap-1.5 text-sm font-medium text-slate-700 underline decoration-slate-300 underline-offset-2 hover:text-slate-900"
               >
                 <ExternalLink className="size-3.5 shrink-0" aria-hidden />
                 <span className="truncate">Join Teams meeting</span>
@@ -148,7 +148,7 @@ function SessionCard({
               href={row.teamsJoinUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-sm bg-ink-700 px-3 text-[0.8125rem] font-semibold text-white hover:bg-ink-800"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-indigo-600 px-3 text-[0.8125rem] font-semibold text-white hover:bg-indigo-700"
             >
               <ExternalLink className="size-3.5" aria-hidden />
               Join session
@@ -204,11 +204,11 @@ export function AttendeeAgendaPanel({
   return (
     <div className="space-y-4">
       {sessions.length === 0 ? (
-        <div className="rounded-md border border-dashed border-stone-300 bg-stone-0 px-5 py-10 text-center">
-          <p className="text-sm font-medium text-ink-700">
+        <div className="rounded-md border border-dashed border-slate-200 bg-white px-5 py-10 text-center">
+          <p className="text-sm font-medium text-slate-700">
             No sessions have been published
           </p>
-          <p className="mt-1 text-sm text-stone-500">
+          <p className="mt-1 text-sm text-slate-500">
             Check back once the organiser adds programme sessions.
           </p>
         </div>

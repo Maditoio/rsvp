@@ -18,22 +18,25 @@ export function NavLink({
   disabled?: boolean;
 }) {
   const cls = cn(
-    "flex items-center gap-2 rounded-sm border-l-[3px] text-sm transition-colors",
+    "flex items-center gap-2 rounded-full text-sm transition-colors duration-150 ease-out",
     collapsed
-      ? "mx-auto h-[38px] w-[38px] justify-center border-l-0 p-0"
-      : "h-[34px] px-2",
+      ? "mx-auto h-[38px] w-[38px] justify-center p-0"
+      : "h-[38px] px-3.5",
     active
-      ? collapsed
-        ? "bg-stone-100 text-ink-700"
-        : "border-l-ink-700 bg-stone-100 font-semibold text-ink-700"
-      : "border-l-transparent text-stone-600 hover:bg-stone-100 hover:text-ink-700",
-    disabled && "cursor-not-allowed opacity-60 hover:bg-transparent hover:text-stone-600",
+      ? "bg-indigo-50 font-semibold text-indigo-700"
+      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+    disabled && "cursor-not-allowed opacity-60 hover:bg-transparent hover:text-slate-600",
+  );
+
+  const iconCls = cn(
+    "size-4 shrink-0",
+    active ? "text-indigo-600" : undefined,
   );
 
   if (disabled) {
     return (
       <span className={cls} title={label}>
-        <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
+        <Icon className={iconCls} strokeWidth={1.75} aria-hidden />
         {!collapsed && <span className="truncate">{label}</span>}
       </span>
     );
@@ -41,7 +44,7 @@ export function NavLink({
 
   return (
     <Link href={href} className={cls} title={collapsed ? label : undefined}>
-      <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
+      <Icon className={iconCls} strokeWidth={1.75} aria-hidden />
       {!collapsed && <span className="truncate">{label}</span>}
     </Link>
   );

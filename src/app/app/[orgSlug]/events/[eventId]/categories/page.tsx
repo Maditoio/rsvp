@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
@@ -23,24 +24,26 @@ export default async function CategoriesPage({
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-ink-800">Invitation categories</h1>
-      <p className="mt-1 text-sm text-stone-700">
+      <h1 className="font-display text-3xl text-slate-900">Invitation categories</h1>
+      <p className="mt-1 text-[0.8125rem] text-slate-500">
         Categories are configured per event. They are not a hard-coded list of
         VIP / speaker / delegate labels.
       </p>
       {canManage ? <CategoryForm orgSlug={orgSlug} eventId={eventId} /> : null}
       <div className="mt-6">
-        <CategoryList
-          orgSlug={orgSlug}
-          eventId={eventId}
-          canManage={canManage}
-          categories={categories.map((category) => ({
-            id: category.id,
-            name: category.name,
-            invitationCount: category._count.invitations,
-            attendeeCount: category._count.attendees,
-          }))}
-        />
+        <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
+          <CategoryList
+            orgSlug={orgSlug}
+            eventId={eventId}
+            canManage={canManage}
+            categories={categories.map((category) => ({
+              id: category.id,
+              name: category.name,
+              invitationCount: category._count.invitations,
+              attendeeCount: category._count.attendees,
+            }))}
+          />
+        </Suspense>
       </div>
     </div>
   );

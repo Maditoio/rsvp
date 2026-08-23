@@ -44,11 +44,11 @@ export default async function AttendeeEventPage({
   return (
     <div className="space-y-6">
       <DecisionCard>
-        <p className="text-xs uppercase tracking-[0.18em] text-bronze-200">
+        <p className="text-xs uppercase tracking-[0.18em] text-indigo-200">
           My event
         </p>
         <h1 className="mt-2 font-display text-4xl">{attendance.event.name}</h1>
-        <p className="mt-2 text-ink-100">
+        <p className="mt-2 text-slate-100">
           {attendance.event.venue || "Venue TBC"} ·{" "}
           {formatEventWindow(
             attendance.event.startsAt,
@@ -59,51 +59,51 @@ export default async function AttendeeEventPage({
       </DecisionCard>
       {!matchingComplete ? (
         <Card>
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
             Matching
           </p>
-          <h2 className="mt-2 font-display text-2xl text-ink-800">
+          <h2 className="mt-2 font-display text-2xl text-slate-900">
             Set up who you want to meet
           </h2>
-          <p className="mt-2 text-sm text-stone-700">
+          <p className="mt-2 text-sm text-slate-700">
             Your registration is complete. A short questionnaire ranks the
             directory around what you are looking for and what you offer.
           </p>
           <div className="mt-5 flex flex-wrap items-center gap-4">
             <Link
               href={matchmakingPath(eventId)}
-              className="inline-flex h-11 items-center rounded-sm bg-ink-700 px-5 text-[0.9375rem] font-semibold text-white hover:bg-ink-800"
+              className="inline-flex h-11 items-center rounded-full bg-indigo-600 px-5 text-[0.9375rem] font-semibold text-white hover:bg-indigo-700"
             >
               Set up matching profile
             </Link>
-            <span className="text-sm text-stone-500">You can skip this for now.</span>
+            <span className="text-sm text-slate-500">You can skip this for now.</span>
           </div>
         </Card>
       ) : topMatches.length > 0 ? (
         <Card>
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
             For you
           </p>
-          <h2 className="mt-2 font-display text-2xl text-ink-800">
+          <h2 className="mt-2 font-display text-2xl text-slate-900">
             Suggested connections
           </h2>
-          <p className="mt-2 text-sm text-stone-700">
+          <p className="mt-2 text-sm text-slate-700">
             Top matches from your looking-for, offering, and shared objectives.
           </p>
-          <ul className="mt-4 divide-y divide-stone-200 border-t border-stone-200">
+          <ul className="mt-4 divide-y divide-slate-100 border-t border-slate-200">
             {topMatches.map((person) => {
               const bandText = matchBandLabel(person.band);
               return (
                 <li key={person.id} className="py-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium text-ink-800">
+                    <p className="font-medium text-slate-900">
                       {displayName(person)}
                     </p>
                     {person.band && bandText ? (
                       <Badge tone={bandTone(person.band)}>{bandText}</Badge>
                     ) : null}
                   </div>
-                  <p className="text-sm text-stone-700">
+                  <p className="text-sm text-slate-700">
                     {[person.jobTitle, person.company]
                       .filter(Boolean)
                       .join(" · ") || "—"}
@@ -114,7 +114,7 @@ export default async function AttendeeEventPage({
           </ul>
           <Link
             href={directoryHref}
-            className="mt-4 inline-flex text-sm font-semibold text-ink-700 underline-offset-4 hover:underline"
+            className="mt-4 inline-flex text-sm font-semibold text-slate-700 underline-offset-4 hover:underline"
           >
             View directory &amp; matching
           </Link>
@@ -122,49 +122,49 @@ export default async function AttendeeEventPage({
       ) : null}
       <Card>
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="font-display text-2xl text-ink-800">Registration</h2>
+          <h2 className="font-display text-2xl text-slate-900">Registration</h2>
           <Badge tone={attendance.status === "CHECKED_IN" ? "success" : "default"}>
             {attendance.status.replaceAll("_", " ")}
           </Badge>
         </div>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           <div>
-            <dt className="text-stone-500">Name</dt>
-            <dd className="text-ink-800">
+            <dt className="text-slate-500">Name</dt>
+            <dd className="text-slate-900">
               {attendance.firstName} {attendance.lastName}
             </dd>
           </div>
           <div>
-            <dt className="text-stone-500">Company</dt>
-            <dd className="text-ink-800">{attendance.company || "—"}</dd>
+            <dt className="text-slate-500">Company</dt>
+            <dd className="text-slate-900">{attendance.company || "—"}</dd>
           </div>
           <div>
-            <dt className="text-stone-500">Category</dt>
-            <dd className="text-ink-800">{attendance.category?.name || "—"}</dd>
+            <dt className="text-slate-500">Category</dt>
+            <dd className="text-slate-900">{attendance.category?.name || "—"}</dd>
           </div>
           <div>
-            <dt className="text-stone-500">Form status</dt>
-            <dd className="text-ink-800">
+            <dt className="text-slate-500">Form status</dt>
+            <dd className="text-slate-900">
               {attendance.registration?.status ?? "COMPLETED"}
             </dd>
           </div>
         </dl>
         {checkedInAt ? (
-          <p className="mt-4 text-sm text-moss-600">
+          <p className="mt-4 text-sm text-success">
             Checked in {checkedInAt.toLocaleString()}
           </p>
         ) : null}
         <Link
           href={`/me/events/${eventId}/qr`}
-          className="mt-6 inline-flex rounded-sm bg-ink-700 px-4 py-2 text-sm font-medium text-white"
+          className="mt-6 inline-flex rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
         >
           Show my QR code
         </Link>
       </Card>
       {attendance.event.description ? (
         <Card>
-          <h2 className="font-display text-2xl text-ink-800">About</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm text-stone-700">
+          <h2 className="font-display text-2xl text-slate-900">About</h2>
+          <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">
             {attendance.event.description}
           </p>
         </Card>

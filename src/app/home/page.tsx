@@ -41,25 +41,25 @@ function WorkspaceCard({ workspace }: { workspace: UserWorkspace }) {
   return (
     <Link
       href={workspace.href}
-      className="group block rounded-md border border-stone-200 bg-stone-0 p-5 transition-colors hover:border-ink-300 hover:bg-stone-50"
+      className="group block rounded-xl bg-white shadow-sm p-5 transition-colors hover:border-indigo-300 hover:bg-slate-50"
     >
       <div className="flex items-start gap-4">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-sm bg-stone-100 text-ink-700 group-hover:bg-ink-700 group-hover:text-white">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 group-hover:bg-indigo-600 group-hover:text-white">
           <Icon className="size-5" strokeWidth={1.75} aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-[1.0625rem] font-semibold text-ink-800">
+            <h2 className="text-[1.0625rem] font-semibold text-slate-900">
               {workspace.label}
             </h2>
             <Badge tone="muted">{WORKSPACE_KIND_LABELS[workspace.kind]}</Badge>
           </div>
-          <p className="mt-1 text-sm leading-relaxed text-stone-600">
+          <p className="mt-1 text-sm leading-relaxed text-slate-600">
             {workspace.description}
           </p>
         </div>
         <BadgeCheck
-          className="size-4 shrink-0 text-stone-300 group-hover:text-bronze-600"
+          className="size-4 shrink-0 text-slate-300 group-hover:text-indigo-600"
           strokeWidth={1.75}
           aria-hidden
         />
@@ -73,15 +73,15 @@ export default async function HomePage() {
 
   if (workspaces.length === 0) {
     return (
-      <div className="min-h-screen bg-stone-50">
-        <header className="border-b border-stone-200 bg-stone-0">
+      <div className="min-h-screen bg-slate-50">
+        <header className="border-b border-slate-200 bg-white">
           <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
             <BrandLogo href="/home" size={32} wordmarkClassName="text-2xl" />
           </div>
         </header>
         <main className="mx-auto max-w-3xl px-6 py-12">
-          <h1 className="font-display text-3xl text-ink-800">No workspaces yet</h1>
-          <p className="mt-2 text-sm text-stone-700">
+          <h1 className="font-display text-3xl text-slate-900">No workspaces yet</h1>
+          <p className="mt-2 text-sm text-slate-700">
             You are signed in, but no attendee registration, organisation
             membership, or platform access is linked to this account yet.
           </p>
@@ -100,11 +100,11 @@ export default async function HomePage() {
   const platform = workspaces.filter((w) => w.kind === "platform");
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <header className="border-b border-stone-200 bg-stone-0">
+    <div className="min-h-screen bg-slate-50">
+      <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
           <div>
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-bronze-600">
+            <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
               Bizcon RSVP
             </p>
             <div className="mt-1">
@@ -116,13 +116,13 @@ export default async function HomePage() {
 
       <main className="mx-auto max-w-3xl px-6 py-10">
         <div className="max-w-2xl">
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
             Choose workspace
           </p>
-          <h1 className="mt-1 font-display text-4xl text-ink-800">
+          <h1 className="mt-1 font-display text-4xl text-slate-900">
             Where would you like to go?
           </h1>
-          <p className="mt-2 text-sm text-stone-700">
+          <p className="mt-2 text-sm text-slate-700">
             Your account has access to multiple areas. Select the workspace that
             matches what you need to do right now.
           </p>
@@ -131,7 +131,7 @@ export default async function HomePage() {
         <div className="mt-8 space-y-8">
           {attendee.length > 0 ? (
             <section className="space-y-3">
-              <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+              <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
                 Attendee
               </h2>
               {attendee.map((workspace) => (
@@ -142,7 +142,7 @@ export default async function HomePage() {
 
           {organiser.length > 0 ? (
             <section className="space-y-3">
-              <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+              <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
                 Organiser
               </h2>
               {organiser.map((workspace) => (
@@ -153,7 +153,7 @@ export default async function HomePage() {
 
           {eventOps.length > 0 ? (
             <section className="space-y-3">
-              <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+              <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
                 Event day
               </h2>
               {eventOps.map((workspace) => (
@@ -164,7 +164,7 @@ export default async function HomePage() {
 
           {platform.length > 0 ? (
             <section className="space-y-3">
-              <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+              <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
                 Platform
               </h2>
               {platform.map((workspace) => (

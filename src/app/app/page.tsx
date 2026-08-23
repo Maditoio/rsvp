@@ -14,10 +14,12 @@ export default async function AppIndexPage() {
 
   if (!isDatabaseConfigured()) {
     return (
-      <div className="min-h-screen bg-gray-50 p-10">
-        <div className="mx-auto max-w-lg rounded-2xl bg-white p-8">
-          <h1 className="font-display text-2xl">Connect Postgres</h1>
-          <p className="mt-3 text-sm text-gray-600">
+      <div className="min-h-screen bg-slate-50 p-10">
+        <div className="mx-auto max-w-lg rounded-xl bg-white p-8 shadow-sm">
+          <h1 className="text-2xl font-semibold tracking-[-0.02em] text-slate-900">
+            Connect Postgres
+          </h1>
+          <p className="mt-3 text-sm text-slate-600">
             Set <code>DATABASE_URL</code> to your Neon pooled connection string,
             then run <code>npx prisma migrate deploy</code>.
           </p>
@@ -39,18 +41,20 @@ export default async function AppIndexPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-10">
+    <div className="min-h-screen bg-slate-50 p-10">
       <div className="mx-auto max-w-xl">
-        <h1 className="font-display text-3xl text-gray-800">Choose organisation</h1>
+        <h1 className="text-3xl font-semibold tracking-[-0.02em] text-slate-900">
+          Choose organisation
+        </h1>
         <div className="mt-6 space-y-3">
           {memberships.map((m) => (
             <Link
               key={m.id}
               href={`/app/${m.organisation.slug}`}
-              className="block rounded-2xl bg-white p-5 hover:bg-gray-50"
+              className="block rounded-xl bg-white p-5 shadow-sm hover:bg-slate-50"
             >
-              <p className="font-medium text-gray-800">{m.organisation.name}</p>
-              <p className="text-sm text-gray-500">{m.role}</p>
+              <p className="font-medium text-slate-900">{m.organisation.name}</p>
+              <p className="text-sm text-slate-500">{m.role}</p>
             </Link>
           ))}
         </div>

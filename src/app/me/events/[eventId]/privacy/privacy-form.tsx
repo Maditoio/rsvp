@@ -43,21 +43,21 @@ export function PrivacyForm({
         });
       }}
     >
-      <label className="flex items-start gap-3 text-sm text-ink-700">
+      <label className="flex items-start gap-3 text-sm text-slate-700">
         <input
           type="checkbox"
           name="profileVisible"
           defaultChecked={privacy.profileVisible}
-          className="mt-1 size-4 accent-ink-700"
+          className="mt-1 size-4 accent-indigo-600"
         />
         <span>
           <span className="font-semibold">Show my profile in the directory</span>
-          <span className="mt-1 block text-xs font-normal text-stone-500">
+          <span className="mt-1 block text-xs font-normal text-slate-500">
             Other registered attendees can find you and request a meeting. See
             recommendations in the{" "}
             <Link
               href={directoryHref}
-              className="font-semibold text-ink-700 underline-offset-4 hover:underline"
+              className="font-semibold text-slate-700 underline-offset-4 hover:underline"
             >
               Directory
             </Link>
@@ -65,20 +65,20 @@ export function PrivacyForm({
           </span>
         </span>
       </label>
-      <label className="flex items-start gap-3 text-sm text-ink-700">
+      <label className="flex items-start gap-3 text-sm text-slate-700">
         <input
           type="checkbox"
           name="matchmakingEnabled"
           defaultChecked={privacy.matchmakingEnabled}
-          className="mt-1 size-4 accent-ink-700"
+          className="mt-1 size-4 accent-indigo-600"
         />
         <span>
           <span className="font-semibold">Include me in basic matching</span>
-          <span className="mt-1 block text-xs font-normal text-stone-500">
+          <span className="mt-1 block text-xs font-normal text-slate-500">
             Matching uses shared objectives from your{" "}
             <Link
               href={matchingHref}
-              className="font-semibold text-ink-700 underline-offset-4 hover:underline"
+              className="font-semibold text-slate-700 underline-offset-4 hover:underline"
             >
               matching profile
             </Link>
@@ -88,7 +88,7 @@ export function PrivacyForm({
       </label>
       <label
         className={`flex items-start gap-3 text-sm ${
-          eventAiEnabled ? "text-ink-700" : "text-stone-500"
+          eventAiEnabled ? "text-slate-700" : "text-slate-500"
         }`}
       >
         <input
@@ -96,41 +96,41 @@ export function PrivacyForm({
           name="aiInsightsOptIn"
           defaultChecked={privacy.aiInsightsOptIn}
           disabled={!eventAiEnabled}
-          className="mt-1 size-4 accent-ink-700 disabled:cursor-not-allowed"
+          className="mt-1 size-4 accent-indigo-600 disabled:cursor-not-allowed"
         />
         <span>
           <span className="font-semibold">Allow AI to explain my matches</span>
-          <span className="mt-1 block text-xs font-normal text-stone-500">
+          <span className="mt-1 block text-xs font-normal text-slate-500">
             {eventAiEnabled
               ? "When enabled, AI may write an explanation on Directory recommendations. Matching still uses shared objectives."
               : "The organiser has not enabled AI insights for this event. Matching still uses shared objectives."}
           </span>
         </span>
       </label>
-      <label className="flex items-start gap-3 text-sm text-ink-700">
+      <label className="flex items-start gap-3 text-sm text-slate-700">
         <input
           type="checkbox"
           name="showEmail"
           defaultChecked={privacy.showEmail}
-          className="mt-1 size-4 accent-ink-700"
+          className="mt-1 size-4 accent-indigo-600"
         />
         <span>
           <span className="font-semibold">Show my email</span>
-          <span className="mt-1 block text-xs font-normal text-stone-500">
+          <span className="mt-1 block text-xs font-normal text-slate-500">
             Visible only to other registered attendees when your profile is shown.
           </span>
         </span>
       </label>
-      <label className="flex items-start gap-3 text-sm text-ink-700">
+      <label className="flex items-start gap-3 text-sm text-slate-700">
         <input
           type="checkbox"
           name="showPhone"
           defaultChecked={privacy.showPhone}
-          className="mt-1 size-4 accent-ink-700"
+          className="mt-1 size-4 accent-indigo-600"
         />
         <span>
           <span className="font-semibold">Show my phone</span>
-          <span className="mt-1 block text-xs font-normal text-stone-500">
+          <span className="mt-1 block text-xs font-normal text-slate-500">
             Visible only to other registered attendees when your profile is shown.
           </span>
         </span>

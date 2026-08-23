@@ -12,21 +12,21 @@ import {
   contactCreateSchema,
   type ContactCreateInput,
 } from "@/modules/contacts/parse";
+import {
+  DataTable,
+  TableFilterSelect,
+  type DataTableColumn,
+} from "@/components/data-table/data-table";
+import { ActionsMenu } from "@/components/data-table/actions-menu";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/select";
-import { Table, Td, Th } from "@/components/ui/table";
-import { ColumnFilterTh } from "@/components/column-filter-th";
 import { InvitationStatusIcon } from "@/components/invitation-status-icon";
-import {
-  TABLE_PAGE_SIZE,
-  TablePagination,
-  paginate,
-} from "@/components/table-pagination";
 import { COUNTRIES } from "@/lib/countries";
 import { displayName, humanizeEnum } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -83,7 +83,6 @@ export function InviteesPanel({
   const [pending, start] = useTransition();
   const [filterCategoryId, setFilterCategoryId] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkCategoryId, setBulkCategoryId] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<InviteeRow | null>(null);
@@ -125,20 +124,6 @@ export function InviteesPanel({
       return true;
     });
   }, [contacts, filterCategoryId, filterStatus]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [filterCategoryId, filterStatus]);
-
-  const { page: safePage, pageCount, slice } = paginate(
-    filteredContacts,
-    page,
-    TABLE_PAGE_SIZE,
-  );
-
-  useEffect(() => {
-    if (safePage !== page) setPage(safePage);
-  }, [safePage, page]);
 
   const uninvitedSelected = useMemo(
     () =>
@@ -193,188 +178,226 @@ export function InviteesPanel({
     setOpen(true);
   }
 
+  const columns: DataTableColumn<InviteeRow>[] = [
+    {
+      id: "select",
+      header: (
+        <input
+          ref={selectAllRef}
+          type="checkbox"
+          className="size-4 accent-indigo-600"
+          checked={allFilteredSelected}
+          onChange={toggleAllMatching}
+          aria-label="Select all matching invitees"
+        />
+      ),
+      width: "48px",
+      headerClassName: "normal-case tracking-normal",
+      cell: (contact) => (
+        <input
+          type="checkbox"
+          className="size-4 accent-indigo-600"
+          checked={selected.includes(contact.id)}
+          onChange={() => toggleOne(contact.id)}
+          aria-label={`Select ${contact.email}`}
+        />
+      ),
+    },
+    {
+      id: "name",
+      header: "Name",
+      width: "1.4fr",
+      cell: (contact) => (
+        <span className="font-medium text-slate-700">{displayName(contact)}</span>
+      ),
+    },
+    {
+      id: "email",
+      header: "Email",
+      width: "1.6fr",
+      cell: (contact) => contact.email,
+    },
+    {
+      id: "company",
+      header: "Company",
+      width: "1.2fr",
+      cell: (contact) => contact.company ?? "—",
+    },
+    {
+      id: "category",
+      header: "Category",
+      width: "1fr",
+      cell: (contact) => contact.categoryName ?? "—",
+    },
+    {
+      id: "invitation",
+      header: "Invitation",
+      width: "1.1fr",
+      cell: (contact) => (
+        <InvitationStatusIcon status={contact.invitationStatus} />
+      ),
+    },
+    ...(canWrite
+      ? [
+          {
+            id: "actions",
+            header: "",
+            width: "60px",
+            headerClassName: "sr-only",
+            cellClassName: "justify-self-end",
+            cell: (contact: InviteeRow) => (
+              <ActionsMenu
+                disabled={pending}
+                items={[
+                  {
+                    id: "delete",
+                    label: "Delete invitee",
+                    destructive: true,
+                    icon: (
+                      <Trash2 className="size-3.5 shrink-0" strokeWidth={1.75} />
+                    ),
+                    onSelect: () => setDeleteTarget(contact),
+                  },
+                ]}
+              />
+            ),
+          } satisfies DataTableColumn<InviteeRow>,
+        ]
+      : []),
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
-            Guest list
-          </p>
-          <h1 className="mt-1 font-display text-3xl text-ink-800">Invitees</h1>
-          <p className="mt-1 text-sm text-stone-700">
-            Contacts for this event. An invitee is not yet registered.
-          </p>
-        </div>
-        {canWrite ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={importHref}
-              className="inline-flex h-11 items-center justify-center rounded-sm border border-stone-300 bg-transparent px-5 text-[0.9375rem] font-semibold text-ink-700 hover:border-ink-400 hover:bg-stone-50 active:bg-stone-100"
-            >
-              Import CSV / Excel
-            </Link>
-            <Button type="button" onClick={openDrawer}>
-              Add invitee
-            </Button>
-          </div>
-        ) : null}
-      </div>
+      <PageHeader
+        eyebrow="Guest list"
+        title="Invitees"
+        description="Contacts for this event. An invitee is not yet registered."
+        actions={
+          canWrite ? (
+            <>
+              <Link
+                href={importHref}
+                className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-5 text-[0.84375rem] font-semibold text-slate-700 transition-[color,background-color,border-color] duration-150 hover:border-slate-300 hover:bg-slate-50"
+              >
+                Import CSV / Excel
+              </Link>
+              <Button type="button" leadingIcon="plus" onClick={openDrawer}>
+                Add invitee
+              </Button>
+            </>
+          ) : null
+        }
+      />
 
-      {notice ? <p className="text-sm text-moss-600">{notice}</p> : null}
+      {notice ? <p className="text-sm text-success">{notice}</p> : null}
 
       {contacts.length === 0 ? (
         <Card>
-          <p className="text-stone-700">No invitees yet.</p>
+          <p className="text-slate-700">No invitees yet.</p>
           {canWrite ? (
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={openDrawer}
-                className="text-sm font-semibold text-ink-700 hover:text-ink-800"
+                className="text-sm font-semibold text-slate-700 hover:text-slate-900"
               >
                 Add an invitee
               </button>
-              <Link href={importHref} className="text-sm text-ink-700 hover:text-ink-800">
+              <Link href={importHref} className="text-sm text-slate-700 hover:text-slate-900">
                 Import a contact list
               </Link>
             </div>
           ) : null}
         </Card>
       ) : (
-        <>
-          {canInvite && uninvitedSelected.length > 0 ? (
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <Select
-                className="h-9 w-auto px-3 text-sm"
-                value={bulkCategoryId}
-                onChange={(e) => setBulkCategoryId(e.target.value)}
-              >
-                <option value="">No category</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
-              <Button
-                type="button"
-                disabled={pending}
-                onClick={() => {
-                  setError(null);
-                  setNotice(null);
-                  start(async () => {
-                    try {
-                      const result = await createInvitationsForContacts(
-                        orgSlug,
-                        eventId,
-                        uninvitedSelected.map((c) => c.id),
-                        bulkCategoryId || undefined,
-                      );
-                      setSelected([]);
-                      setNotice(`Created ${result.created} invitation(s).`);
-                      router.refresh();
-                    } catch (e) {
-                      setError(
-                        e instanceof Error ? e.message : "Bulk invite failed",
-                      );
-                    }
-                  });
-                }}
-              >
-                <Send className="mr-1.5 size-4" />
-                {pending
-                  ? "Creating…"
-                  : `Send invitation to ${uninvitedSelected.length} selected`}
-              </Button>
-            </div>
-          ) : null}
-          <Table>
-            <thead>
-              <tr>
-                <Th>
-                  <input
-                    ref={selectAllRef}
-                    type="checkbox"
-                    className="size-4 accent-ink-700"
-                    checked={allFilteredSelected}
-                    onChange={toggleAllMatching}
-                    aria-label="Select all matching invitees"
-                  />
-                </Th>
-                <Th>Name</Th>
-                <Th>Email</Th>
-                <Th>Company</Th>
-                <ColumnFilterTh
-                  label="Category"
-                  value={filterCategoryId}
-                  options={categoryFilterOptions}
-                  onChange={setFilterCategoryId}
-                  allLabel="All categories"
-                />
-                <ColumnFilterTh
-                  label="Invitation"
-                  value={filterStatus}
-                  options={statusFilterOptions}
-                  onChange={setFilterStatus}
-                  allLabel="All statuses"
-                />
-                {canWrite ? <Th aria-label="Actions"> </Th> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {slice.length === 0 ? (
-                <tr>
-                  <Td colSpan={canWrite ? 7 : 6} className="text-stone-500">
-                    No invitees match these filters.
-                  </Td>
-                </tr>
-              ) : (
-                slice.map((contact) => (
-                  <tr key={contact.id}>
-                    <Td>
-                      <input
-                        type="checkbox"
-                        className="size-4 accent-ink-700"
-                        checked={selected.includes(contact.id)}
-                        onChange={() => toggleOne(contact.id)}
-                        aria-label={`Select ${contact.email}`}
-                      />
-                    </Td>
-                    <Td>{displayName(contact)}</Td>
-                    <Td>{contact.email}</Td>
-                    <Td>{contact.company ?? "—"}</Td>
-                    <Td>{contact.categoryName ?? "—"}</Td>
-                    <Td>
-                      <InvitationStatusIcon status={contact.invitationStatus} />
-                    </Td>
-                    {canWrite ? (
-                      <Td>
-                        <div className="flex items-center justify-end">
-                          <button
-                            type="button"
-                            title="Delete invitee"
-                            disabled={pending}
-                            className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-danger disabled:opacity-50"
-                            onClick={() => setDeleteTarget(contact)}
-                          >
-                            <Trash2 className="size-4" />
-                            <span className="sr-only">Delete invitee</span>
-                          </button>
-                        </div>
-                      </Td>
-                    ) : null}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </Table>
-          <TablePagination
-            page={safePage}
-            pageCount={pageCount}
-            total={filteredContacts.length}
-            onPageChange={setPage}
-          />
-        </>
+        <DataTable
+          rows={filteredContacts}
+          columns={columns}
+          getRowId={(contact) => contact.id}
+          searchPlaceholder="Search invitees…"
+          searchThresholdCount={contacts.length}
+          searchFilter={(contact, query) => {
+            const haystack = [
+              displayName(contact),
+              contact.email,
+              contact.company,
+              contact.categoryName,
+              contact.invitationStatus,
+            ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase();
+            return haystack.includes(query);
+          }}
+          emptyMessage="No invitees match these filters."
+          showRowsPerPage
+          filterSlot={
+            <>
+              <TableFilterSelect
+                label="Category"
+                value={filterCategoryId}
+                onChange={setFilterCategoryId}
+                options={categoryFilterOptions}
+                allLabel="All categories"
+              />
+              <TableFilterSelect
+                label="Invitation status"
+                value={filterStatus}
+                onChange={setFilterStatus}
+                options={statusFilterOptions}
+                allLabel="All statuses"
+              />
+            </>
+          }
+          toolbar={
+            canInvite && uninvitedSelected.length > 0 ? (
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Select
+                  className="h-9 w-auto px-3 text-sm"
+                  value={bulkCategoryId}
+                  onChange={(e) => setBulkCategoryId(e.target.value)}
+                >
+                  <option value="">No category</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </Select>
+                <Button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => {
+                    setError(null);
+                    setNotice(null);
+                    start(async () => {
+                      try {
+                        const result = await createInvitationsForContacts(
+                          orgSlug,
+                          eventId,
+                          uninvitedSelected.map((c) => c.id),
+                          bulkCategoryId || undefined,
+                        );
+                        setSelected([]);
+                        setNotice(`Created ${result.created} invitation(s).`);
+                        router.refresh();
+                      } catch (e) {
+                        setError(
+                          e instanceof Error ? e.message : "Bulk invite failed",
+                        );
+                      }
+                    });
+                  }}
+                >
+                  <Send className="mr-1.5 size-4" />
+                  {pending
+                    ? "Creating…"
+                    : `Send invitation to ${uninvitedSelected.length} selected`}
+                </Button>
+              </div>
+            ) : null
+          }
+        />
       )}
 
       {error ? <p className="text-sm text-danger">{error}</p> : null}
@@ -539,7 +562,7 @@ export function InviteesPanel({
                 </option>
               ))}
             </Select>
-            <p className="mt-1 text-[0.8125rem] text-stone-500">
+            <p className="mt-1 text-[0.8125rem] text-slate-500">
               Optional. Creates a draft invitation for this category.
             </p>
           </div>

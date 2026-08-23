@@ -99,12 +99,12 @@ export function WorkspaceSwitcher({
       <Link
         href={only.href}
         className={cn(
-          "inline-flex items-center gap-2 rounded-sm border border-stone-200 bg-stone-50 px-2.5 py-1.5 text-sm text-ink-700 hover:bg-stone-100",
+          "inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100",
           compact && "max-w-[12rem]",
         )}
         title={only.description}
       >
-        <Icon className="size-3.5 shrink-0 text-stone-500" strokeWidth={1.75} />
+        <Icon className="size-3.5 shrink-0 text-slate-500" strokeWidth={1.75} />
         <span className={cn("truncate font-medium", compact && "text-xs")}>
           {only.label}
         </span>
@@ -122,12 +122,12 @@ export function WorkspaceSwitcher({
         aria-expanded={open}
         aria-haspopup="listbox"
         className={cn(
-          "inline-flex max-w-full items-center gap-2 rounded-sm border border-stone-200 bg-stone-0 px-2.5 py-1.5 text-sm text-ink-700 hover:bg-stone-50",
+          "inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50",
           compact ? "max-w-[9.5rem]" : "min-w-[10rem]",
         )}
       >
         <CurrentIcon
-          className="size-3.5 shrink-0 text-bronze-600"
+          className="size-3.5 shrink-0 text-indigo-600"
           strokeWidth={1.75}
           aria-hidden
         />
@@ -136,7 +136,7 @@ export function WorkspaceSwitcher({
         </span>
         <ChevronDown
           className={cn(
-            "size-3.5 shrink-0 text-stone-400 transition-transform",
+            "size-3.5 shrink-0 text-slate-400 transition-transform",
             open && "rotate-180",
           )}
           strokeWidth={2}
@@ -147,29 +147,29 @@ export function WorkspaceSwitcher({
       {open ? (
         <div
           className={cn(
-            "absolute z-30 mt-1 w-72 rounded-md border border-stone-200 bg-white py-1 shadow-lg",
+            "absolute z-30 mt-1 w-72 rounded-md bg-white py-1.5 shadow-md",
             menuAlign === "left" ? "left-0" : "right-0",
           )}
         >
-          <div className="border-b border-stone-100 px-3 py-2">
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+          <div className="border-b border-slate-100 px-3 py-2">
+            <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
               Workspaces
             </p>
-            <p className="mt-0.5 text-xs text-stone-500">
+            <p className="mt-0.5 text-xs text-slate-500">
               Switch between attendee, organiser, and platform surfaces.
             </p>
           </div>
           <Link
             href="/home"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 hover:text-ink-700"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900"
           >
             <LayoutGrid className="size-3.5 shrink-0" strokeWidth={1.75} />
             All workspaces
           </Link>
           {groups.map((group) => (
-            <div key={group.kind} className="border-t border-stone-100 py-1">
-              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-400">
+            <div key={group.kind} className="border-t border-slate-100 py-1">
+              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
                 {group.label}
               </p>
               {group.items.map((workspace) => {
@@ -181,26 +181,26 @@ export function WorkspaceSwitcher({
                     href={workspace.href}
                     onClick={() => setOpen(false)}
                     className={cn(
-                      "flex items-start gap-2 px-3 py-2 text-sm hover:bg-stone-50",
+                      "flex items-start gap-2 px-3 py-2 text-sm hover:bg-slate-50",
                       active
-                        ? "bg-stone-50 font-medium text-ink-700"
-                        : "text-stone-700 hover:text-ink-700",
+                        ? "bg-slate-50 font-medium text-slate-900"
+                        : "text-slate-700 hover:text-slate-900",
                     )}
                   >
                     <Icon
-                      className="mt-0.5 size-3.5 shrink-0 text-stone-400"
+                      className="mt-0.5 size-3.5 shrink-0 text-slate-400"
                       strokeWidth={1.75}
                       aria-hidden
                     />
                     <span className="min-w-0">
                       <span className="block truncate">{workspace.label}</span>
-                      <span className="block truncate text-xs font-normal text-stone-500">
+                      <span className="block truncate text-xs font-normal text-slate-500">
                         {workspace.description}
                       </span>
                     </span>
                     {active ? (
                       <BadgeCheck
-                        className="ml-auto size-3.5 shrink-0 text-moss-600"
+                        className="ml-auto size-3.5 shrink-0 text-success"
                         strokeWidth={1.75}
                         aria-hidden
                       />

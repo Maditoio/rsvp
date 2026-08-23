@@ -77,7 +77,7 @@ function FieldControl({
     return (
       <div className="space-y-2">
         {options.map((option) => (
-          <label key={option} className="flex items-center gap-2 text-sm text-stone-700">
+          <label key={option} className="flex items-center gap-2 text-sm text-slate-700">
             <input
               type="radio"
               name={field.key}
@@ -96,7 +96,7 @@ function FieldControl({
     return (
       <div className="space-y-2">
         {options.map((option) => (
-          <label key={option} className="flex items-center gap-2 text-sm text-stone-700">
+          <label key={option} className="flex items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
               name={field.key}

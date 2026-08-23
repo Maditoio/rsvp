@@ -45,7 +45,7 @@ export function ConfirmDialog({
       <button
         type="button"
         aria-label="Close confirmation"
-        className="absolute inset-0 bg-ink-900/45"
+        className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
         disabled={pending}
         onClick={onClose}
       />
@@ -53,16 +53,16 @@ export function ConfirmDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-title"
-        className="relative w-full max-w-md rounded-md border border-stone-200 bg-stone-0 p-6 shadow-lg"
+        className="aurora-modal-enter relative w-full max-w-md rounded-xl bg-white p-6 shadow-lg"
       >
         <h2
           id="confirm-dialog-title"
-          className="font-display text-2xl text-ink-800"
+          className="text-2xl font-bold tracking-[-0.02em] text-slate-900"
         >
           {title}
         </h2>
-        <p className="mt-2 text-sm text-stone-700">{description}</p>
-        <div className="mt-6 flex justify-end gap-2">
+        <p className="mt-2 text-sm text-slate-600">{description}</p>
+        <div className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-4">
           <Button
             type="button"
             variant="secondary"

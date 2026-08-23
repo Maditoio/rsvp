@@ -88,10 +88,10 @@ function OptionTiles({
             aria-pressed={isOn}
             onClick={() => onToggle(option)}
             className={cn(
-              "rounded-sm border px-4 py-3 text-left text-[0.9375rem] transition-colors",
+              "rounded-md border px-4 py-3 text-left text-[0.9375rem] transition-colors",
               isOn
-                ? "border-ink-700 bg-stone-50 text-ink-800"
-                : "border-stone-200 bg-stone-0 text-ink-800 hover:border-stone-300",
+                ? "border-indigo-600 bg-indigo-50 text-slate-900"
+                : "border-slate-200 bg-white text-slate-900 hover:border-slate-200",
             )}
           >
             {option}
@@ -128,17 +128,17 @@ function BinaryTiles({
             aria-pressed={selected}
             onClick={() => onChange(tile.on)}
             className={cn(
-              "rounded-sm border px-4 py-3 text-left transition-colors",
+              "rounded-md border px-4 py-3 text-left transition-colors",
               selected
-                ? "border-ink-700 bg-ink-700 text-white"
-                : "border-stone-200 bg-stone-0 text-ink-800 hover:border-stone-300",
+                ? "border-indigo-600 bg-indigo-600 text-white"
+                : "border-slate-200 bg-white text-slate-900 hover:border-slate-200",
             )}
           >
             <span className="block text-[0.9375rem] font-semibold">{tile.label}</span>
             <span
               className={cn(
                 "mt-1 block text-sm",
-                selected ? "text-ink-100" : "text-stone-700",
+                selected ? "text-slate-100" : "text-slate-700",
               )}
             >
               {tile.hint}
@@ -238,15 +238,15 @@ export function QuestionnaireWizard({
   if (step === "welcome") {
     return (
       <div className="mx-auto max-w-2xl">
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
           {eventName}
         </p>
-        <h1 className="mt-3 font-display text-3xl text-ink-800 sm:text-4xl">
+        <h1 className="mt-3 font-display text-3xl text-slate-900 sm:text-4xl">
           {alreadyComplete
             ? "Update who you want to meet"
             : "Your registration is complete"}
         </h1>
-        <p className="mt-4 text-lg text-stone-700">
+        <p className="mt-4 text-lg text-slate-700">
           {alreadyComplete
             ? "Review your matching answers so the directory can rank the right people."
             : "Set up who you want to meet. A few structured answers are enough to start matching."}
@@ -257,7 +257,7 @@ export function QuestionnaireWizard({
           </Button>
           <Link
             href={eventHref}
-            className="text-[0.9375rem] text-stone-700 underline-offset-4 hover:text-ink-700 hover:underline"
+            className="text-[0.9375rem] text-slate-700 underline-offset-4 hover:text-slate-700 hover:underline"
           >
             Skip for now
           </Link>
@@ -269,21 +269,21 @@ export function QuestionnaireWizard({
   if (step === "done") {
     return (
       <div className="mx-auto max-w-2xl">
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
           Matching
         </p>
-        <h1 className="mt-3 font-display text-3xl text-ink-800 sm:text-4xl">
+        <h1 className="mt-3 font-display text-3xl text-slate-900 sm:text-4xl">
           Your matches are ready
         </h1>
-        <p className="mt-4 text-lg text-stone-700">
+        <p className="mt-4 text-lg text-slate-700">
           Other visible delegates are ranked from your answers. You can update
           this setup at any time.
         </p>
-        <p className="mt-3 text-sm text-stone-500">
+        <p className="mt-3 text-sm text-slate-500">
           Optional AI explanations for matches can be enabled later in{" "}
           <Link
             href={`/me/events/${eventId}/privacy`}
-            className="font-semibold text-ink-700 underline-offset-4 hover:underline"
+            className="font-semibold text-slate-700 underline-offset-4 hover:underline"
           >
             privacy settings
           </Link>
@@ -292,7 +292,7 @@ export function QuestionnaireWizard({
         <div className="mt-10">
           <Link
             href={directoryHref}
-            className="inline-flex h-11 items-center rounded-sm bg-ink-700 px-5 text-[0.9375rem] font-semibold text-white hover:bg-ink-800"
+            className="inline-flex h-11 items-center rounded-full bg-indigo-600 px-5 text-[0.9375rem] font-semibold text-white hover:bg-indigo-700"
           >
             Open the directory
           </Link>
@@ -304,19 +304,19 @@ export function QuestionnaireWizard({
   if (step === "visibility") {
     return (
       <div className="mx-auto max-w-2xl">
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
           Final step
         </p>
-        <h1 className="mt-3 font-display text-3xl text-ink-800 sm:text-4xl">
+        <h1 className="mt-3 font-display text-3xl text-slate-900 sm:text-4xl">
           How should you appear?
         </h1>
-        <p className="mt-4 text-lg text-stone-700">
+        <p className="mt-4 text-lg text-slate-700">
           Directory visibility and matching are separate. Organisers still see
           your registration record.
         </p>
         <div className="mt-8 space-y-8">
           <div>
-            <p className="mb-3 text-[0.8125rem] font-semibold text-ink-700">
+            <p className="mb-3 text-[0.8125rem] font-semibold text-slate-700">
               Show my profile in the directory
             </p>
             <BinaryTiles
@@ -333,7 +333,7 @@ export function QuestionnaireWizard({
             />
           </div>
           <div>
-            <p className="mb-3 text-[0.8125rem] font-semibold text-ink-700">
+            <p className="mb-3 text-[0.8125rem] font-semibold text-slate-700">
               Include me in matching
             </p>
             <BinaryTiles
@@ -355,7 +355,7 @@ export function QuestionnaireWizard({
           <button
             type="button"
             onClick={() => goBackFrom("visibility")}
-            className="text-[0.9375rem] text-stone-700 hover:text-ink-700"
+            className="text-[0.9375rem] text-slate-700 hover:text-slate-700"
           >
             Back
           </button>
@@ -372,13 +372,13 @@ export function QuestionnaireWizard({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+      <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
         Step {progressIndex + 1} of {QUESTION_STEP_COUNT}
       </p>
-      <h1 className="mt-3 font-display text-3xl text-ink-800 sm:text-4xl">
+      <h1 className="mt-3 font-display text-3xl text-slate-900 sm:text-4xl">
         {question.title}
       </h1>
-      <p className="mt-4 text-lg text-stone-700">{question.helper}</p>
+      <p className="mt-4 text-lg text-slate-700">{question.helper}</p>
       <div className="mt-8">
         <OptionTiles
           options={question.options}
@@ -390,7 +390,7 @@ export function QuestionnaireWizard({
         <button
           type="button"
           onClick={() => goBackFrom(step)}
-          className="text-[0.9375rem] text-stone-700 hover:text-ink-700"
+          className="text-[0.9375rem] text-slate-700 hover:text-slate-700"
         >
           Back
         </button>

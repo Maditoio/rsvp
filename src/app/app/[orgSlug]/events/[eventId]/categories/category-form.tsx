@@ -26,7 +26,7 @@ export function CategoryForm({
   return (
     <>
       <div className="mt-4">
-        <Button type="button" onClick={() => setOpen(true)}>
+        <Button type="button" leadingIcon="plus" onClick={() => setOpen(true)}>
           Add category
         </Button>
       </div>

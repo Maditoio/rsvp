@@ -90,7 +90,7 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
         {step > 1 ? (
           <button
             type="button"
-            className="shrink-0 text-sm font-medium text-bronze-700 hover:text-bronze-800"
+            className="shrink-0 text-sm font-medium text-indigo-700 hover:text-indigo-800"
             onClick={() => {
               setError(null);
               setStep((s) => (s > 1 ? ((s - 1) as Step) : s));
@@ -101,7 +101,7 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
         ) : (
           <Link
             href={`/app/${orgSlug}/events`}
-            className="shrink-0 text-sm font-medium text-bronze-700 hover:text-bronze-800"
+            className="shrink-0 text-sm font-medium text-indigo-700 hover:text-indigo-800"
           >
             ← Back
           </Link>
@@ -116,10 +116,10 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
           className="wizard-step-enter mx-auto w-full max-w-2xl space-y-10 text-center sm:space-y-12"
         >
           <div className="space-y-4">
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-bronze-600">
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-indigo-600">
               Step 1 of 3
             </p>
-            <h1 className="font-display text-4xl leading-[1.15] text-ink-800 sm:text-5xl sm:leading-[1.1]">
+            <h1 className="font-display text-4xl leading-[1.15] text-slate-900 sm:text-5xl sm:leading-[1.1]">
               What is the name of your event?
             </h1>
           </div>
@@ -154,13 +154,13 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
           className="wizard-step-enter mx-auto w-full max-w-2xl space-y-10 text-center sm:space-y-12"
         >
           <div className="space-y-4">
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-bronze-600">
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-indigo-600">
               Step 2 of 3
             </p>
-            <h1 className="font-display text-4xl leading-[1.15] text-ink-800 sm:text-5xl sm:leading-[1.1]">
+            <h1 className="font-display text-4xl leading-[1.15] text-slate-900 sm:text-5xl sm:leading-[1.1]">
               What best describes &lsquo;{name.trim()}&rsquo;?
             </h1>
-            <p className="text-base text-stone-600">
+            <p className="text-base text-slate-600">
               This helps us customize your experience.
             </p>
           </div>
@@ -202,13 +202,13 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
           className="wizard-step-enter mx-auto w-full max-w-2xl space-y-10 text-center sm:space-y-12"
         >
           <div className="space-y-4">
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-bronze-600">
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-indigo-600">
               Step 3 of 3
             </p>
-            <h1 className="font-display text-4xl leading-[1.15] text-ink-800 sm:text-5xl sm:leading-[1.1]">
+            <h1 className="font-display text-4xl leading-[1.15] text-slate-900 sm:text-5xl sm:leading-[1.1]">
               How will guests join?
             </h1>
-            <p className="text-base text-stone-600">
+            <p className="text-base text-slate-600">
               This helps us customize your experience.
             </p>
           </div>
@@ -253,24 +253,24 @@ function WizardStepper({ step }: { step: Step }) {
           <li key={item.id} className="flex items-center gap-2.5 sm:gap-3">
             {index > 0 ? (
               <span
-                className="hidden h-px w-6 bg-stone-200 sm:block lg:w-8"
+                className="hidden h-px w-6 bg-slate-200 sm:block lg:w-8"
                 aria-hidden
               />
             ) : null}
             <span
               className={cn(
                 "inline-flex items-center gap-2",
-                active && "font-semibold text-ink-800",
-                done && "text-moss-600",
-                !active && !done && "text-stone-400",
+                active && "font-semibold text-slate-900",
+                done && "text-success",
+                !active && !done && "text-slate-400",
               )}
             >
               <span
                 className={cn(
-                  "flex size-8 items-center justify-center rounded-sm sm:size-9",
-                  active && "bg-ink-700 text-white",
-                  done && "bg-moss-100 text-moss-700",
-                  !active && !done && "bg-stone-100 text-stone-500",
+                  "flex size-8 items-center justify-center rounded-lg sm:size-9",
+                  active && "bg-indigo-600 text-white",
+                  done && "bg-emerald-50 text-success",
+                  !active && !done && "bg-slate-100 text-slate-500",
                 )}
                 aria-hidden
               >
@@ -305,16 +305,16 @@ function ChoiceCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-4 rounded-md border bg-stone-0 px-6 py-5 text-left text-base font-medium transition-colors",
+        "flex w-full items-center gap-4 rounded-md border bg-white px-6 py-5 text-left text-base font-medium transition-colors",
         selected
-          ? "border-ink-700 text-ink-800 ring-1 ring-ink-700/15"
-          : "border-stone-200 text-ink-800 hover:border-stone-300",
+          ? "border-indigo-600 text-slate-900 ring-1 ring-indigo-600/15"
+          : "border-slate-200 text-slate-900 hover:border-slate-200",
       )}
     >
       <span
         className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-sm",
-          selected ? "bg-ink-700 text-white" : "bg-stone-100 text-stone-600",
+          "flex size-10 shrink-0 items-center justify-center rounded-lg",
+          selected ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600",
         )}
         aria-hidden
       >

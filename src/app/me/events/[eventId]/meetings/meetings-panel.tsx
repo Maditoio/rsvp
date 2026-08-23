@@ -12,10 +12,9 @@ import {
   Hourglass,
   Lightbulb,
   MapPin,
-  Plus,
 } from "lucide-react";
 import { respondToMeeting, cancelMyMeeting, rescheduleMyMeeting } from "@/modules/meetings/actions";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonPlusIcon } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
@@ -123,25 +122,25 @@ export function AttendeeMeetingsPanel({
     <div className="space-y-8">
       {incoming.length > 0 ? (
         <div
-          className="rounded-md border border-bronze-200 bg-bronze-50 px-4 py-4 sm:px-5"
+          className="rounded-xl bg-amber-500/10 px-4 py-4 sm:px-5"
           role="status"
         >
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
             Action required
           </p>
-          <p className="mt-1 font-display text-xl text-ink-800">
+          <p className="mt-1 font-display text-xl text-slate-900">
             {incoming.length === 1
               ? "You have a pending connection request"
               : `You have ${incoming.length} pending connection requests`}
           </p>
-          <p className="mt-1 text-sm text-stone-700">
+          <p className="mt-1 text-sm text-slate-700">
             Review incoming requests below or use the notification bell to accept
             or decline.
           </p>
           <button
             type="button"
             onClick={() => setTab("requests")}
-            className="mt-3 inline-flex text-sm font-semibold text-ink-700 underline-offset-4 hover:underline"
+            className="mt-3 inline-flex text-sm font-semibold text-slate-700 underline-offset-4 hover:underline"
           >
             Review requests
           </button>
@@ -149,7 +148,7 @@ export function AttendeeMeetingsPanel({
       ) : null}
 
       {warning ? (
-        <p className="rounded-md border border-bronze-200 bg-bronze-50 px-3 py-2 text-sm text-bronze-800">
+        <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800">
           {warning}
         </p>
       ) : null}
@@ -157,21 +156,21 @@ export function AttendeeMeetingsPanel({
       {/* Page header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
             {eventName}
           </p>
-          <h1 className="mt-1 font-display text-3xl text-ink-800 md:text-4xl">
+          <h1 className="mt-1 font-display text-3xl text-slate-900 md:text-4xl">
             Meetings
           </h1>
-          <p className="mt-1 text-sm text-stone-700">
+          <p className="mt-1 text-sm text-slate-700">
             Manage your networking meetings and requests.
           </p>
         </div>
         <Link
           href={directoryHref}
-          className="inline-flex h-11 items-center gap-2 rounded-sm bg-ink-700 px-4 text-sm font-semibold text-white hover:bg-ink-800"
+          className="inline-flex h-11 items-center gap-1.5 rounded-full bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
         >
-          <Plus className="size-4" strokeWidth={2} aria-hidden />
+          <ButtonPlusIcon />
           Request a meeting
         </Link>
       </div>
@@ -179,8 +178,8 @@ export function AttendeeMeetingsPanel({
       {/* Summary cards */}
       <div className="grid gap-3 sm:grid-cols-3">
         <SummaryCard
-          icon={<Hourglass className="size-5 text-bronze-600" strokeWidth={1.75} />}
-          iconBg="bg-bronze-100"
+          icon={<Hourglass className="size-5 text-indigo-600" strokeWidth={1.75} />}
+          iconBg="bg-amber-500/15"
           title="Pending requests"
           value={incoming.length}
           hint={
@@ -192,8 +191,8 @@ export function AttendeeMeetingsPanel({
           onClick={() => setTab("requests")}
         />
         <SummaryCard
-          icon={<CalendarDays className="size-5 text-moss-600" strokeWidth={1.75} />}
-          iconBg="bg-moss-100"
+          icon={<CalendarDays className="size-5 text-success" strokeWidth={1.75} />}
+          iconBg="bg-emerald-50"
           title="Upcoming meetings"
           value={upcoming.length}
           hint={
@@ -217,7 +216,7 @@ export function AttendeeMeetingsPanel({
 
       {/* Tabs */}
       <div>
-        <div className="flex gap-1 border-b border-stone-200">
+        <div className="flex gap-1 border-b border-slate-200">
           {(
             [
               { id: "upcoming", label: `Upcoming (${upcoming.length})` },
@@ -235,14 +234,14 @@ export function AttendeeMeetingsPanel({
               className={cn(
                 "relative px-4 py-3 text-sm transition-colors",
                 tab === item.id
-                  ? "font-semibold text-bronze-700"
-                  : "text-stone-600 hover:text-ink-800",
+                  ? "font-semibold text-indigo-700"
+                  : "text-slate-600 hover:text-slate-900",
               )}
             >
               {item.label}
               {tab === item.id ? (
                 <span
-                  className="absolute inset-x-4 bottom-0 h-0.5 bg-bronze-500"
+                  className="absolute inset-x-4 bottom-0 h-0.5 bg-amber-500/100"
                   aria-hidden
                 />
               ) : null}
@@ -282,11 +281,11 @@ export function AttendeeMeetingsPanel({
           {tab === "requests" ? (
             <div className="space-y-8">
               <section>
-                <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+                <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
                   Incoming
                 </h2>
                 {incoming.length === 0 ? (
-                  <p className="mt-3 text-sm text-stone-700">
+                  <p className="mt-3 text-sm text-slate-700">
                     No pending requests.
                   </p>
                 ) : (
@@ -307,11 +306,11 @@ export function AttendeeMeetingsPanel({
                 )}
               </section>
               <section>
-                <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+                <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
                   Sent
                 </h2>
                 {outgoing.length === 0 ? (
-                  <p className="mt-3 text-sm text-stone-700">
+                  <p className="mt-3 text-sm text-slate-700">
                     You have not sent any requests.
                   </p>
                 ) : (
@@ -343,19 +342,19 @@ export function AttendeeMeetingsPanel({
       </div>
 
       {/* Connection CTA */}
-      <div className="flex flex-col gap-4 rounded-md border border-stone-200 bg-stone-0 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div className="flex flex-col gap-4 rounded-xl bg-white shadow-sm p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="flex gap-4">
           <div
-            className="hidden size-14 shrink-0 items-center justify-center rounded-md bg-bronze-50 sm:flex"
+            className="hidden size-14 shrink-0 items-center justify-center rounded-md bg-amber-500/10 sm:flex"
             aria-hidden
           >
             <HandshakeGlyph />
           </div>
           <div>
-            <h2 className="font-display text-xl text-ink-800">
+            <h2 className="font-display text-xl text-slate-900">
               Make meaningful connections
             </h2>
-            <p className="mt-1 max-w-xl text-sm text-stone-700">
+            <p className="mt-1 max-w-xl text-sm text-slate-700">
               Request meetings with people who match your goals. Accepting a
               request creates a meeting; rooms are assigned by the organiser.
             </p>
@@ -363,7 +362,7 @@ export function AttendeeMeetingsPanel({
         </div>
         <Link
           href={directoryHref}
-          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-sm bg-ink-700 px-4 text-sm font-semibold text-white hover:bg-ink-800"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
         >
           Request a meeting
           <ArrowRight className="size-4" aria-hidden />
@@ -371,7 +370,7 @@ export function AttendeeMeetingsPanel({
       </div>
 
       {/* Tip */}
-      <div className="flex items-start gap-3 rounded-md border border-bronze-200 bg-bronze-50 px-4 py-3 text-sm text-bronze-800">
+      <div className="flex items-start gap-3 rounded-xl bg-amber-500/10 px-4 py-3 text-sm text-amber-800">
         <Lightbulb className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} aria-hidden />
         <p>
           <span className="font-semibold">Tip:</span> Be on time for your
@@ -432,14 +431,14 @@ export function AttendeeMeetingsPanel({
             }}
           >
             <input type="hidden" name="requestId" value={current.id} />
-            <p className="font-medium text-ink-800">
+            <p className="font-medium text-slate-900">
               {displayName(current.counterpart)}
             </p>
             {current.message ? (
-              <p className="text-sm text-stone-700">{current.message}</p>
+              <p className="text-sm text-slate-700">{current.message}</p>
             ) : null}
             <div className="grid grid-cols-2 gap-2">
-              <label className="rounded-sm border border-stone-200 p-3 text-sm">
+              <label className="rounded-md border border-slate-200 p-3 text-sm">
                 <input
                   type="radio"
                   name="decision"
@@ -449,7 +448,7 @@ export function AttendeeMeetingsPanel({
                 />
                 Accept
               </label>
-              <label className="rounded-sm border border-stone-200 p-3 text-sm">
+              <label className="rounded-md border border-slate-200 p-3 text-sm">
                 <input
                   type="radio"
                   name="decision"
@@ -460,15 +459,15 @@ export function AttendeeMeetingsPanel({
                 Decline
               </label>
             </div>
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
               Optional scheduling
             </p>
-            <label className="flex items-start gap-3 text-sm text-ink-700">
+            <label className="flex items-start gap-3 text-sm text-slate-700">
               <input
                 type="checkbox"
                 name="autoSchedule"
                 value="on"
-                className="mt-1 size-4 accent-ink-700"
+                className="mt-1 size-4 accent-indigo-600"
               />
               <span>Auto-schedule (find the first available slot)</span>
             </label>
@@ -478,7 +477,7 @@ export function AttendeeMeetingsPanel({
                 <select
                   id="roomId"
                   name="roomId"
-                  className="mt-1 block w-full rounded-sm border border-stone-200 bg-stone-0 px-3 py-2 text-sm text-ink-800"
+                  className="mt-1 block w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900"
                 >
                   <option value="">No room</option>
                   {rooms.map((room) => (
@@ -519,7 +518,7 @@ export function AttendeeMeetingsPanel({
         {detailMeeting ? (
           <div className="space-y-4 text-sm">
             <div>
-              <p className="font-display text-xl text-ink-800">
+              <p className="font-display text-xl text-slate-900">
                 {detailMeeting.title}
               </p>
               <div className="mt-2">
@@ -540,7 +539,7 @@ export function AttendeeMeetingsPanel({
               />
             </dl>
             {detailMeeting.status === "SCHEDULED" && !detailMeeting.isPast ? (
-              <div className="flex flex-wrap justify-end gap-2 border-t border-stone-200 pt-4">
+              <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
                 <Button
                   type="button"
                   variant="secondary"
@@ -619,7 +618,7 @@ export function AttendeeMeetingsPanel({
                   id="my-reschedule-roomId"
                   name="roomId"
                   defaultValue={detailMeeting.roomId ?? ""}
-                  className="mt-1 block w-full rounded-sm border border-stone-200 bg-stone-0 px-3 py-2 text-sm text-ink-800"
+                  className="mt-1 block w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900"
                 >
                   <option value="">No room</option>
                   {rooms.map((room) => (
@@ -736,10 +735,10 @@ function SummaryCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-3 rounded-md border bg-stone-0 p-4 text-left transition-colors",
+        "flex w-full items-center gap-3 rounded-md border bg-white p-4 text-left transition-colors",
         active
-          ? "border-ink-400 ring-1 ring-ink-700/10"
-          : "border-stone-200 hover:border-stone-300 hover:bg-stone-50",
+          ? "border-indigo-400 ring-1 ring-indigo-600/10"
+          : "border-slate-200 hover:border-slate-200 hover:bg-slate-50",
       )}
     >
       <span
@@ -751,13 +750,13 @@ function SummaryCard({
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm text-stone-600">{title}</span>
-        <span className="mt-0.5 block text-2xl font-semibold tabular-nums text-ink-800">
+        <span className="block text-sm text-slate-600">{title}</span>
+        <span className="mt-0.5 block text-2xl font-semibold tabular-nums text-slate-900">
           {value}
         </span>
-        <span className="mt-0.5 block text-xs text-stone-500">{hint}</span>
+        <span className="mt-0.5 block text-xs text-slate-500">{hint}</span>
       </span>
-      <ChevronRight className="size-4 shrink-0 text-stone-400" aria-hidden />
+      <ChevronRight className="size-4 shrink-0 text-slate-400" aria-hidden />
     </button>
   );
 }
@@ -773,7 +772,7 @@ function MeetingGroup({
 }) {
   return (
     <section>
-      <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+      <h2 className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
         {label}
       </h2>
       <ul className="mt-3 space-y-3">
@@ -795,10 +794,10 @@ function MeetingCard({
   onView: () => void;
 }) {
   return (
-    <article className="rounded-md border border-stone-200 bg-stone-0 p-4 sm:p-5">
+    <article className="rounded-xl bg-white shadow-sm p-4 sm:p-5">
       <div className="flex flex-wrap items-start gap-4">
         <div
-          className="flex size-12 shrink-0 items-center justify-center rounded-full bg-stone-100 text-sm font-semibold text-ink-700"
+          className="flex size-12 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700"
           aria-hidden
         >
           {meeting.counterpartInitials}
@@ -806,35 +805,35 @@ function MeetingCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h3 className="text-[0.9375rem] font-semibold text-ink-800">
+              <h3 className="text-[0.9375rem] font-semibold text-slate-900">
                 {meeting.title}
               </h3>
-              <p className="mt-0.5 text-sm text-stone-500">{meeting.eventName}</p>
+              <p className="mt-0.5 text-sm text-slate-500">{meeting.eventName}</p>
             </div>
             <MeetingStatusBadge status={meeting.status} />
           </div>
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-stone-700">
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-700">
             {meeting.dateLabel ? (
               <span className="inline-flex items-center gap-1.5">
-                <CalendarDays className="size-3.5 text-stone-400" aria-hidden />
+                <CalendarDays className="size-3.5 text-slate-400" aria-hidden />
                 {meeting.dateLabel}
               </span>
             ) : null}
             {meeting.timeLabel ? (
               <span className="inline-flex items-center gap-1.5">
-                <Clock3 className="size-3.5 text-stone-400" aria-hidden />
+                <Clock3 className="size-3.5 text-slate-400" aria-hidden />
                 {meeting.timeLabel}
               </span>
             ) : null}
             {meeting.room ? (
               <span className="inline-flex items-center gap-1.5">
-                <MapPin className="size-3.5 text-stone-400" aria-hidden />
+                <MapPin className="size-3.5 text-slate-400" aria-hidden />
                 {meeting.room}
               </span>
             ) : null}
           </div>
           {meeting.durationMins ? (
-            <p className="mt-2 inline-flex rounded-xs border border-stone-200 bg-stone-50 px-2 py-0.5 text-xs text-stone-600">
+            <p className="mt-2 inline-flex rounded-xs border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-600">
               {meeting.durationMins} min meeting
             </p>
           ) : null}
@@ -842,7 +841,7 @@ function MeetingCard({
             <button
               type="button"
               onClick={onView}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-bronze-700 hover:text-bronze-800"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-700 hover:text-indigo-800"
             >
               View details
               <ArrowRight className="size-3.5" aria-hidden />
@@ -869,10 +868,10 @@ function RequestCard({
     .toUpperCase();
 
   return (
-    <article className="rounded-md border border-stone-200 bg-stone-0 p-4 sm:p-5">
+    <article className="rounded-xl bg-white shadow-sm p-4 sm:p-5">
       <div className="flex flex-wrap items-start gap-4">
         <div
-          className="flex size-12 shrink-0 items-center justify-center rounded-full bg-stone-100 text-sm font-semibold text-ink-700"
+          className="flex size-12 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700"
           aria-hidden
         >
           {initials}
@@ -880,10 +879,10 @@ function RequestCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h3 className="text-[0.9375rem] font-semibold text-ink-800">
+              <h3 className="text-[0.9375rem] font-semibold text-slate-900">
                 {displayName(row.counterpart)}
               </h3>
-              <p className="mt-0.5 text-sm text-stone-500">
+              <p className="mt-0.5 text-sm text-slate-500">
                 {row.counterpart.company || (row.inbound ? "Incoming request" : "Sent request")}
               </p>
             </div>
@@ -900,9 +899,9 @@ function RequestCard({
             </Badge>
           </div>
           {row.message ? (
-            <p className="mt-2 text-sm text-stone-700">{row.message}</p>
+            <p className="mt-2 text-sm text-slate-700">{row.message}</p>
           ) : null}
-          <p className="mt-2 text-xs text-stone-500">{row.createdAt}</p>
+          <p className="mt-2 text-xs text-slate-500">{row.createdAt}</p>
           {onReview ? (
             <div className="mt-4 flex justify-end">
               <Button type="button" size="sm" variant="secondary" onClick={onReview}>
@@ -930,9 +929,9 @@ function MeetingStatusBadge({ status }: { status: string }) {
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-stone-100 pb-2">
-      <dt className="text-stone-500">{label}</dt>
-      <dd className="text-right font-medium text-ink-800">{value}</dd>
+    <div className="flex justify-between gap-4 border-b border-slate-100 pb-2">
+      <dt className="text-slate-500">{label}</dt>
+      <dd className="text-right font-medium text-slate-900">{value}</dd>
     </div>
   );
 }
@@ -949,15 +948,15 @@ function EmptyState({
   cta?: string;
 }) {
   return (
-    <div className="rounded-md border border-dashed border-stone-300 bg-stone-0 px-6 py-10 text-center">
-      <p className="font-medium text-ink-800">{title}</p>
-      <p className="mt-1 text-sm text-stone-600">{body}</p>
+    <div className="rounded-md border border-dashed border-slate-200 bg-white px-6 py-10 text-center">
+      <p className="font-medium text-slate-900">{title}</p>
+      <p className="mt-1 text-sm text-slate-600">{body}</p>
       {href && cta ? (
         <Link
           href={href}
-          className="mt-4 inline-flex h-10 items-center gap-2 rounded-sm bg-ink-700 px-4 text-sm font-semibold text-white hover:bg-ink-800"
+          className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-full bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
         >
-          <Plus className="size-4" aria-hidden />
+          <ButtonPlusIcon />
           {cta}
         </Link>
       ) : null}
@@ -974,7 +973,7 @@ function HandshakeGlyph() {
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
-      className="text-bronze-600"
+      className="text-indigo-600"
       aria-hidden
     >
       <path d="M11 12h2a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-1" />

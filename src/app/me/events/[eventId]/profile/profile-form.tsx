@@ -49,35 +49,35 @@ export function ProfileForm({
         <Textarea id="about" name="about" defaultValue={profile.about} />
       </div>
       {matchingComplete ? (
-        <div className="space-y-3 rounded-md border border-stone-200 bg-stone-0 p-4">
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <div className="space-y-3 rounded-xl bg-white shadow-sm p-4">
+          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
             Matching
           </p>
-          <p className="text-sm text-stone-700">
+          <p className="text-sm text-slate-700">
             Looking for, offering, industries and geography come from your
             matching questionnaire.
           </p>
           {profile.lookingFor ? (
-            <p className="text-sm text-ink-800">
-              <span className="text-stone-500">Looking for · </span>
+            <p className="text-sm text-slate-900">
+              <span className="text-slate-500">Looking for · </span>
               {profile.lookingFor}
             </p>
           ) : null}
           {profile.offering ? (
-            <p className="text-sm text-ink-800">
-              <span className="text-stone-500">Offering · </span>
+            <p className="text-sm text-slate-900">
+              <span className="text-slate-500">Offering · </span>
               {profile.offering}
             </p>
           ) : null}
           {profile.interests ? (
-            <p className="text-sm text-ink-800">
-              <span className="text-stone-500">Interests · </span>
+            <p className="text-sm text-slate-900">
+              <span className="text-slate-500">Interests · </span>
               {profile.interests}
             </p>
           ) : null}
           <Link
             href={matchingHref}
-            className="inline-flex text-sm font-semibold text-ink-700 underline-offset-4 hover:underline"
+            className="inline-flex text-sm font-semibold text-slate-700 underline-offset-4 hover:underline"
           >
             Update matching answers
           </Link>
@@ -100,9 +100,9 @@ export function ProfileForm({
               defaultValue={profile.interests}
               placeholder="Trade, energy, infrastructure"
             />
-            <p className="mt-1 text-xs text-stone-500">
+            <p className="mt-1 text-xs text-slate-500">
               Comma-separated, or complete{" "}
-              <Link href={matchingHref} className="font-semibold text-ink-700 underline-offset-4 hover:underline">
+              <Link href={matchingHref} className="font-semibold text-slate-700 underline-offset-4 hover:underline">
                 Matching
               </Link>{" "}
               for structured answers.

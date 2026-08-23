@@ -44,16 +44,16 @@ export default async function AttendeeAgendaPage({
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
           {attendee.event.name}
         </p>
-        <h1 className="mt-1 font-display text-3xl text-ink-800">Agenda</h1>
-        <p className="mt-1 max-w-2xl text-sm text-stone-700">
+        <h1 className="mt-1 font-display text-3xl text-slate-900">Agenda</h1>
+        <p className="mt-1 max-w-2xl text-sm text-slate-700">
           Choose the sessions you plan to attend. Online and hybrid sessions show
           a Teams join link when the organiser has created one.
         </p>
         {sessions.length > 0 ? (
-          <p className="mt-3 text-xs text-stone-500">
+          <p className="mt-3 text-xs text-slate-500">
             Times shown in {timezone.replace(/_/g, " ")}
             {pickedCount > 0
               ? ` · ${pickedCount} selected`

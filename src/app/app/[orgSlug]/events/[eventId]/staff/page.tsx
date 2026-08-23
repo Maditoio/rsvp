@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
@@ -44,21 +45,23 @@ export default async function EventStaffPage({
 
   return (
     <div>
-      <StaffManagement
-        orgSlug={orgSlug}
-        eventId={eventId}
-        canManage={canManage}
-        staff={staff.map((assignment) => ({
-          userId: assignment.user.id,
-          email: assignment.user.email,
-          firstName: assignment.user.firstName,
-          lastName: assignment.user.lastName,
-          role: assignment.role,
-          orgRole: orgRoles.get(assignment.user.id) ?? null,
-          assignedAt: assignment.createdAt.toLocaleDateString("en-GB"),
-          isCurrentUser: assignment.user.id === ctx.user.id,
-        }))}
-      />
+      <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
+        <StaffManagement
+          orgSlug={orgSlug}
+          eventId={eventId}
+          canManage={canManage}
+          staff={staff.map((assignment) => ({
+            userId: assignment.user.id,
+            email: assignment.user.email,
+            firstName: assignment.user.firstName,
+            lastName: assignment.user.lastName,
+            role: assignment.role,
+            orgRole: orgRoles.get(assignment.user.id) ?? null,
+            assignedAt: assignment.createdAt.toLocaleDateString("en-GB"),
+            isCurrentUser: assignment.user.id === ctx.user.id,
+          }))}
+        />
+      </Suspense>
     </div>
   );
 }

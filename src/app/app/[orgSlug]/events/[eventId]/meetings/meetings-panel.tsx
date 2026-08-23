@@ -11,13 +11,18 @@ import {
   cancelMeeting,
   rescheduleMeeting,
 } from "@/modules/meetings/actions";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/components/data-table/data-table";
+import { ActionsMenu } from "@/components/data-table/actions-menu";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { Table, Td, Th } from "@/components/ui/table";
+import { StatusBadge } from "@/components/status-badge";
 import { humanizeEnum } from "@/lib/utils";
 
 type RoomRow = { id: string; name: string; capacity: number | null };
@@ -61,15 +66,152 @@ export function MeetingsPanel({
   const [bulkResult, setBulkResult] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
+  const roomColumns: DataTableColumn<RoomRow>[] = [
+    {
+      id: "name",
+      header: "Name",
+      width: "2fr",
+      cell: (row) => (
+        <span className="font-medium text-slate-700">{row.name}</span>
+      ),
+    },
+    {
+      id: "capacity",
+      header: "Capacity",
+      width: "1fr",
+      cell: (row) => row.capacity ?? "—",
+    },
+  ];
+
+  const meetingColumns: DataTableColumn<MeetingRow>[] = [
+    {
+      id: "participants",
+      header: "Participants",
+      width: "2fr",
+      cell: (row) => row.participants,
+    },
+    {
+      id: "room",
+      header: "Room",
+      width: "1.2fr",
+      cell: (row) => row.room || "—",
+    },
+    {
+      id: "when",
+      header: "When",
+      width: "1.4fr",
+      cell: (row) => row.when || "—",
+    },
+    {
+      id: "status",
+      header: "Status",
+      width: "1.1fr",
+      cell: (row) => <StatusBadge status={row.status} />,
+    },
+    ...(canManage
+      ? [
+          {
+            id: "actions",
+            header: "",
+            width: "60px",
+            headerClassName: "sr-only",
+            cellClassName: "justify-self-end",
+            cell: (row: MeetingRow) => {
+              if (!canChangeMeeting(row.status)) return null;
+              const items = [
+                ...(!row.when
+                  ? [
+                      {
+                        id: "auto",
+                        label: "Auto-schedule",
+                        icon: (
+                          <Calendar
+                            className="size-3.5 shrink-0"
+                            strokeWidth={1.75}
+                          />
+                        ),
+                        onSelect: () => {
+                          setError(null);
+                          setWarning(null);
+                          const fd = new FormData();
+                          fd.set("meetingId", row.id);
+                          start(async () => {
+                            try {
+                              const result = await autoScheduleSingle(
+                                orgSlug,
+                                eventId,
+                                fd,
+                              );
+                              if (result.ok && result.data.calendarWarning) {
+                                setWarning(result.data.calendarWarning);
+                              }
+                              router.refresh();
+                            } catch (e) {
+                              setError(
+                                e instanceof Error
+                                  ? e.message
+                                  : "Auto-schedule failed",
+                              );
+                            }
+                          });
+                        },
+                      },
+                    ]
+                  : []),
+                {
+                  id: "assign",
+                  label: row.when ? "Reschedule" : "Assign room and time",
+                  icon: row.when ? (
+                    <CalendarClock
+                      className="size-3.5 shrink-0"
+                      strokeWidth={1.75}
+                    />
+                  ) : (
+                    <Clock className="size-3.5 shrink-0" strokeWidth={1.75} />
+                  ),
+                  onSelect: () => {
+                    setError(null);
+                    if (row.when) {
+                      setRescheduleTarget(row);
+                      setRescheduleOpen(true);
+                      setAssignOpen(false);
+                    } else {
+                      setAssignTarget(row);
+                      setAssignOpen(true);
+                      setRescheduleOpen(false);
+                    }
+                  },
+                },
+                { type: "divider" as const, id: "div" },
+                {
+                  id: "cancel",
+                  label: "Cancel meeting",
+                  destructive: true,
+                  icon: (
+                    <XCircle className="size-3.5 shrink-0" strokeWidth={1.75} />
+                  ),
+                  onSelect: () => {
+                    setError(null);
+                    setCancelTarget(row);
+                  },
+                },
+              ];
+              return <ActionsMenu disabled={pending} items={items} />;
+            },
+          } satisfies DataTableColumn<MeetingRow>,
+        ]
+      : []),
+  ];
+
   return (
     <div className="space-y-8">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
             Networking
           </p>
-          <h1 className="mt-1 font-display text-3xl text-ink-800">Meetings</h1>
-          <p className="mt-1 text-sm text-stone-700">
+          <h1 className="mt-1 font-display text-3xl text-slate-900">Meetings</h1>
+          <p className="mt-1 text-sm text-slate-700">
             Rooms for accepted meetings. Attendees request meetings from the
             directory.
           </p>
@@ -109,6 +251,7 @@ export function MeetingsPanel({
             </Button>
             <Button
               type="button"
+              leadingIcon="plus"
               onClick={() => {
                 setError(null);
                 setOpen(true);
@@ -121,150 +264,74 @@ export function MeetingsPanel({
       </div>
 
       {warning ? (
-        <p className="rounded-md border border-bronze-200 bg-bronze-50 px-3 py-2 text-sm text-bronze-800">
+        <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800">
           {warning}
         </p>
       ) : null}
 
       {bulkResult ? (
-        <p className="rounded-md border border-moss-200 bg-moss-50 px-3 py-2 text-sm text-moss-800">
+        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-success">
           {bulkResult}
         </p>
       ) : null}
 
       <div>
-        <h2 className="font-display text-xl text-ink-800">Rooms</h2>
+        <h2 className="font-display text-xl text-slate-900">Rooms</h2>
+        <p className="mt-1 text-[0.8125rem] text-slate-500">
+          Rooms for accepted meetings.
+        </p>
         {rooms.length === 0 ? (
-          <p className="mt-2 text-sm text-stone-700">No rooms yet.</p>
+          <p className="mt-2 text-sm text-slate-700">No rooms yet.</p>
         ) : (
           <div className="mt-3">
-            <Table>
-              <thead>
-                <tr>
-                  <Th>Name</Th>
-                  <Th>Capacity</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {rooms.map((row) => (
-                  <tr key={row.id}>
-                    <Td className="font-medium text-ink-800">{row.name}</Td>
-                    <Td>{row.capacity ?? "—"}</Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
+            <DataTable
+              rows={rooms}
+              columns={roomColumns}
+              getRowId={(row) => row.id}
+              searchPlaceholder="Search rooms…"
+              searchFilter={(row, query) =>
+                [row.name, row.capacity?.toString() ?? ""]
+                  .join(" ")
+                  .toLowerCase()
+                  .includes(query)
+              }
+              emptyMessage="No rooms yet."
+              pageParam="rpage"
+            />
           </div>
         )}
       </div>
 
       <div>
-        <h2 className="font-display text-xl text-ink-800">Scheduled meetings</h2>
+        <h2 className="font-display text-xl text-slate-900">Scheduled meetings</h2>
+        <p className="mt-1 text-[0.8125rem] text-slate-500">
+          Attendees request meetings from the directory.
+        </p>
         {meetings.length === 0 ? (
-          <p className="mt-2 text-sm text-stone-700">No meetings scheduled.</p>
+          <p className="mt-2 text-sm text-slate-700">No meetings scheduled.</p>
         ) : (
           <div className="mt-3">
-            <Table>
-              <thead>
-                <tr>
-                  <Th>Participants</Th>
-                  <Th>Room</Th>
-                  <Th>When</Th>
-                  <Th>Status</Th>
-                  {canManage ? <Th></Th> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {meetings.map((row) => (
-                  <tr key={row.id}>
-                    <Td>{row.participants}</Td>
-                    <Td>{row.room || "—"}</Td>
-                    <Td>{row.when || "—"}</Td>
-                    <Td>{humanizeEnum(row.status)}</Td>
-                    {canManage ? (
-                      <Td>
-                        <div className="flex items-center gap-1">
-                          {canChangeMeeting(row.status) && !row.when ? (
-                            <button
-                              type="button"
-                              title="Auto-schedule"
-                              disabled={pending}
-                              className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700 disabled:opacity-50"
-                              onClick={() => {
-                                setError(null);
-                                setWarning(null);
-                                const fd = new FormData();
-                                fd.set("meetingId", row.id);
-                                start(async () => {
-                                  try {
-                                    const result = await autoScheduleSingle(
-                                      orgSlug,
-                                      eventId,
-                                      fd,
-                                    );
-                                    if (result.ok && result.data.calendarWarning) {
-                                      setWarning(result.data.calendarWarning);
-                                    }
-                                    router.refresh();
-                                  } catch (e) {
-                                    setError(
-                                      e instanceof Error
-                                        ? e.message
-                                        : "Auto-schedule failed",
-                                    );
-                                  }
-                                });
-                              }}
-                            >
-                              <Calendar className="size-4" />
-                            </button>
-                          ) : null}
-                          {canChangeMeeting(row.status) ? (
-                            <>
-                              <button
-                                type="button"
-                                title={row.when ? "Reschedule" : "Assign room and time"}
-                                className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700"
-                                onClick={() => {
-                                  setError(null);
-                                  if (row.when) {
-                                    setRescheduleTarget(row);
-                                    setRescheduleOpen(true);
-                                    setAssignOpen(false);
-                                  } else {
-                                    setAssignTarget(row);
-                                    setAssignOpen(true);
-                                    setRescheduleOpen(false);
-                                  }
-                                }}
-                              >
-                                {row.when ? (
-                                  <CalendarClock className="size-4" />
-                                ) : (
-                                  <Clock className="size-4" />
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                title="Cancel meeting"
-                                disabled={pending}
-                                className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-danger disabled:opacity-50"
-                                onClick={() => {
-                                  setError(null);
-                                  setCancelTarget(row);
-                                }}
-                              >
-                                <XCircle className="size-4" />
-                              </button>
-                            </>
-                          ) : null}
-                        </div>
-                      </Td>
-                    ) : null}
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
+            <DataTable
+              rows={meetings}
+              columns={meetingColumns}
+              getRowId={(row) => row.id}
+              searchPlaceholder="Search meetings…"
+              searchFilter={(row, query) =>
+                [
+                  row.participants,
+                  row.room,
+                  row.when,
+                  humanizeEnum(row.status),
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+                  .toLowerCase()
+                  .includes(query)
+              }
+              emptyMessage="No meetings scheduled."
+              showRowsPerPage
+              pageParam="page"
+            />
           </div>
         )}
       </div>

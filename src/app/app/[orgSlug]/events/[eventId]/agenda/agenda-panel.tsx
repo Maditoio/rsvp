@@ -95,11 +95,11 @@ function SessionListRow({
   return (
     <div className="flex items-start gap-4 px-4 py-3.5 sm:items-center">
       <div className="min-w-0 flex-1 space-y-1">
-        <p className="truncate font-medium text-ink-800">{row.title}</p>
-        <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-stone-600">
+        <p className="truncate font-medium text-slate-900">{row.title}</p>
+        <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
           <div className="inline-flex items-center gap-1.5">
             <CalendarDays
-              className="size-3.5 shrink-0 text-stone-400"
+              className="size-3.5 shrink-0 text-slate-400"
               aria-hidden
             />
             <dt className="sr-only">Date</dt>
@@ -108,11 +108,11 @@ function SessionListRow({
           {row.timeLabel ? (
             <div className="inline-flex items-center gap-1.5">
               <Clock3
-                className="size-3.5 shrink-0 text-stone-400"
+                className="size-3.5 shrink-0 text-slate-400"
                 aria-hidden
               />
               <dt className="sr-only">Time</dt>
-              <dd className="font-mono text-[0.8125rem] text-stone-700">
+              <dd className="font-mono text-[0.8125rem] text-slate-700">
                 {row.timeLabel}
               </dd>
             </div>
@@ -120,7 +120,7 @@ function SessionListRow({
           {locationLabel ? (
             <div className="inline-flex items-center gap-1.5">
               <MapPin
-                className="size-3.5 shrink-0 text-stone-400"
+                className="size-3.5 shrink-0 text-slate-400"
                 aria-hidden
               />
               <dt className="sr-only">Location</dt>
@@ -153,7 +153,7 @@ function SessionListRow({
           />
         ) : null}
         <span
-          className="inline-flex items-center gap-1 text-xs text-stone-500"
+          className="inline-flex items-center gap-1 text-xs text-slate-500"
           title="Attendees who picked this session"
         >
           <Users className="size-3" aria-hidden />
@@ -257,16 +257,16 @@ export function AgendaPanel({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
             Programme
           </p>
-          <h1 className="mt-1 font-display text-3xl text-ink-800">Agenda</h1>
-          <p className="mt-1 text-sm text-stone-700">
+          <h1 className="mt-1 font-display text-3xl text-slate-900">Agenda</h1>
+          <p className="mt-1 text-sm text-slate-700">
             Download the template, fill in all sessions, then import the file to
             build the programme. You can also add or edit sessions one at a time.
           </p>
           {canManage ? (
-            <p className="mt-2 text-xs text-stone-500">
+            <p className="mt-2 text-xs text-slate-500">
               Times shown in {timezone.replace(/_/g, " ")}
             </p>
           ) : null}
@@ -274,7 +274,7 @@ export function AgendaPanel({
         {canManage ? (
           <div className="flex flex-wrap items-center gap-2">
             <AgendaImport orgSlug={orgSlug} eventId={eventId} />
-            <Button type="button" onClick={openCreate}>
+            <Button type="button" leadingIcon="plus" onClick={openCreate}>
               Add session
             </Button>
           </div>
@@ -282,9 +282,9 @@ export function AgendaPanel({
       </div>
 
       {sessions.length === 0 ? (
-        <p className="text-sm text-stone-700">No sessions yet.</p>
+        <p className="text-sm text-slate-700">No sessions yet.</p>
       ) : (
-        <div className="divide-y divide-stone-100 rounded-md border border-stone-200 bg-stone-0">
+        <div className="divide-y divide-slate-100 rounded-xl bg-white shadow-sm">
           {sessions.map((row) => (
             <SessionListRow
               key={row.id}
@@ -356,7 +356,7 @@ export function AgendaPanel({
           </div>
 
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium text-ink-700">
+            <legend className="text-sm font-medium text-slate-700">
               Session format
             </legend>
             {(
@@ -369,16 +369,16 @@ export function AgendaPanel({
               <label
                 key={value}
                 className={cn(
-                  "flex cursor-pointer items-center gap-2 rounded-sm border px-3 py-2 text-sm",
+                  "flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm",
                   format === value
-                    ? "border-ink-700 bg-stone-50 text-ink-800"
-                    : "border-stone-200 text-stone-700",
+                    ? "border-indigo-600 bg-indigo-50 text-slate-900"
+                    : "border-slate-200 text-slate-700",
                 )}
               >
                 <input
                   type="radio"
                   name="formatRadio"
-                  className="accent-ink-700"
+                  className="accent-indigo-600"
                   checked={format === value}
                   onChange={() => setFormat(value)}
                 />

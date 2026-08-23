@@ -18,27 +18,27 @@ const ICON: Record<
 > = {
   DRAFT: {
     icon: CircleDashed,
-    className: "text-stone-500",
+    className: "text-slate-500",
     label: "Draft",
   },
   SCHEDULED: {
     icon: CircleDashed,
-    className: "text-stone-500",
+    className: "text-slate-500",
     label: "Scheduled",
   },
-  SENT: { icon: Send, className: "text-ink-600", label: "Sent" },
-  DELIVERED: { icon: Send, className: "text-ink-600", label: "Delivered" },
+  SENT: { icon: Send, className: "text-slate-600", label: "Sent" },
+  DELIVERED: { icon: Send, className: "text-slate-600", label: "Delivered" },
   OPENED: { icon: MailOpen, className: "text-info", label: "Opened" },
   ACCEPTED: {
     icon: CheckCircle2,
-    className: "text-moss-600",
+    className: "text-success",
     label: "Accepted",
   },
   DECLINED: { icon: XCircle, className: "text-danger", label: "Declined" },
   EXPIRED: { icon: Ban, className: "text-danger", label: "Expired" },
   BOUNCED: {
     icon: AlertTriangle,
-    className: "text-bronze-600",
+    className: "text-indigo-600",
     label: "Bounced",
   },
   CANCELLED: { icon: Ban, className: "text-danger", label: "Cancelled" },
@@ -52,7 +52,7 @@ export function InvitationStatusIcon({
   if (!status) {
     return (
       <span
-        className="inline-flex items-center gap-1.5 text-stone-500"
+        className="inline-flex items-center gap-1.5 text-slate-500"
         title="Not invited"
       >
         <Minus className="size-4" strokeWidth={1.75} aria-hidden />
@@ -63,7 +63,7 @@ export function InvitationStatusIcon({
 
   const config = ICON[status] ?? {
     icon: CircleDashed,
-    className: "text-stone-500",
+    className: "text-slate-500",
     label: humanizeEnum(status),
   };
   const Icon = config.icon;

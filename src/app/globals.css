@@ -1,56 +1,88 @@
 @import "tailwindcss";
 
 @theme {
-  /* Ink */
-  --color-ink-50: #F1F2F4;
-  --color-ink-100: #E1E3E8;
-  --color-ink-200: #C7CAD3;
-  --color-ink-300: #A3A8B5;
-  --color-ink-400: #7C8191;
-  --color-ink-500: #5A5F70;
-  --color-ink-600: #3B4150;
-  --color-ink-700: #1F2937;
-  --color-ink-800: #141A24;
-  --color-ink-900: #0A0D13;
+  /* Indigo — primary interactive accent */
+  --color-indigo-50: #EEF2FF;
+  --color-indigo-100: #E0E7FF;
+  --color-indigo-200: #C7D2FE;
+  --color-indigo-300: #A5B4FC;
+  --color-indigo-400: #818CF8;
+  --color-indigo-500: #6366F1;
+  --color-indigo-600: #4F46E5;
+  --color-indigo-700: #4338CA;
+  --color-indigo-800: #3730A3;
+  --color-indigo-900: #312E81;
 
-  /* Bronze */
-  --color-bronze-50: #FBF7EE;
-  --color-bronze-100: #F5EFE1;
-  --color-bronze-200: #E9DBB8;
-  --color-bronze-300: #D9C08A;
-  --color-bronze-400: #C4A55E;
-  --color-bronze-500: #B4923F;
-  --color-bronze-600: #8A6A20;
-  --color-bronze-700: #6B5218;
-  --color-bronze-800: #4C3A11;
-  --color-bronze-900: #2E230A;
+  /* Slate — neutrals */
+  --color-slate-50: #F8FAFC;
+  --color-slate-100: #F1F5F9;
+  --color-slate-200: #E2E8F0;
+  --color-slate-300: #CBD5E1;
+  --color-slate-400: #94A3B8;
+  --color-slate-500: #64748B;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1E293B;
+  --color-slate-900: #0F172A;
+  --color-white: #FFFFFF;
 
-  /* Moss */
-  --color-moss-50: #F2F6F1;
-  --color-moss-100: #EAF0E9;
-  --color-moss-200: #CFDDCB;
-  --color-moss-300: #A8C29F;
-  --color-moss-400: #85A879;
-  --color-moss-500: #6E8F63;
-  --color-moss-600: #3F5E3B;
-  --color-moss-700: #2E4529;
-  --color-moss-800: #1F2F1B;
-  --color-moss-900: #131D10;
+  /* Secondary accents (decorative only — never primary actions) */
+  --color-violet-50: #F5F3FF;
+  --color-violet-500: #8B5CF6;
+  --color-violet-700: #6D28D9;
+  --color-rose-500: #F43F5E;
+  --color-teal-500: #14B8A6;
+  --color-amber-500: #F59E0B;
 
-  /* Stone */
-  --color-stone-0: #FFFFFF;
-  --color-stone-50: #F6F5F2;
-  --color-stone-100: #EEEAE0;
-  --color-stone-200: #E4E0D6;
-  --color-stone-300: #C9C3B4;
-  --color-stone-400: #A39B87;
-  --color-stone-500: #8B8578;
-  --color-stone-600: #6B6558;
-  --color-stone-700: #5F5A4D;
-  --color-stone-800: #3D392F;
-  --color-stone-900: #211E19;
+  /*
+   * Compatibility aliases — map former Ministerial tokens to Aurora
+   * so leaf pages keep compiling while primitives migrate to indigo/slate.
+   */
+  --color-ink-50: var(--color-slate-50);
+  --color-ink-100: var(--color-slate-100);
+  --color-ink-200: var(--color-slate-200);
+  --color-ink-300: var(--color-slate-300);
+  --color-ink-400: var(--color-slate-400);
+  --color-ink-500: var(--color-slate-500);
+  --color-ink-600: var(--color-slate-600);
+  --color-ink-700: var(--color-slate-900);
+  --color-ink-800: var(--color-slate-800);
+  --color-ink-900: var(--color-slate-900);
 
-  /* Backwards-compatible aliases for unchanged pages */
+  --color-stone-0: var(--color-white);
+  --color-stone-50: var(--color-slate-50);
+  --color-stone-100: var(--color-slate-100);
+  --color-stone-200: var(--color-slate-200);
+  --color-stone-300: var(--color-slate-300);
+  --color-stone-400: var(--color-slate-400);
+  --color-stone-500: var(--color-slate-500);
+  --color-stone-600: var(--color-slate-600);
+  --color-stone-700: var(--color-slate-600);
+  --color-stone-800: var(--color-slate-800);
+  --color-stone-900: var(--color-slate-900);
+
+  --color-bronze-50: #FFFBEB;
+  --color-bronze-100: #FEF3C7;
+  --color-bronze-200: #FDE68A;
+  --color-bronze-300: #FCD34D;
+  --color-bronze-400: #FBBF24;
+  --color-bronze-500: var(--color-amber-500);
+  --color-bronze-600: #B45309;
+  --color-bronze-700: #92400E;
+  --color-bronze-800: #78350F;
+  --color-bronze-900: #451A03;
+
+  --color-moss-50: #ECFDF5;
+  --color-moss-100: #D1FAE5;
+  --color-moss-200: #A7F3D0;
+  --color-moss-300: #6EE7B7;
+  --color-moss-400: #34D399;
+  --color-moss-500: #10B981;
+  --color-moss-600: #059669;
+  --color-moss-700: #047857;
+  --color-moss-800: #065F46;
+  --color-moss-900: #064E3B;
+
   --color-bloom-50: var(--color-bronze-50);
   --color-bloom-100: var(--color-bronze-100);
   --color-bloom-200: var(--color-bronze-200);
@@ -62,45 +94,48 @@
   --color-bloom-800: var(--color-bronze-800);
   --color-bloom-900: var(--color-bronze-900);
 
-  --color-gray-0: var(--color-stone-0);
-  --color-gray-50: var(--color-stone-50);
-  --color-gray-100: var(--color-stone-100);
-  --color-gray-200: var(--color-stone-200);
-  --color-gray-300: var(--color-stone-300);
-  --color-gray-400: var(--color-stone-400);
-  --color-gray-500: var(--color-stone-500);
-  --color-gray-600: var(--color-stone-700);
-  --color-gray-700: var(--color-ink-700);
-  --color-gray-800: var(--color-ink-800);
-  --color-gray-900: var(--color-ink-900);
+  --color-gray-0: var(--color-white);
+  --color-gray-50: var(--color-slate-50);
+  --color-gray-100: var(--color-slate-100);
+  --color-gray-200: var(--color-slate-200);
+  --color-gray-300: var(--color-slate-300);
+  --color-gray-400: var(--color-slate-400);
+  --color-gray-500: var(--color-slate-500);
+  --color-gray-600: var(--color-slate-600);
+  --color-gray-700: var(--color-slate-700);
+  --color-gray-800: var(--color-slate-800);
+  --color-gray-900: var(--color-slate-900);
 
   /* Semantic */
-  --color-success: #3F5E3B;
-  --color-success-bg: #EAF0E9;
-  --color-warning: #8A6A20;
-  --color-warning-bg: #F5EFE1;
-  --color-danger: #8A2E26;
-  --color-danger-bg: #F5E2DF;
-  --color-info: #3E5578;
-  --color-info-bg: #E4EAF1;
+  --color-success: #059669;
+  --color-success-bg: #ECFDF5;
+  --color-warning: #B45309;
+  --color-warning-bg: #FFFBEB;
+  --color-danger: #DC2626;
+  --color-danger-bg: #FEF2F2;
+  --color-info: #2563EB;
+  --color-info-bg: #EFF6FF;
 
-  /* Border radius */
-  --radius-xs: 3px;
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
+  /* Border radius — Aurora: round by default */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
   --radius-full: 999px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(10, 13, 19, 0.06);
-  --shadow-md: 0 4px 14px rgba(10, 13, 19, 0.10);
-  --shadow-lg: 0 8px 28px rgba(10, 13, 19, 0.16);
-  --shadow-focus: 0 0 0 3px rgba(31, 41, 55, 0.12);
+  /* Shadows — present at rest on cards */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 4px 12px rgba(15, 23, 42, 0.08), 0 20px 48px rgba(15, 23, 42, 0.10);
+  --shadow-accent: 0 4px 12px rgba(79, 70, 229, 0.28);
+  --shadow-focus: 0 0 0 4px rgba(99, 102, 241, 0.12);
 
-  /* Fonts */
-  --font-display: var(--font-source-serif-4);
-  --font-sans: var(--font-public-sans);
-  --font-mono: var(--font-ibm-plex-mono);
+  /* Fonts — Inter only */
+  --font-display: var(--font-inter);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-inter);
 }
 
 html,
@@ -109,14 +144,16 @@ body {
 }
 
 body {
-  background: #F6F5F2;
-  color: #5F5A4D;
+  background: #F8FAFC;
+  color: #475569;
   font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 13.5px;
+  line-height: 1.55;
 }
 
 ::selection {
-  background: #E9DBB8;
-  color: #141A24;
+  background: #C7D2FE;
+  color: #312E81;
 }
 
 @keyframes wizard-step-enter {
@@ -134,8 +171,42 @@ body {
   animation: wizard-step-enter 320ms ease-out both;
 }
 
+@keyframes aurora-modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.aurora-modal-enter {
+  animation: aurora-modal-enter 200ms ease-out both;
+}
+
+@keyframes aurora-drawer-enter {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.aurora-drawer-enter {
+  animation: aurora-drawer-enter 250ms ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .wizard-step-enter {
+  .wizard-step-enter,
+  .aurora-modal-enter,
+  .aurora-drawer-enter {
     animation: none;
   }
+}
+
+.aurora-table tr:last-child td {
+  border-bottom-width: 0;
 }

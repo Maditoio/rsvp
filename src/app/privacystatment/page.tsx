@@ -29,13 +29,13 @@ export default function PrivacyStatementPage() {
       <LegalSection title="1. Roles: who is responsible for your data">
         <ul className="list-disc space-y-1.5 pl-5">
           <li>
-            <strong style={{ color: "#1B1815" }}>Event organisations</strong>{" "}
+            <strong className="text-slate-900">Event organisations</strong>{" "}
             generally act as the <em>controller</em> of invitee and attendee
             data for their events (who is invited, registration answers,
             categories, communications, and event-day records).
           </li>
           <li>
-            <strong style={{ color: "#1B1815" }}>Bizcon</strong> provides the
+            <strong className="text-slate-900">Bizcon</strong> provides the
             Platform as a multi-tenant service provider / <em>processor</em> for
             that organisation data, and as a controller for account, billing
             contact, product analytics, security, and support data we need to
@@ -66,43 +66,43 @@ export default function PrivacyStatementPage() {
         <p>Depending on your role and the event configuration, we may process:</p>
         <ul className="list-disc space-y-1.5 pl-5">
           <li>
-            <strong style={{ color: "#1B1815" }}>Identity and contact</strong> —
+            <strong className="text-slate-900">Identity and contact</strong> —
             name, email, phone, company, job title, country, category.
           </li>
           <li>
-            <strong style={{ color: "#1B1815" }}>Account data</strong> —
+            <strong className="text-slate-900">Account data</strong> —
             authentication identifiers via our identity provider (Clerk),
             organisation membership, and event roles.
           </li>
           <li>
-            <strong style={{ color: "#1B1815" }}>Invitation and registration</strong>{" "}
+            <strong className="text-slate-900">Invitation and registration</strong>{" "}
             — invitation status and timestamps, registration form answers,
             dietary or accessibility information if the organiser requests it,
             application submissions where public apply is enabled.
           </li>
           <li>
-            <strong style={{ color: "#1B1815" }}>Networking profile</strong> —
+            <strong className="text-slate-900">Networking profile</strong> —
             interests, looking-for / offering, industries, geographies,
             directory visibility, and matchmaking preferences.
           </li>
           <li>
-            <strong style={{ color: "#1B1815" }}>Meetings and calendar</strong> —
+            <strong className="text-slate-900">Meetings and calendar</strong> —
             meeting requests, scheduled times, rooms, and calendar connection
             tokens when you connect Google Calendar (or other providers when
             available) to sync meeting invites.
           </li>
           <li>
-            <strong style={{ color: "#1B1815" }}>Event operations</strong> —
+            <strong className="text-slate-900">Event operations</strong> —
             session registrations, QR / check-in status, communications
             history, exports performed by authorised staff.
           </li>
           <li>
-            <strong style={{ color: "#1B1815" }}>AI matchmaking</strong> —
+            <strong className="text-slate-900">AI matchmaking</strong> —
             structured profile fields and optional AI-generated insights when
             both the event and the relevant attendees have opted in.
           </li>
           <li>
-            <strong style={{ color: "#1B1815" }}>Technical and security</strong>{" "}
+            <strong className="text-slate-900">Technical and security</strong>{" "}
             — IP address (e.g. audit / rate limiting), device or browser
             metadata, logs needed to secure the service, and bot-protection
             signals (e.g. Turnstile) on public flows.
@@ -237,8 +237,7 @@ export default function PrivacyStatementPage() {
           organising organisation and/or{" "}
           <a
             href="mailto:hello@bizconrsvp.com"
-            className="font-medium underline-offset-4 hover:underline"
-            style={{ color: "#1B1815" }}
+            className="font-medium text-slate-900 underline-offset-4 hover:underline"
           >
             hello@bizconrsvp.com
           </a>
@@ -280,8 +279,7 @@ export default function PrivacyStatementPage() {
           Privacy enquiries:{" "}
           <a
             href="mailto:hello@bizconrsvp.com"
-            className="font-medium underline-offset-4 hover:underline"
-            style={{ color: "#1B1815" }}
+            className="font-medium text-slate-900 underline-offset-4 hover:underline"
           >
             hello@bizconrsvp.com
           </a>
@@ -291,8 +289,7 @@ export default function PrivacyStatementPage() {
           Related:{" "}
           <a
             href="/termsofservice"
-            className="font-medium underline-offset-4 hover:underline"
-            style={{ color: "#1B1815" }}
+            className="font-medium text-slate-900 underline-offset-4 hover:underline"
           >
             Terms of Service
           </a>

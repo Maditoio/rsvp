@@ -26,10 +26,10 @@ const toneStyles: Record<
   AnalyticsTone,
   { tile: string; icon: string }
 > = {
-  neutral: { tile: "bg-stone-100", icon: "text-ink-600" },
+  neutral: { tile: "bg-slate-100", icon: "text-slate-600" },
   info: { tile: "bg-info-bg", icon: "text-info" },
-  bronze: { tile: "bg-bronze-100", icon: "text-bronze-600" },
-  moss: { tile: "bg-moss-100", icon: "text-moss-600" },
+  bronze: { tile: "bg-amber-500/15", icon: "text-indigo-600" },
+  moss: { tile: "bg-emerald-50", icon: "text-success" },
   danger: { tile: "bg-danger-bg", icon: "text-danger" },
 };
 
@@ -100,21 +100,21 @@ export function EventAnalytics({
         return (
           <div
             key={tile.label}
-            className="flex items-center gap-3 rounded-md border border-stone-200 bg-stone-0 px-3.5 py-3"
+            className="flex items-center gap-3 rounded-xl bg-white shadow-sm px-3.5 py-3"
           >
             <span
               className={cn(
-                "flex size-9 shrink-0 items-center justify-center rounded-sm",
+                "flex size-9 shrink-0 items-center justify-center rounded-lg",
                 styles.tile,
               )}
             >
               <Icon className={cn("size-4", styles.icon)} strokeWidth={1.75} />
             </span>
             <div className="min-w-0">
-              <p className="text-xl font-semibold tabular-nums leading-none text-ink-800">
+              <p className="text-xl font-semibold tabular-nums leading-none text-slate-900">
                 {tile.value}
               </p>
-              <p className="mt-1 truncate text-xs text-stone-500">{tile.label}</p>
+              <p className="mt-1 truncate text-xs text-slate-500">{tile.label}</p>
             </div>
           </div>
         );

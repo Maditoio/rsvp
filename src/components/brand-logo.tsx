@@ -30,13 +30,13 @@ export function BrandLogo({
         alt=""
         width={size}
         height={size}
-        className="rounded-sm"
+        className="rounded-md"
         priority={priority}
       />
       {withWordmark ? (
         <span
           className={cn(
-            "font-display text-xl font-semibold text-ink-800",
+            "font-display text-xl font-semibold text-slate-900",
             wordmarkClassName,
           )}
         >
@@ -73,7 +73,7 @@ export function BrandMark({
       alt="Bizcon RSVP"
       width={size}
       height={size}
-      className={cn("rounded-sm", className)}
+      className={cn("rounded-md", className)}
       priority={priority}
     />
   );

@@ -14,18 +14,17 @@ export function LegalPageShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen" style={{ background: "#FAF7F2" }}>
+    <div className="min-h-screen bg-slate-50">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <BrandLogo
           href="/"
           wordmark="Bizcon"
           size={32}
-          wordmarkClassName="text-2xl font-bold"
+          wordmarkClassName="text-2xl font-bold tracking-[-0.02em] text-slate-900"
         />
         <Link
           href="/"
-          className="flex items-center gap-1.5 text-sm font-medium"
-          style={{ color: "#7A7067" }}
+          className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900"
         >
           <ArrowLeft className="size-4" />
           Back to home
@@ -33,51 +32,34 @@ export function LegalPageShell({
       </header>
 
       <main className="mx-auto max-w-3xl px-6 pb-20 pt-6">
-        <p
-          className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em]"
-          style={{ color: "#B8864E" }}
-        >
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
           {eyebrow}
         </p>
-        <h1
-          className="mt-3 font-display text-4xl font-semibold leading-tight md:text-5xl"
-          style={{ color: "#1B1815" }}
-        >
+        <h1 className="mt-3 text-4xl font-semibold leading-tight tracking-[-0.02em] text-slate-900 md:text-5xl">
           {title}
         </h1>
-        <p className="mt-3 text-sm" style={{ color: "#7A7067" }}>
-          Last updated: {updated}
-        </p>
+        <p className="mt-3 text-sm text-slate-500">Last updated: {updated}</p>
 
-        <div
-          className="mt-10 space-y-8 text-[0.975rem] leading-relaxed"
-          style={{ color: "#5A524A" }}
-        >
+        <div className="mt-10 space-y-8 text-[0.975rem] leading-relaxed text-slate-600">
           {children}
         </div>
 
-        <div
-          className="mt-14 flex flex-wrap gap-4 border-t pt-8 text-sm"
-          style={{ borderColor: "#E8E0D4" }}
-        >
+        <div className="mt-14 flex flex-wrap gap-4 border-t border-slate-200 pt-8 text-sm">
           <Link
             href="/termsofservice"
-            className="font-medium underline-offset-4 hover:underline"
-            style={{ color: "#1B1815" }}
+            className="font-medium text-slate-900 underline-offset-4 hover:underline"
           >
             Terms of Service
           </Link>
           <Link
             href="/privacystatment"
-            className="font-medium underline-offset-4 hover:underline"
-            style={{ color: "#1B1815" }}
+            className="font-medium text-slate-900 underline-offset-4 hover:underline"
           >
             Privacy Statement
           </Link>
           <Link
             href="/contact"
-            className="font-medium underline-offset-4 hover:underline"
-            style={{ color: "#1B1815" }}
+            className="font-medium text-slate-900 underline-offset-4 hover:underline"
           >
             Contact
           </Link>
@@ -96,10 +78,7 @@ export function LegalSection({
 }) {
   return (
     <section className="space-y-3">
-      <h2
-        className="font-display text-2xl font-semibold"
-        style={{ color: "#1B1815" }}
-      >
+      <h2 className="text-2xl font-semibold tracking-[-0.02em] text-slate-900">
         {title}
       </h2>
       {children}

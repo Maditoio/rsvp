@@ -4,9 +4,13 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { deleteCategory } from "@/modules/events/actions";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/components/data-table/data-table";
+import { ActionsMenu } from "@/components/data-table/actions-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Card } from "@/components/ui/card";
-import { Table, Td, Th } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
 
 export type CategoryRow = {
@@ -36,41 +40,72 @@ export function CategoryList({
     return <Card>No categories yet.</Card>;
   }
 
+  const columns: DataTableColumn<CategoryRow>[] = [
+    {
+      id: "name",
+      header: "Name",
+      width: "2fr",
+      cell: (category) => (
+        <span className="font-medium text-slate-700">{category.name}</span>
+      ),
+    },
+    {
+      id: "invitations",
+      header: "Invitations",
+      width: "1fr",
+      cell: (category) => (
+        <span className="font-mono text-sm">{category.invitationCount}</span>
+      ),
+    },
+    {
+      id: "attendees",
+      header: "Attendees",
+      width: "1fr",
+      cell: (category) => (
+        <span className="font-mono text-sm">{category.attendeeCount}</span>
+      ),
+    },
+    ...(canManage
+      ? [
+          {
+            id: "actions",
+            header: "",
+            width: "60px",
+            headerClassName: "sr-only",
+            cellClassName: "justify-self-end",
+            cell: (category: CategoryRow) => (
+              <ActionsMenu
+                disabled={pending}
+                items={[
+                  {
+                    id: "delete",
+                    label: "Delete category",
+                    destructive: true,
+                    icon: (
+                      <Trash2 className="size-3.5 shrink-0" strokeWidth={1.75} />
+                    ),
+                    onSelect: () => setDeleteTarget(category),
+                  },
+                ]}
+              />
+            ),
+          } satisfies DataTableColumn<CategoryRow>,
+        ]
+      : []),
+  ];
+
   return (
     <>
-      <Table>
-        <thead>
-          <tr className="border-b border-stone-200">
-            <Th>Name</Th>
-            <Th>Invitations</Th>
-            <Th>Attendees</Th>
-            {canManage ? <Th className="w-24 text-right">Actions</Th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {categories.map((category) => (
-            <tr key={category.id} className="border-b border-stone-100">
-              <Td className="font-medium text-ink-800">{category.name}</Td>
-              <Td className="font-mono text-sm">{category.invitationCount}</Td>
-              <Td className="font-mono text-sm">{category.attendeeCount}</Td>
-              {canManage ? (
-                <Td className="text-right">
-                  <button
-                    type="button"
-                    title={`Delete ${category.name}`}
-                    disabled={pending}
-                    className="inline-flex rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-danger disabled:opacity-50"
-                    onClick={() => setDeleteTarget(category)}
-                  >
-                    <Trash2 className="size-4" aria-hidden />
-                    <span className="sr-only">Delete {category.name}</span>
-                  </button>
-                </Td>
-              ) : null}
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+      <DataTable
+        rows={categories}
+        columns={columns}
+        getRowId={(category) => category.id}
+        searchPlaceholder="Search categories…"
+        searchFilter={(category, query) =>
+          category.name.toLowerCase().includes(query)
+        }
+        emptyMessage="No categories yet."
+      />
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}

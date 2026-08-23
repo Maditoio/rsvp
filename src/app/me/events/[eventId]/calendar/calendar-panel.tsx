@@ -146,13 +146,13 @@ function ProviderRow({
 }) {
   if (connected) {
     return (
-      <div className="rounded-md border border-stone-200 bg-stone-0 p-4">
+      <div className="rounded-xl bg-white shadow-sm p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
             <span className="mt-0.5 shrink-0">{icon}</span>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-ink-800">Connected</p>
-              <p className="mt-0.5 text-xs text-stone-500">
+              <p className="text-sm font-medium text-slate-900">Connected</p>
+              <p className="mt-0.5 text-xs text-slate-500">
                 {label} — meetings will sync to this calendar automatically.
               </p>
             </div>
@@ -175,7 +175,7 @@ function ProviderRow({
     return (
       <a
         href={connectHref}
-        className="inline-flex h-10 w-full items-center justify-center gap-2.5 rounded-sm border border-stone-200 bg-stone-0 px-4 text-sm font-medium text-ink-800 hover:border-ink-400 hover:bg-stone-50"
+        className="inline-flex h-10 w-full items-center justify-center gap-2.5 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-900 hover:border-indigo-400 hover:bg-slate-50"
       >
         <span className="shrink-0">{icon}</span>
         {connectLabel}
@@ -188,13 +188,13 @@ function ProviderRow({
       <button
         type="button"
         disabled
-        className="inline-flex h-10 w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-sm border border-stone-200 bg-stone-50 px-4 text-sm font-medium text-stone-400"
+        className="inline-flex h-10 w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-400"
       >
         <span className="shrink-0 opacity-60">{icon}</span>
         {connectLabel}
       </button>
       {unavailableHint ? (
-        <p className="mt-1 text-xs text-stone-500">{unavailableHint}</p>
+        <p className="mt-1 text-xs text-slate-500">{unavailableHint}</p>
       ) : null}
     </div>
   );

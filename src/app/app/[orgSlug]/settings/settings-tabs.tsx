@@ -34,7 +34,7 @@ export function SettingsTabs({
 
   return (
     <nav
-      className="mb-7 flex gap-7 border-b border-stone-200"
+      className="mb-7 flex gap-7 border-b border-slate-200"
       aria-label="Organisation settings sections"
     >
       {SETTINGS_TABS.map((tab) => {
@@ -46,8 +46,8 @@ export function SettingsTabs({
             className={cn(
               "pb-3 text-[0.9375rem] font-semibold transition-colors",
               isActive
-                ? "border-b-2 border-ink-700 text-ink-700"
-                : "border-b-2 border-transparent text-stone-500 hover:text-ink-500",
+                ? "border-b-2 border-slate-900 text-slate-900"
+                : "border-b-2 border-transparent text-slate-500 hover:text-slate-900",
             )}
             aria-current={isActive ? "page" : undefined}
           >

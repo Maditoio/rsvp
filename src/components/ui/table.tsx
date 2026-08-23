@@ -1,15 +1,16 @@
 import { cn } from "@/lib/utils";
 import type { HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from "react";
 
+/** Shared HTML table primitives — prefer `DataTable` for list pages. */
 export function Table({
   className,
   ...props
 }: HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-x-auto rounded-md border border-stone-200 bg-stone-0">
+    <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
       <table
         className={cn(
-          "w-full text-left text-[0.9375rem] text-ink-700",
+          "aurora-table w-full text-left text-[0.84375rem] text-slate-700",
           className,
         )}
         {...props}
@@ -25,7 +26,7 @@ export function Th({
   return (
     <th
       className={cn(
-        "bg-stone-50 px-5 py-3 text-[0.8125rem] font-semibold uppercase tracking-[0.06em] text-stone-700",
+        "border-b border-slate-100 bg-white px-7 py-3.5 text-[0.71875rem] font-semibold tracking-[0.04em] text-slate-400 uppercase",
         className,
       )}
       {...props}
@@ -40,7 +41,7 @@ export function Td({
   return (
     <td
       className={cn(
-        "h-11 border-b border-stone-100 px-5 align-middle text-stone-700",
+        "min-h-11 border-b border-slate-100 px-7 py-3.5 align-middle text-slate-600",
         className,
       )}
       {...props}

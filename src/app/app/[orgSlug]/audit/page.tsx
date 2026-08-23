@@ -1,10 +1,11 @@
+import { Suspense } from "react";
 import { format } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
 import { requireOrg } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { Card } from "@/components/ui/card";
-import { Table, Td, Th } from "@/components/ui/table";
 import { displayName } from "@/lib/utils";
+import { AuditTable } from "./audit-table";
 
 export default async function AuditPage({
   params,
@@ -23,53 +24,27 @@ export default async function AuditPage({
 
   return (
     <div className="flex-1 p-6 md:p-10">
-      <h1 className="font-display text-3xl text-gray-800">Audit logs</h1>
-      <p className="mt-1 mb-6 text-sm text-gray-600">
+      <h1 className="font-display text-3xl text-slate-900">Audit logs</h1>
+      <p className="mt-1 mb-6 text-[0.8125rem] text-slate-500">
         Invite, register, check-in and admin actions for this organisation.
       </p>
       {logs.length === 0 ? (
         <Card>No audit entries yet.</Card>
       ) : (
-        <Table>
-          <thead>
-            <tr className="border-b border-gray-100">
-              <Th>When</Th>
-              <Th>Actor</Th>
-              <Th>Action</Th>
-              <Th>Resource</Th>
-              <Th>Event</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.map((log) => (
-              <tr key={log.id} className="border-b border-gray-50">
-                <Td className="whitespace-nowrap text-gray-600">
-                  {format(log.createdAt, "d MMM yyyy HH:mm")}
-                </Td>
-                <Td>
-                  {log.user ? (
-                    <>
-                      <p>{displayName(log.user)}</p>
-                      <p className="text-xs text-gray-500">{log.user.email}</p>
-                    </>
-                  ) : (
-                    "—"
-                  )}
-                </Td>
-                <Td>{log.action}</Td>
-                <Td>
-                  {log.resource}
-                  {log.resourceId ? (
-                    <span className="block text-xs text-gray-400">
-                      {log.resourceId}
-                    </span>
-                  ) : null}
-                </Td>
-                <Td>{log.event?.name ?? "—"}</Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
+          <AuditTable
+            logs={logs.map((log) => ({
+              id: log.id,
+              when: format(log.createdAt, "d MMM yyyy HH:mm"),
+              actorName: log.user ? displayName(log.user) : null,
+              actorEmail: log.user?.email ?? null,
+              action: log.action,
+              resource: log.resource,
+              resourceId: log.resourceId,
+              eventName: log.event?.name ?? null,
+            }))}
+          />
+        </Suspense>
       )}
     </div>
   );

@@ -43,11 +43,11 @@ export function PlatformAdminControls() {
   return (
     <div className="flex items-end justify-between gap-4">
       <div>
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
           Platform control
         </p>
-        <h2 className="mt-1 font-display text-2xl text-ink-800">Platform admin access</h2>
-        <p className="mt-1 text-sm text-stone-700">
+        <h2 className="mt-1 font-display text-2xl text-slate-900">Platform admin access</h2>
+        <p className="mt-1 text-sm text-slate-700">
           Grant or revoke platform access for existing users by email.
         </p>
       </div>

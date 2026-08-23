@@ -12,11 +12,11 @@ export default async function PlatformLayout({
   const { workspaces } = await safe(() => loadUserWorkspaces());
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <header className="border-b border-stone-200 bg-stone-0">
+    <div className="min-h-screen bg-slate-50">
+      <header className="bg-white shadow-[0_1px_0_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.03)]">
         <div className="mx-auto flex max-w-5xl flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-bronze-600">
+            <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
               Platform
             </p>
             <div className="mt-2">

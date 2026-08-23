@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
@@ -34,22 +35,24 @@ export default async function InviteesPage({
   ]);
 
   return (
-    <InviteesPanel
-      orgSlug={orgSlug}
-      eventId={eventId}
-      canWrite={hasPermission(ctx.grants, "invitees.write")}
-      canInvite={hasPermission(ctx.grants, "invitations.write")}
-      categories={categories}
-      contacts={contacts.map((contact) => ({
-        id: contact.id,
-        firstName: contact.firstName,
-        lastName: contact.lastName,
-        email: contact.email,
-        company: contact.company,
-        invitationStatus: contact.invitations[0]?.status ?? null,
-        categoryId: contact.invitations[0]?.category?.id ?? null,
-        categoryName: contact.invitations[0]?.category?.name ?? null,
-      }))}
-    />
+    <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
+      <InviteesPanel
+        orgSlug={orgSlug}
+        eventId={eventId}
+        canWrite={hasPermission(ctx.grants, "invitees.write")}
+        canInvite={hasPermission(ctx.grants, "invitations.write")}
+        categories={categories}
+        contacts={contacts.map((contact) => ({
+          id: contact.id,
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          email: contact.email,
+          company: contact.company,
+          invitationStatus: contact.invitations[0]?.status ?? null,
+          categoryId: contact.invitations[0]?.category?.id ?? null,
+          categoryName: contact.invitations[0]?.category?.name ?? null,
+        }))}
+      />
+    </Suspense>
   );
 }

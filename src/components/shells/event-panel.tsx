@@ -43,16 +43,16 @@ function PanelContent({
     <>
       {/* Event switcher */}
       <div className="p-4">
-        <div className="flex items-center justify-between rounded-sm border border-stone-300 bg-white px-[10px] py-[9px] focus-within:border-ink-700 focus-within:shadow-[0_0_0_3px_rgba(31,41,55,0.12)]">
+        <div className="flex items-center justify-between rounded-xl bg-white shadow-sm px-[14px] py-[10px] shadow-xs focus-within:border-indigo-500 focus-within:shadow-[0_0_0_4px_rgba(99,102,241,0.12)]">
           <div className="min-w-0">
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-500">
+            <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
               Current event
             </p>
-            <p className="truncate text-[0.9375rem] font-semibold text-ink-700">
+            <p className="truncate text-[0.9375rem] font-semibold text-slate-900">
               {eventName}
             </p>
           </div>
-          <ChevronDown className="size-[15px] shrink-0 text-stone-500" strokeWidth={1.75} />
+          <ChevronDown className="size-[15px] shrink-0 text-slate-500" strokeWidth={1.75} />
         </div>
       </div>
 
@@ -65,7 +65,7 @@ function PanelContent({
           if (visible.length === 0) return null;
           return (
             <div key={group.label} className="mb-4">
-              <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-400">
+              <p className="mb-1 px-2 text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
                 {group.label}
               </p>
               <div className="flex flex-col gap-0.5">
@@ -86,7 +86,7 @@ function PanelContent({
 
       {/* Event settings pinned at bottom */}
       {hasPermission(grants, settingsItem.permission) && (
-        <div className="border-t border-stone-200 px-3 pb-4 pt-[10px]" onClick={onNavigate}>
+        <div className="border-t border-slate-200 px-3 pb-4 pt-[10px]" onClick={onNavigate}>
           <NavLink
             href={settingsItem.href}
             label={settingsItem.label}
@@ -136,11 +136,11 @@ export function EventPanel({
         <button
           type="button"
           onClick={() => setOverlayOpen(true)}
-          className="fixed bottom-4 left-4 z-30 flex size-10 items-center justify-center rounded-sm border border-stone-300 bg-white shadow-md md:hidden lg:hidden"
+          className="fixed bottom-4 left-4 z-30 flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white shadow-md md:hidden lg:hidden"
           title="Open event navigation"
           style={{ display: "none" }}
         >
-          <Menu className="size-5 text-ink-700" strokeWidth={1.75} />
+          <Menu className="size-5 text-slate-900" strokeWidth={1.75} />
         </button>
 
         {/* Tablet overlay trigger — shown as a thin strip */}
@@ -150,30 +150,30 @@ export function EventPanel({
             collapseOrgRail();
             setOverlayOpen(true);
           }}
-          className="hidden h-screen w-10 shrink-0 items-center justify-center border-r border-stone-200 bg-stone-50 hover:bg-stone-100 md:flex"
+          className="hidden h-screen w-10 shrink-0 items-center justify-center border-r border-slate-200 bg-slate-50 hover:bg-slate-100 md:flex"
           title="Open event navigation"
         >
-          <Menu className="size-4 text-stone-500" strokeWidth={1.75} />
+          <Menu className="size-4 text-slate-500" strokeWidth={1.75} />
         </button>
 
         {overlayOpen && (
           <div className="fixed inset-0 z-40">
             <button
               type="button"
-              className="absolute inset-0 bg-ink-900/30"
+              className="absolute inset-0 bg-slate-900/40"
               onClick={closeOverlay}
               aria-label="Close event navigation"
             />
             <aside
-              className="absolute inset-y-0 left-0 flex w-[264px] flex-col overflow-y-auto overflow-x-hidden shadow-lg md:left-16"
-              style={{ background: "#FBFAF8" }}
+              className="absolute inset-y-0 left-0 flex w-[264px] flex-col overflow-y-auto overflow-x-hidden bg-white shadow-lg md:left-16"
+              
               onPointerDown={collapseOrgRail}
             >
               <div className="flex items-center justify-end p-2">
                 <button
                   type="button"
                   onClick={closeOverlay}
-                  className="rounded-sm p-1 text-stone-500 hover:bg-stone-100"
+                  className="rounded-full p-1 text-slate-500 hover:bg-slate-100"
                 >
                   <X className="size-4" strokeWidth={1.75} />
                 </button>
@@ -195,8 +195,8 @@ export function EventPanel({
   // Desktop: permanent panel — interacting here collapses the org rail.
   return (
     <aside
-      className="hidden h-full w-[264px] shrink-0 flex-col overflow-y-auto overflow-x-hidden border-r border-stone-200 md:flex"
-      style={{ background: "#FBFAF8" }}
+      className="hidden h-full w-[264px] shrink-0 flex-col overflow-y-auto overflow-x-hidden bg-white shadow-[2px_0_12px_rgba(15,23,42,0.03)] md:flex"
+      
       onPointerDown={collapseOrgRail}
     >
       <PanelContent

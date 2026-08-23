@@ -30,24 +30,24 @@ export default async function AttendeeProfilePage({
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
           {attendee.event.name}
         </p>
-        <h1 className="mt-1 font-display text-3xl text-ink-800">Profile</h1>
-        <p className="mt-1 max-w-2xl text-sm text-stone-700">
+        <h1 className="mt-1 font-display text-3xl text-slate-900">Profile</h1>
+        <p className="mt-1 max-w-2xl text-sm text-slate-700">
           Visible attendees see this in the directory, subject to your privacy
           settings. Matching answers and visibility are managed separately.
         </p>
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
           <Link
             href={`/me/events/${eventId}/privacy`}
-            className="font-semibold text-ink-700 underline-offset-4 hover:underline"
+            className="font-semibold text-slate-700 underline-offset-4 hover:underline"
           >
             Privacy &amp; matching settings
           </Link>
           <Link
             href={`/me/events/${eventId}/matchmaking`}
-            className="text-stone-600 underline-offset-4 hover:text-ink-700 hover:underline"
+            className="text-slate-600 underline-offset-4 hover:text-slate-700 hover:underline"
           >
             Matching questionnaire
           </Link>

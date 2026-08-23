@@ -9,9 +9,9 @@ export function Select({
   return (
     <select
       className={cn(
-        "h-[42px] w-full rounded-sm border border-stone-300 bg-stone-0 px-4 text-[0.9375rem] leading-[1.55] text-ink-700 outline-none",
-        "focus:border-ink-700 focus:ring-3 focus:ring-ink-700/12",
-        "disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-100 disabled:text-stone-400",
+        "h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-4 text-[0.84375rem] leading-[1.55] text-slate-900 outline-none shadow-xs",
+        "focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/12",
+        "disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400",
         "aria-invalid:border-danger aria-invalid:focus:border-danger aria-invalid:focus:ring-danger/12",
         className,
       )}

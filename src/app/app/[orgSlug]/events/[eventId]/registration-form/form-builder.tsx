@@ -1,24 +1,27 @@
 "use client";
 
+import { Suspense, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { Pencil, Trash2 } from "lucide-react";
 import {
   deleteRegistrationField,
   saveRegistrationField,
 } from "@/modules/registrations/form-actions";
 import { FIELD_TYPES, LOCKED_FIELD_KEYS } from "@/modules/registrations/defaults";
 import type { StoredField } from "@/modules/registrations/form";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/components/data-table/data-table";
+import { ActionsMenu } from "@/components/data-table/actions-menu";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, Td, Th } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { humanizeEnum } from "@/lib/utils";
-
-const selectClassName =
-  "h-[42px] w-full rounded-sm border border-stone-300 bg-stone-0 px-4 text-[0.9375rem] text-ink-700 outline-none focus:border-ink-700 focus:ring-3 focus:ring-ink-700/12";
 
 export function RegistrationFormBuilder({
   orgSlug,
@@ -54,68 +57,145 @@ export function RegistrationFormBuilder({
     setOpen(true);
   };
 
+  const columns: DataTableColumn<StoredField>[] = [
+    {
+      id: "field",
+      header: "Field",
+      width: "2fr",
+      cell: (field) => (
+        <div>
+          <p className="font-medium text-slate-700">{field.label}</p>
+          <p className="text-xs text-slate-500">{field.key}</p>
+        </div>
+      ),
+    },
+    {
+      id: "type",
+      header: "Type",
+      width: "1.2fr",
+      cell: (field) => humanizeEnum(field.type),
+    },
+    {
+      id: "required",
+      header: "Required",
+      width: "1fr",
+      cell: (field) => (
+        <Badge tone={field.required ? "default" : "muted"}>
+          {field.required ? "Required" : "Optional"}
+        </Badge>
+      ),
+    },
+    ...(canManage
+      ? [
+          {
+            id: "actions",
+            header: "",
+            width: "60px",
+            headerClassName: "sr-only",
+            cellClassName: "justify-self-end",
+            cell: (field: StoredField) => {
+              const locked = LOCKED_FIELD_KEYS.includes(
+                field.key as (typeof LOCKED_FIELD_KEYS)[number],
+              );
+              return (
+                <ActionsMenu
+                  disabled={pending}
+                  items={[
+                    {
+                      id: "edit",
+                      label: "Edit field",
+                      icon: (
+                        <Pencil
+                          className="size-3.5 shrink-0"
+                          strokeWidth={1.75}
+                        />
+                      ),
+                      onSelect: () => openEdit(field),
+                    },
+                    ...(!locked
+                      ? [
+                          { type: "divider" as const, id: "div" },
+                          {
+                            id: "delete",
+                            label: "Remove field",
+                            destructive: true,
+                            icon: (
+                              <Trash2
+                                className="size-3.5 shrink-0"
+                                strokeWidth={1.75}
+                              />
+                            ),
+                            onSelect: () => {
+                              const formData = new FormData();
+                              formData.set("fieldId", field.id);
+                              setError(null);
+                              start(async () => {
+                                try {
+                                  await deleteRegistrationField(
+                                    orgSlug,
+                                    eventId,
+                                    formData,
+                                  );
+                                  router.refresh();
+                                } catch (e) {
+                                  setError(
+                                    e instanceof Error
+                                      ? e.message
+                                      : "Could not delete field",
+                                  );
+                                }
+                              });
+                            },
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
+              );
+            },
+          } satisfies DataTableColumn<StoredField>,
+        ]
+      : []),
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
             Registration
           </p>
-          <h1 className="mt-1 font-display text-3xl text-ink-800">
+          <h1 className="mt-1 font-display text-3xl text-slate-900">
             Registration form
           </h1>
-          <p className="mt-1 text-sm text-stone-700">
+          <p className="mt-1 text-[0.8125rem] text-slate-500">
             Invitees complete this form after they accept. Name and email cannot
             be removed.
           </p>
         </div>
         {canManage ? (
-          <Button type="button" onClick={openCreate}>
+          <Button type="button" leadingIcon="plus" onClick={openCreate}>
             Add field
           </Button>
         ) : null}
       </div>
 
-      <Table>
-        <thead>
-          <tr>
-            <Th>Field</Th>
-            <Th>Type</Th>
-            <Th>Required</Th>
-            {canManage ? <Th>Actions</Th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {fields.map((field) => {
-            return (
-              <tr key={field.id}>
-                <Td>
-                  <p className="font-medium text-ink-800">{field.label}</p>
-                  <p className="text-xs text-stone-500">{field.key}</p>
-                </Td>
-                <Td>{humanizeEnum(field.type)}</Td>
-                <Td>
-                  <Badge tone={field.required ? "default" : "muted"}>
-                    {field.required ? "Required" : "Optional"}
-                  </Badge>
-                </Td>
-                {canManage ? (
-                  <Td>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => openEdit(field)}
-                    >
-                      Edit
-                    </Button>
-                  </Td>
-                ) : null}
-              </tr>
-            );
-          })}
-        </tbody>
-      </Table>
+      <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
+        <DataTable
+          rows={fields}
+          columns={columns}
+          getRowId={(field) => field.id}
+          searchPlaceholder="Search fields…"
+          searchFilter={(field, query) => {
+            const haystack = [field.label, field.key, field.type]
+              .join(" ")
+              .toLowerCase();
+            return haystack.includes(query);
+          }}
+          emptyMessage="No fields yet."
+          minRowHeight="double"
+        />
+      </Suspense>
       {error && !open ? <p className="text-sm text-danger">{error}</p> : null}
 
       <Drawer
@@ -146,11 +226,10 @@ export function RegistrationFormBuilder({
           </div>
           <div>
             <Label htmlFor="type">Type</Label>
-            <select
+            <Select
               id="type"
               name="type"
               defaultValue={editing?.type ?? "text"}
-              className={selectClassName}
               disabled={Boolean(
                 editing &&
                   LOCKED_FIELD_KEYS.includes(
@@ -164,7 +243,7 @@ export function RegistrationFormBuilder({
                   {humanizeEnum(type)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           {showOptions || (editing && needsOptions(editing.type)) ? (
             <div>
@@ -176,7 +255,7 @@ export function RegistrationFormBuilder({
               />
             </div>
           ) : null}
-          <label className="flex items-center gap-2 text-sm text-stone-700">
+          <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
               name="required"
@@ -210,7 +289,9 @@ export function RegistrationFormBuilder({
                       setOpen(false);
                       router.refresh();
                     } catch (e) {
-                      setError(e instanceof Error ? e.message : "Could not delete field");
+                      setError(
+                        e instanceof Error ? e.message : "Could not delete field",
+                      );
                     }
                   });
                 }}

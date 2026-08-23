@@ -26,11 +26,11 @@ export default async function AttendeePrivacyPage({
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
           {attendee.event.name}
         </p>
-        <h1 className="mt-1 font-display text-3xl text-ink-800">Privacy</h1>
-        <p className="mt-1 text-sm text-stone-700">
+        <h1 className="mt-1 font-display text-3xl text-slate-900">Privacy</h1>
+        <p className="mt-1 text-sm text-slate-700">
           Control what other attendees can see. Matching uses shared objectives
           from your matching profile; AI explanations are optional and only
           appear in Directory when both the organiser and you enable them.

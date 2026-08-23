@@ -53,7 +53,7 @@ export function AttendeeEventNav({ eventId }: { eventId: string }) {
   const secondary = attendeeEventSecondaryItems(eventId);
 
   return (
-    <div className="border-t border-stone-200 bg-stone-0">
+    <div className="border-t border-slate-200 bg-white">
       <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 sm:flex-row sm:items-center sm:justify-between">
         <nav
           className="-mx-2 flex gap-0 overflow-x-auto"
@@ -69,20 +69,20 @@ export function AttendeeEventNav({ eventId }: { eventId: string }) {
                 className={cn(
                   "relative inline-flex shrink-0 items-center gap-2 px-3 py-3.5 text-sm transition-colors",
                   active
-                    ? "font-semibold text-bronze-700"
-                    : "text-stone-600 hover:text-ink-800",
+                    ? "font-semibold text-indigo-700"
+                    : "text-slate-600 hover:text-slate-900",
                 )}
               >
                 <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />
                 {item.label}
                 {item.href.endsWith("/meetings") && pendingMeetings > 0 ? (
-                  <span className="ml-1 inline-flex min-w-[1.125rem] items-center justify-center rounded-xs bg-bronze-100 px-1.5 text-[0.6875rem] font-semibold tabular-nums text-bronze-800">
+                  <span className="ml-1 inline-flex min-w-[1.125rem] items-center justify-center rounded-full bg-indigo-600 px-1.5 text-[0.6875rem] font-semibold tabular-nums text-white">
                     {pendingMeetings > 9 ? "9+" : pendingMeetings}
                   </span>
                 ) : null}
                 {active ? (
                   <span
-                    className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-bronze-500"
+                    className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-indigo-600"
                     aria-hidden
                   />
                 ) : null}
@@ -105,8 +105,8 @@ export function AttendeeEventNav({ eventId }: { eventId: string }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-sm px-2 py-1 text-xs text-stone-500 transition-colors hover:bg-stone-100 hover:text-ink-700",
-                  active && "bg-stone-100 text-ink-700",
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700",
+                  active && "bg-slate-100 text-slate-700",
                 )}
               >
                 <Icon className="size-3.5" strokeWidth={1.75} aria-hidden />
@@ -118,7 +118,7 @@ export function AttendeeEventNav({ eventId }: { eventId: string }) {
       </div>
       {/* Mobile secondary */}
       <nav
-        className="flex gap-1 overflow-x-auto border-t border-stone-100 px-4 py-2 sm:hidden"
+        className="flex gap-1 overflow-x-auto border-t border-slate-100 px-4 py-2 sm:hidden"
         aria-label="More for this event"
       >
         {secondary.map((item) => {
@@ -131,8 +131,8 @@ export function AttendeeEventNav({ eventId }: { eventId: string }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "shrink-0 rounded-sm px-2.5 py-1 text-xs text-stone-600",
-                active && "bg-stone-100 font-medium text-ink-700",
+                "shrink-0 rounded-full px-2.5 py-1 text-xs text-slate-600",
+                active && "bg-slate-100 font-medium text-slate-700",
               )}
             >
               {item.label}

@@ -29,23 +29,23 @@ export default async function MeetingResponsePage({
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 px-6 py-16">
+    <div className="min-h-screen bg-slate-50 px-6 py-16">
       <Card className="mx-auto max-w-lg">
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
           Connection request
         </p>
-        <h1 className="mt-2 font-display text-3xl text-ink-800">
+        <h1 className="mt-2 font-display text-3xl text-slate-900">
           Could not {decision} request
         </h1>
-        <p className="mt-3 text-sm text-stone-700">
+        <p className="mt-3 text-sm text-slate-700">
           {result.error}
         </p>
-        <p className="mt-4 text-sm text-stone-700">
+        <p className="mt-4 text-sm text-slate-700">
           Request from {displayName(request.requester)} for {request.event.name}.
         </p>
         <Link
           href={meetingsHref}
-          className="mt-6 inline-flex h-10 items-center rounded-sm bg-ink-700 px-4 text-sm font-semibold text-white hover:bg-ink-800"
+          className="mt-6 inline-flex h-10 items-center rounded-full bg-indigo-600 px-5 text-sm font-semibold text-white shadow-accent hover:bg-indigo-700"
         >
           Open Meetings
         </Link>

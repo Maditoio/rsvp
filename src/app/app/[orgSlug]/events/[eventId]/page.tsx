@@ -52,24 +52,24 @@ export default async function EventDashboardPage({
       <DecisionCard>
         <div className="flex items-start justify-between gap-6">
           <div>
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-200">
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-indigo-200">
               Event
             </p>
             <h1 className="mt-2 font-display text-4xl">{event.name}</h1>
-            <p className="mt-2 text-ink-100">
+            <p className="mt-2 text-slate-100">
               {event.venue || "Venue TBC"} · {event.timezone}
             </p>
             {canUpdate ? (
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
                   href={`/app/${orgSlug}/events/${eventId}/edit`}
-                  className="inline-flex rounded-sm bg-white/10 px-4 py-1.5 text-sm text-white hover:bg-white/20"
+                  className="inline-flex rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/20"
                 >
                   Edit event
                 </Link>
                 <Link
                   href={`/app/${orgSlug}/events/${eventId}/settings`}
-                  className="inline-flex rounded-sm bg-white/10 px-4 py-1.5 text-sm text-white hover:bg-white/20"
+                  className="inline-flex rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white hover:bg-white/20"
                 >
                   Event settings
                 </Link>

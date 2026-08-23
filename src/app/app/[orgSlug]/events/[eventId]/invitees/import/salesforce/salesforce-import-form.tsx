@@ -2,17 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
-import { Table, Td, Th } from "@/components/ui/table";
+import { ImportContactsTable } from "@/components/data-table/import-contacts-table";
 import {
   importSalesforceContacts,
   listSalesforceContactsForImport,
   type SalesforceImportSelection,
 } from "@/modules/salesforce/actions";
 import type { SalesforceContactRow } from "@/modules/salesforce/contacts";
-import { cn } from "@/lib/utils";
 
 type CategoryOption = { id: string; name: string };
 
@@ -34,7 +33,6 @@ export function SalesforceImportForm({
   const importHref = `/app/${orgSlug}/events/${eventId}/invitees/import`;
   const integrationsHref = `/app/${orgSlug}/integrations`;
 
-  const selectAllRef = useRef<HTMLInputElement>(null);
   const [contacts, setContacts] = useState<SalesforceContactRow[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
@@ -81,20 +79,11 @@ export function SalesforceImportForm({
     [contacts],
   );
 
-  const allSelected =
-    selectableIds.length > 0 &&
-    selectableIds.every((id) => selected.includes(id));
-  const someSelected =
-    selectableIds.some((id) => selected.includes(id)) && !allSelected;
-
-  useEffect(() => {
-    if (selectAllRef.current) {
-      selectAllRef.current.indeterminate = someSelected;
-    }
-  }, [someSelected]);
-
   function toggleAll() {
-    if (allSelected) {
+    if (
+      selectableIds.length > 0 &&
+      selectableIds.every((id) => selected.includes(id))
+    ) {
       setSelected((prev) => prev.filter((id) => !selectableIds.includes(id)));
     } else {
       setSelected((prev) => [...new Set([...prev, ...selectableIds])]);
@@ -185,15 +174,15 @@ export function SalesforceImportForm({
     return (
       <div className="mx-auto max-w-3xl space-y-6">
         <Header importHref={importHref} inviteesHref={inviteesHref} />
-        <div className="rounded-md border border-stone-200 bg-stone-0 p-5">
-          <p className="font-semibold text-ink-800">Salesforce is not connected</p>
-          <p className="mt-1 text-sm text-stone-600">
+        <div className="rounded-xl bg-white shadow-sm p-5">
+          <p className="font-semibold text-slate-900">Salesforce is not connected</p>
+          <p className="mt-1 text-sm text-slate-600">
             Connect your organisation Salesforce account in Integrations, then
             return here to import contacts as invitees.
           </p>
           <Link
             href={integrationsHref}
-            className="mt-4 inline-flex h-10 items-center justify-center rounded-sm border border-stone-300 bg-transparent px-4 text-sm font-semibold text-ink-700 hover:border-ink-400 hover:bg-stone-50"
+            className="mt-4 inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-transparent px-4 text-sm font-semibold text-slate-700 hover:border-indigo-400 hover:bg-slate-50"
           >
             Open Integrations
           </Link>
@@ -206,20 +195,20 @@ export function SalesforceImportForm({
     <div className="mx-auto max-w-5xl space-y-6">
       <Header importHref={importHref} inviteesHref={inviteesHref} />
 
-      <p className="text-sm text-stone-600">
+      <p className="text-sm text-slate-600">
         Organisation Salesforce
         {salesforceOrgId ? ` · org ${salesforceOrgId}` : ""}. Select contacts to
         add as invitees for this event. Nothing is written back to Salesforce.
       </p>
 
       {error ? <p className="text-sm text-danger">{error}</p> : null}
-      {notice ? <p className="text-sm text-moss-700">{notice}</p> : null}
+      {notice ? <p className="text-sm text-success">{notice}</p> : null}
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-[14rem] flex-1">
           <label
             htmlFor="salesforce-category"
-            className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500"
+            className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500"
           >
             Invitation category (optional)
           </label>
@@ -237,7 +226,7 @@ export function SalesforceImportForm({
               </option>
             ))}
           </Select>
-          <p className="mt-1 text-xs text-stone-500">
+          <p className="mt-1 text-xs text-slate-500">
             If chosen, a draft invitation is created for each new invitee.
           </p>
         </div>
@@ -253,95 +242,25 @@ export function SalesforceImportForm({
       </div>
 
       {loading ? (
-        <p className="text-sm text-stone-600">Loading Salesforce contacts…</p>
+        <p className="text-sm text-slate-600">Loading Salesforce contacts…</p>
       ) : contacts.length === 0 ? (
-        <div className="rounded-md border border-stone-200 bg-stone-0 p-5">
-          <p className="text-sm text-stone-700">
+        <div className="rounded-xl bg-white shadow-sm p-5">
+          <p className="text-sm text-slate-700">
             No contacts returned from Salesforce for this org.
           </p>
         </div>
       ) : (
-        <>
-          <Table>
-            <thead>
-              <tr>
-                <Th className="w-12">
-                  <input
-                    ref={selectAllRef}
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={toggleAll}
-                    disabled={selectableIds.length === 0 || busy}
-                    aria-label="Select all on this list"
-                    className="size-4 rounded-sm border-stone-300"
-                  />
-                </Th>
-                <Th>First name</Th>
-                <Th>Last name</Th>
-                <Th>Email</Th>
-                <Th>Company</Th>
-                <Th>Job title</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {contacts.map((contact) => {
-                const hasEmail = Boolean(contact.email);
-                const isChecked = selected.includes(contact.id);
-                return (
-                  <tr
-                    key={contact.id}
-                    className={cn(
-                      "border-t border-stone-100",
-                      !hasEmail && "opacity-60",
-                    )}
-                  >
-                    <Td>
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        disabled={!hasEmail || busy}
-                        onChange={() => toggleOne(contact.id)}
-                        aria-label={`Select ${contact.email || contact.id}`}
-                        className="size-4 rounded-sm border-stone-300"
-                      />
-                    </Td>
-                    <Td className="text-ink-800">
-                      {contact.firstName || "—"}
-                    </Td>
-                    <Td className="text-ink-800">
-                      {contact.lastName || "—"}
-                    </Td>
-                    <Td>
-                      {contact.email || (
-                        <span className="text-stone-500">No email</span>
-                      )}
-                    </Td>
-                    <Td>{contact.company || "—"}</Td>
-                    <Td>{contact.jobTitle || "—"}</Td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-stone-500">
-              Showing {contacts.length} contact
-              {contacts.length === 1 ? "" : "s"}
-              {nextCursor ? " · more available" : ""}
-            </p>
-            {nextCursor ? (
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={busy}
-                onClick={loadMore}
-              >
-                {loadingMore ? "Loading…" : "Load more"}
-              </Button>
-            ) : null}
-          </div>
-        </>
+        <ImportContactsTable
+          contacts={contacts}
+          selected={selected}
+          onToggleOne={toggleOne}
+          onToggleAll={toggleAll}
+          busy={busy}
+          nextCursor={nextCursor}
+          onLoadMore={loadMore}
+          loadingMore={loadingMore}
+          pageParam="spage"
+        />
       )}
     </div>
   );
@@ -359,21 +278,21 @@ function Header({
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
         <Link
           href={inviteesHref}
-          className="font-medium text-bronze-700 hover:text-bronze-800"
+          className="font-medium text-indigo-700 hover:text-indigo-800"
         >
           ← Back to invitees
         </Link>
         <Link
           href={importHref}
-          className="font-medium text-stone-600 hover:text-ink-800"
+          className="font-medium text-slate-600 hover:text-slate-900"
         >
           Import options
         </Link>
       </div>
-      <h1 className="mt-4 font-display text-3xl text-ink-800">
+      <h1 className="mt-4 font-display text-3xl text-slate-900">
         Import from Salesforce
       </h1>
-      <p className="mt-1 text-sm text-stone-700">
+      <p className="mt-1 text-sm text-slate-700">
         Choose contacts from your connected Salesforce org. They become invitees
         for this event only.
       </p>

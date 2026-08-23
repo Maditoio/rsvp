@@ -25,14 +25,14 @@ export default async function AttendeeHomePage() {
 
   return (
     <div>
-      <h1 className="font-display text-4xl text-ink-800">My events</h1>
-      <p className="mt-2 text-stone-700">
+      <h1 className="font-display text-4xl text-slate-900">My events</h1>
+      <p className="mt-2 text-slate-700">
         Registration records linked to your signed-in account.
       </p>
       <div className="mt-8 space-y-3">
         {attendances.length === 0 ? (
           <Card>
-            <p className="text-stone-700">
+            <p className="text-slate-700">
               You are not registered for an event yet. Use the unique link from
               your invitation email — accepting is not the same as registering.
             </p>
@@ -40,13 +40,13 @@ export default async function AttendeeHomePage() {
         ) : (
           attendances.map((row) => (
             <Link key={row.id} href={`/me/events/${row.event.id}`}>
-              <Card className="hover:bg-stone-50">
+              <Card className="hover:bg-slate-50">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-lg font-medium text-ink-800">
+                    <p className="text-lg font-medium text-slate-900">
                       {row.event.name}
                     </p>
-                    <p className="mt-1 text-sm text-stone-500">
+                    <p className="mt-1 text-sm text-slate-500">
                       {row.event.venue || "Venue TBC"} ·{" "}
                       {formatEventWindow(
                         row.event.startsAt,

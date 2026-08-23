@@ -1,13 +1,11 @@
+import { Suspense } from "react";
+import { format } from "date-fns";
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
-import { Card } from "@/components/ui/card";
-import { Table, Td, Th } from "@/components/ui/table";
-import { StatusBadge } from "@/components/status-badge";
 import { displayName } from "@/lib/utils";
-import { format } from "date-fns";
-import { RegistrationStatusActions } from "./registration-status-actions";
+import { RegistrationsTable } from "./registrations-table";
 
 type RegistrationData = {
   firstName?: string;
@@ -32,74 +30,49 @@ export default async function RegistrationsPage({
     orderBy: { createdAt: "desc" },
   });
 
+  const rows = responses.map((row) => {
+    const data = (row.data ?? {}) as RegistrationData;
+    const name = row.contact
+      ? displayName(row.contact)
+      : displayName({
+          firstName: data.firstName,
+          lastName: data.lastName,
+        });
+    const email = row.contact?.email ?? data.email ?? "—";
+    return {
+      id: row.id,
+      name,
+      email,
+      invitationStatus: row.invitation?.status ?? null,
+      status: row.status,
+      submittedAt: format(row.createdAt, "d MMM yyyy HH:mm"),
+    };
+  });
+
   return (
     <div>
-      <h1 className="font-display text-3xl text-ink-800">Registrations</h1>
-      <p className="mt-1 mb-6 text-sm text-stone-700">
+      <h1 className="font-display text-3xl text-slate-900">Registrations</h1>
+      <p className="mt-1 mb-6 text-[0.8125rem] text-slate-500">
         Invitation accepted is not registered. A registration response is created
         only after the invitee completes the form.
       </p>
-      {responses.length === 0 ? (
-        <Card>
-          <p className="text-stone-700">No registration responses yet.</p>
-          <p className="mt-2 text-sm text-stone-500">
+      {rows.length === 0 ? (
+        <div className="rounded-xl bg-white shadow-sm px-5 py-8">
+          <p className="text-slate-700">No registration responses yet.</p>
+          <p className="mt-2 text-sm text-slate-500">
             People who have accepted an invitation still need to register before
             they appear here.
           </p>
-        </Card>
+        </div>
       ) : (
-        <Table>
-          <thead>
-            <tr className="border-b border-stone-200">
-              <Th>Name</Th>
-              <Th>Email</Th>
-              <Th>Invitation</Th>
-              <Th>Registration</Th>
-              <Th>Submitted</Th>
-              {canWrite ? <Th>Actions</Th> : null}
-            </tr>
-          </thead>
-          <tbody>
-            {responses.map((row) => {
-              const data = (row.data ?? {}) as RegistrationData;
-              const name = row.contact
-                ? displayName(row.contact)
-                : displayName({
-                    firstName: data.firstName,
-                    lastName: data.lastName,
-                  });
-              const email = row.contact?.email ?? data.email ?? "—";
-              return (
-                <tr key={row.id} className="border-b border-stone-100">
-                  <Td>{name}</Td>
-                  <Td>{email}</Td>
-                  <Td>
-                    {row.invitation ? (
-                      <StatusBadge status={row.invitation.status} />
-                    ) : (
-                      "—"
-                    )}
-                  </Td>
-                  <Td>
-                    <StatusBadge status={row.status} />
-                  </Td>
-                  <Td>{format(row.createdAt, "d MMM yyyy HH:mm")}</Td>
-                  {canWrite ? (
-                    <Td>
-                      <RegistrationStatusActions
-                        orgSlug={orgSlug}
-                        eventId={eventId}
-                        subjectId={row.id}
-                        kind="registration"
-                        status={row.status}
-                      />
-                    </Td>
-                  ) : null}
-                </tr>
-              );
-            })}
-          </tbody>
-        </Table>
+        <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
+          <RegistrationsTable
+            orgSlug={orgSlug}
+            eventId={eventId}
+            canWrite={canWrite}
+            rows={rows}
+          />
+        </Suspense>
       )}
     </div>
   );

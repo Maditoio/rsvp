@@ -93,18 +93,18 @@ function AiDiscoveryLoader({ onComplete }: { onComplete: () => void }) {
   }, [onComplete]);
 
   return (
-    <div className="rounded-md border border-stone-200 bg-stone-0 px-5 py-8 sm:px-8">
+    <div className="rounded-xl bg-white shadow-sm px-5 py-8 sm:px-8">
       <div className="mx-auto max-w-md text-center">
-        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-bronze-100">
-          <Sparkles className="size-5 text-bronze-700" aria-hidden />
+        <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-500/15">
+          <Sparkles className="size-5 text-indigo-700" aria-hidden />
         </div>
-        <p className="mt-4 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <p className="mt-4 text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
           AI recommendations
         </p>
-        <p className="mt-2 font-display text-xl text-ink-800">
+        <p className="mt-2 font-display text-xl text-slate-900">
           Finding your best matches
         </p>
-        <p className="mt-2 text-sm text-stone-500">
+        <p className="mt-2 text-sm text-slate-500">
           Reviewing objectives, complementarity, and shared context across the
           directory.
         </p>
@@ -116,22 +116,22 @@ function AiDiscoveryLoader({ onComplete }: { onComplete: () => void }) {
               <div
                 key={label}
                 className={cn(
-                  "flex items-center gap-3 rounded-sm border px-3 py-2 text-sm transition-colors",
+                  "flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors",
                   done
-                    ? "border-moss-200 bg-moss-50 text-moss-600"
+                    ? "border-emerald-200 bg-emerald-50 text-success"
                     : active
-                      ? "border-bronze-200 bg-bronze-50 text-bronze-700"
-                      : "border-stone-200 bg-stone-50 text-stone-400",
+                      ? "border-amber-200/60 bg-amber-500/10 text-indigo-700"
+                      : "border-slate-200 bg-slate-50 text-slate-400",
                 )}
               >
                 <span
                   className={cn(
                     "size-1.5 shrink-0 rounded-full",
                     done
-                      ? "bg-moss-500"
+                      ? "bg-emerald-500"
                       : active
-                        ? "animate-pulse bg-bronze-500"
-                        : "bg-stone-300",
+                        ? "animate-pulse bg-amber-500/100"
+                        : "bg-slate-300",
                   )}
                   aria-hidden
                 />
@@ -192,7 +192,7 @@ function SeeWhyPanel({
 
   if (!eventAiEnabled) {
     return factors.length > 0 ? (
-      <div className="mt-4 border-t border-stone-200 pt-4">
+      <div className="mt-4 border-t border-slate-200 pt-4">
         <Button
           type="button"
           size="sm"
@@ -202,10 +202,10 @@ function SeeWhyPanel({
           {expanded ? "Hide match factors" : "See why"}
         </Button>
         {expanded ? (
-          <ul className="mt-3 space-y-1.5 text-sm text-stone-700">
+          <ul className="mt-3 space-y-1.5 text-sm text-slate-700">
             {factors.map((label) => (
               <li key={label} className="flex gap-2">
-                <span className="text-stone-400" aria-hidden>
+                <span className="text-slate-400" aria-hidden>
                   ·
                 </span>
                 <span>{label}</span>
@@ -219,7 +219,7 @@ function SeeWhyPanel({
 
   if (!attendeeOptIn) {
     return (
-      <div className="mt-4 border-t border-stone-200 pt-4">
+      <div className="mt-4 border-t border-slate-200 pt-4">
         <AiInsightTeaser
           eventId={eventId}
           eventAiEnabled={eventAiEnabled}
@@ -230,7 +230,7 @@ function SeeWhyPanel({
   }
 
   return (
-    <div className="mt-4 border-t border-stone-200 pt-4">
+    <div className="mt-4 border-t border-slate-200 pt-4">
       <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
@@ -247,30 +247,30 @@ function SeeWhyPanel({
               : "See why"}
         </Button>
         {!expanded && !insight ? (
-          <span className="text-xs text-stone-500">
+          <span className="text-xs text-slate-500">
             AI summary of why this connection fits your objectives
           </span>
         ) : null}
       </div>
       {error ? <p className="mt-2 text-xs text-danger">{error}</p> : null}
       {expanded ? (
-        <div className="mt-3 rounded-sm border border-stone-200 bg-stone-50 px-4 py-3">
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <div className="mt-3 rounded-xl bg-slate-50 px-4 py-3 shadow-xs">
+          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
             AI summary
           </p>
           {loading ? (
-            <p className="mt-2 text-sm text-stone-500">
+            <p className="mt-2 text-sm text-slate-500">
               Preparing a concise explanation of this recommendation…
             </p>
           ) : insight ? (
-            <p className="mt-2 text-sm leading-relaxed text-stone-700">
+            <p className="mt-2 text-sm leading-relaxed text-slate-700">
               {insight}
             </p>
           ) : (
-            <ul className="mt-2 space-y-1.5 text-sm text-stone-700">
+            <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
               {factors.map((label) => (
                 <li key={label} className="flex gap-2">
-                  <span className="text-stone-400" aria-hidden>
+                  <span className="text-slate-400" aria-hidden>
                     ·
                   </span>
                   <span>{label}</span>
@@ -295,14 +295,14 @@ function ForYouEmpty({
 }) {
   if (!questionnaireComplete) {
     return (
-      <div className="rounded-md border border-stone-200 bg-stone-0 px-4 py-4">
-        <p className="text-sm text-stone-700">
+      <div className="rounded-xl bg-white shadow-sm px-4 py-4">
+        <p className="text-sm text-slate-700">
           Complete your matching questionnaire to see ranked recommendations
           based on looking-for, offering, and shared objectives.
         </p>
         <Link
           href={matchmakingPath(eventId)}
-          className="mt-3 inline-flex text-sm font-semibold text-ink-700 underline-offset-4 hover:underline"
+          className="mt-3 inline-flex text-sm font-semibold text-slate-700 underline-offset-4 hover:underline"
         >
           Set up matching profile
         </Link>
@@ -312,15 +312,15 @@ function ForYouEmpty({
 
   if (!matchmakingEnabled) {
     return (
-      <div className="rounded-md border border-stone-200 bg-stone-0 px-4 py-4">
-        <p className="text-sm text-stone-700">
+      <div className="rounded-xl bg-white shadow-sm px-4 py-4">
+        <p className="text-sm text-slate-700">
           Matching is off in your privacy settings, so recommendations are
           paused. Turn it on to appear in others&apos; recommendation lists and
           see yours here.
         </p>
         <Link
           href={`/me/events/${eventId}/privacy`}
-          className="mt-3 inline-flex text-sm font-semibold text-ink-700 underline-offset-4 hover:underline"
+          className="mt-3 inline-flex text-sm font-semibold text-slate-700 underline-offset-4 hover:underline"
         >
           Open privacy settings
         </Link>
@@ -329,21 +329,21 @@ function ForYouEmpty({
   }
 
   return (
-    <div className="rounded-md border border-stone-200 bg-stone-0 px-4 py-4">
-      <p className="text-sm text-stone-700">
+    <div className="rounded-xl bg-white shadow-sm px-4 py-4">
+      <p className="text-sm text-slate-700">
         No strong complementary matches yet. Browse the directory below, or
         refine what you are looking for and offering.
       </p>
       <div className="mt-3 flex flex-wrap gap-4">
         <Link
           href={matchmakingPath(eventId)}
-          className="inline-flex text-sm font-semibold text-ink-700 underline-offset-4 hover:underline"
+          className="inline-flex text-sm font-semibold text-slate-700 underline-offset-4 hover:underline"
         >
           Update matching profile
         </Link>
         <Link
           href={`/me/events/${eventId}/privacy`}
-          className="inline-flex text-sm text-stone-500 underline-offset-4 hover:underline"
+          className="inline-flex text-sm text-slate-500 underline-offset-4 hover:underline"
         >
           Privacy &amp; matching
         </Link>
@@ -388,8 +388,8 @@ function PersonCard({
   return (
     <article
       className={cn(
-        "rounded-md border bg-stone-0 p-4 sm:p-5",
-        isTopMatch ? "border-bronze-300" : "border-stone-200",
+        "rounded-md border bg-white p-4 sm:p-5",
+        isTopMatch ? "border-amber-300/60" : "border-slate-200",
       )}
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -398,8 +398,8 @@ function PersonCard({
             className={cn(
               "flex size-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
               isTopMatch
-                ? "bg-bronze-100 text-bronze-800"
-                : "bg-stone-100 text-ink-700",
+                ? "bg-amber-500/15 text-amber-800"
+                : "bg-slate-100 text-slate-700",
             )}
             aria-hidden
           >
@@ -407,7 +407,7 @@ function PersonCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-[1.0625rem] font-semibold text-ink-800">
+              <h3 className="text-[1.0625rem] font-semibold text-slate-900">
                 {displayName(person)}
               </h3>
               {isTopMatch ? (
@@ -426,13 +426,13 @@ function PersonCard({
                 </Badge>
               ) : null}
             </div>
-            <p className="mt-1 text-sm text-stone-700">
+            <p className="mt-1 text-sm text-slate-700">
               {[person.jobTitle, person.company, person.country]
                 .filter(Boolean)
                 .join(" · ") || "—"}
             </p>
             {person.about ? (
-              <p className="mt-3 text-sm leading-relaxed text-stone-700">
+              <p className="mt-3 text-sm leading-relaxed text-slate-700">
                 {person.about}
               </p>
             ) : null}
@@ -440,20 +440,20 @@ function PersonCard({
               <dl className="mt-3 grid gap-2 sm:grid-cols-2">
                 {person.lookingFor ? (
                   <div>
-                    <dt className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+                    <dt className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
                       Looking for
                     </dt>
-                    <dd className="mt-0.5 text-sm text-stone-700">
+                    <dd className="mt-0.5 text-sm text-slate-700">
                       {person.lookingFor}
                     </dd>
                   </div>
                 ) : null}
                 {person.offering ? (
                   <div>
-                    <dt className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+                    <dt className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
                       Offering
                     </dt>
-                    <dd className="mt-0.5 text-sm text-stone-700">
+                    <dd className="mt-0.5 text-sm text-slate-700">
                       {person.offering}
                     </dd>
                   </div>
@@ -478,7 +478,7 @@ function PersonCard({
               </div>
             ) : null}
             {(person.email || person.phone) && (
-              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-stone-500">
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
                 {person.email ? <span>{person.email}</span> : null}
                 {person.phone ? <span>{person.phone}</span> : null}
               </div>
@@ -498,9 +498,9 @@ function PersonCard({
 
         <div className="flex shrink-0 flex-row flex-wrap gap-2 lg:flex-col lg:items-stretch">
           {recommended && eventAiEnabled ? (
-            <p className="w-full text-right text-xs text-stone-500 lg:mb-1">
+            <p className="w-full text-right text-xs text-slate-500 lg:mb-1">
               Match score{" "}
-              <span className="font-mono font-medium text-ink-700">
+              <span className="font-mono font-medium text-slate-700">
                 {person.score}
               </span>
             </p>
@@ -518,7 +518,7 @@ function PersonCard({
           ) : person.connectionStatus === "pending_received" ? (
             <Link
               href={`/me/events/${eventId}/meetings`}
-              className="inline-flex h-9 items-center justify-center rounded-sm border border-stone-300 px-3 text-[0.8125rem] font-semibold text-ink-700 hover:bg-stone-50 lg:min-w-[8rem]"
+              className="inline-flex h-9 items-center justify-center rounded-full border border-slate-200 px-3 text-[0.8125rem] font-semibold text-slate-700 hover:bg-slate-50 lg:min-w-[8rem]"
             >
               Open Meetings
             </Link>
@@ -573,15 +573,15 @@ export function DirectoryPanel({
   return (
     <div className="space-y-8">
       {empty ? (
-        <div className="rounded-md border border-stone-200 bg-stone-0 px-4 py-4">
-          <p className="text-sm text-stone-700">
+        <div className="rounded-xl bg-white shadow-sm px-4 py-4">
+          <p className="text-sm text-slate-700">
             No other visible profiles yet. Ask attendees to complete their
             profile and leave directory visibility on.
           </p>
           {!questionnaireComplete ? (
             <Link
               href={matchmakingPath(eventId)}
-              className="mt-3 inline-flex text-sm font-semibold text-ink-700 underline-offset-4 hover:underline"
+              className="mt-3 inline-flex text-sm font-semibold text-slate-700 underline-offset-4 hover:underline"
             >
               Set up matching profile
             </Link>
@@ -594,22 +594,22 @@ export function DirectoryPanel({
               {showAiDiscovery ? (
                 <>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Sparkles className="size-4 text-bronze-600" aria-hidden />
-                    <h2 className="text-[1.125rem] font-semibold text-ink-700">
+                    <Sparkles className="size-4 text-indigo-600" aria-hidden />
+                    <h2 className="text-[1.125rem] font-semibold text-slate-700">
                       AI recommendations
                     </h2>
                   </div>
-                  <p className="mt-1 text-sm text-stone-500">
+                  <p className="mt-1 text-sm text-slate-500">
                     Ranked by complementarity across objectives, industries, and
                     shared context.
                   </p>
                 </>
               ) : (
                 <>
-                  <h2 className="text-[1.125rem] font-semibold text-ink-700">
+                  <h2 className="text-[1.125rem] font-semibold text-slate-700">
                     For you
                   </h2>
-                  <p className="mt-1 text-sm text-stone-500">
+                  <p className="mt-1 text-sm text-slate-500">
                     Highest complementarity from looking-for, offering, and
                     shared objectives.
                   </p>
@@ -628,12 +628,12 @@ export function DirectoryPanel({
             ) : (
               <>
                 {!hasStrongOrGood && !showAiDiscovery ? (
-                  <p className="text-sm text-stone-500">
+                  <p className="text-sm text-slate-500">
                     No strong or good matches yet — these are possible
                     connections. Refine your{" "}
                     <Link
                       href={matchmakingPath(eventId)}
-                      className="font-semibold text-ink-700 underline-offset-4 hover:underline"
+                      className="font-semibold text-slate-700 underline-offset-4 hover:underline"
                     >
                       matching profile
                     </Link>{" "}
@@ -644,7 +644,7 @@ export function DirectoryPanel({
                 {topMatch ? (
                   <div className="space-y-3">
                     {showAiDiscovery ? (
-                      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+                      <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
                         Top match
                       </p>
                     ) : null}
@@ -663,7 +663,7 @@ export function DirectoryPanel({
                 {otherMatches.length > 0 ? (
                   <div className="space-y-3">
                     {showAiDiscovery ? (
-                      <p className="pt-2 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+                      <p className="pt-2 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
                         More recommendations
                       </p>
                     ) : null}
@@ -686,15 +686,15 @@ export function DirectoryPanel({
 
           <section className="space-y-4">
             <div>
-              <h2 className="text-[1.125rem] font-semibold text-ink-700">
+              <h2 className="text-[1.125rem] font-semibold text-slate-700">
                 Directory
               </h2>
-              <p className="mt-1 text-sm text-stone-500">
+              <p className="mt-1 text-sm text-slate-500">
                 Other visible attendees at this event.
               </p>
             </div>
             {people.length === 0 ? (
-              <p className="text-sm text-stone-700">
+              <p className="text-sm text-slate-700">
                 Everyone visible is already listed above.
               </p>
             ) : (

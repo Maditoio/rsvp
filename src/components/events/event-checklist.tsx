@@ -66,20 +66,20 @@ export function EventChecklist({
   if (!defaultOpen && checklist.percent >= 80 && dismissed) return null;
 
   return (
-    <section className="mt-6 rounded-md border border-stone-200 bg-stone-0">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 px-5 py-4">
+    <section className="mt-6 rounded-xl bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
         <div>
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
             Event checklist
           </p>
-          <p className="mt-1 text-sm text-stone-700">
+          <p className="mt-1 text-sm text-slate-700">
             {checklist.completed} of {checklist.total} complete
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="hidden h-1.5 w-32 overflow-hidden rounded-full bg-stone-100 sm:block">
+          <div className="hidden h-1.5 w-32 overflow-hidden rounded-full bg-slate-100 sm:block">
             <div
-              className="h-full rounded-full bg-moss-500"
+              className="h-full rounded-full bg-emerald-500"
               style={{ width: `${checklist.percent}%` }}
             />
           </div>
@@ -89,7 +89,7 @@ export function EventChecklist({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1 border-b border-stone-200 px-3 pt-3">
+      <div className="flex flex-wrap gap-1 border-b border-slate-200 px-3 pt-3">
         {CHECKLIST_PHASES.map((p) => {
           const count = checklist.items.filter((i) => i.phase === p.id).length;
           const active = phase === p.id;
@@ -99,17 +99,17 @@ export function EventChecklist({
               type="button"
               onClick={() => setPhase(p.id)}
               className={cn(
-                "relative rounded-sm px-3 py-2 text-sm transition-colors",
+                "relative rounded-lg px-3 py-2 text-sm transition-colors",
                 active
-                  ? "font-semibold text-bronze-700"
-                  : "text-stone-600 hover:text-ink-800",
+                  ? "font-semibold text-indigo-700"
+                  : "text-slate-600 hover:text-slate-900",
               )}
             >
               {p.label}
-              <span className="ml-1 text-xs text-stone-400">({count})</span>
+              <span className="ml-1 text-xs text-slate-400">({count})</span>
               {active ? (
                 <span
-                  className="absolute inset-x-3 bottom-0 h-0.5 bg-bronze-500"
+                  className="absolute inset-x-3 bottom-0 h-0.5 bg-amber-500/100"
                   aria-hidden
                 />
               ) : null}
@@ -118,17 +118,17 @@ export function EventChecklist({
         })}
       </div>
 
-      <ul className="divide-y divide-stone-100">
+      <ul className="divide-y divide-slate-100">
         {phaseItems.map((item) => (
           <ChecklistRow key={item.id} item={item} />
         ))}
       </ul>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-stone-200 px-5 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-3">
         {nextPhase ? (
           <button
             type="button"
-            className="text-sm font-medium text-ink-700 hover:text-ink-800"
+            className="text-sm font-medium text-slate-700 hover:text-slate-900"
             onClick={() => setPhase(nextPhase.id)}
           >
             Next: {nextPhase.label} →
@@ -136,7 +136,7 @@ export function EventChecklist({
         ) : (
           <button
             type="button"
-            className="text-sm text-stone-500 hover:text-ink-700"
+            className="text-sm text-slate-500 hover:text-slate-700"
             onClick={() => setDismissed(true)}
           >
             Hide checklist
@@ -154,7 +154,7 @@ function ChecklistRow({ item }: { item: ChecklistItem }) {
       <span
         className={cn(
           "flex size-10 shrink-0 items-center justify-center rounded-md",
-          item.complete ? "bg-moss-100 text-moss-700" : "bg-stone-100 text-stone-600",
+          item.complete ? "bg-emerald-50 text-success" : "bg-slate-100 text-slate-600",
         )}
       >
         {item.complete ? (
@@ -165,12 +165,12 @@ function ChecklistRow({ item }: { item: ChecklistItem }) {
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="font-medium text-ink-800">{item.title}</p>
+          <p className="font-medium text-slate-900">{item.title}</p>
           {item.optional ? (
-            <span className="text-xs text-stone-500">(optional)</span>
+            <span className="text-xs text-slate-500">(optional)</span>
           ) : null}
         </div>
-        <p className="mt-0.5 text-sm text-stone-600">{item.description}</p>
+        <p className="mt-0.5 text-sm text-slate-600">{item.description}</p>
         <div className="mt-2">
           <Badge tone={item.complete ? "success" : "muted"}>
             {item.complete ? "Complete" : "Pending"}
@@ -179,7 +179,7 @@ function ChecklistRow({ item }: { item: ChecklistItem }) {
       </div>
       <Link
         href={item.href}
-        className="inline-flex h-9 shrink-0 items-center gap-1 rounded-sm border border-stone-300 px-3 text-sm font-semibold text-ink-700 hover:border-ink-400 hover:bg-stone-50"
+        className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:border-indigo-400 hover:bg-slate-50"
       >
         {item.complete ? "Review" : "Open"}
         <ChevronRight className="size-3.5" aria-hidden />

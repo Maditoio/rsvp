@@ -64,35 +64,35 @@ export function RegistrationForm({
   if (completed) {
     return (
       <div className="text-center">
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
           Registered
         </p>
-        <h2 className="mt-2 font-display text-3xl text-ink-800">
+        <h2 className="mt-2 font-display text-3xl text-slate-900">
           Registration complete
         </h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-stone-700">
+        <p className="mx-auto mt-2 max-w-md text-sm text-slate-700">
           A confirmation email is on its way to{" "}
-          <span className="font-medium text-ink-800">{invitationEmail}</span>. Use
+          <span className="font-medium text-slate-900">{invitationEmail}</span>. Use
           that message to sign in, open the event app, and access meetings, agenda,
           matchmaking, and your check-in QR code.
         </p>
         <div className="mx-auto mt-8 flex max-w-md flex-col gap-3">
           <Link
             href={signUpHref}
-            className="inline-flex h-11 items-center justify-center rounded-sm bg-ink-700 px-5 text-[0.9375rem] font-semibold text-white hover:bg-ink-800"
+            className="inline-flex h-11 items-center justify-center rounded-full bg-indigo-600 px-5 text-[0.9375rem] font-semibold text-white hover:bg-indigo-700"
           >
             Create your account
           </Link>
           <Link
             href="/me"
-            className="inline-flex h-11 items-center justify-center rounded-sm border border-stone-200 bg-stone-0 px-5 text-[0.9375rem] font-semibold text-ink-700 hover:bg-stone-50"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-5 text-[0.9375rem] font-semibold text-slate-700 hover:bg-slate-50"
           >
             Open My events
           </Link>
           {setupHref ? (
             <Link
               href={setupHref}
-              className="text-sm text-stone-700 underline-offset-4 hover:text-ink-700 hover:underline"
+              className="text-sm text-slate-700 underline-offset-4 hover:text-slate-700 hover:underline"
             >
               Set up your matching profile
             </Link>

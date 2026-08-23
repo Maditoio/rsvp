@@ -194,14 +194,14 @@ export function ContactImportForm({
       <div>
         <Link
           href={inviteesHref}
-          className="text-sm font-medium text-bronze-700 hover:text-bronze-800"
+          className="text-sm font-medium text-indigo-700 hover:text-indigo-800"
         >
           ← Back to invitees
         </Link>
-        <h1 className="mt-4 font-display text-3xl text-ink-800">
+        <h1 className="mt-4 font-display text-3xl text-slate-900">
           Import invitees
         </h1>
-        <p className="mt-1 text-sm text-stone-700">
+        <p className="mt-1 text-sm text-slate-700">
           Import from a spreadsheet or from your organisation&apos;s HubSpot or
           Salesforce account. Spreadsheet imports map columns before anything is
           saved.
@@ -217,23 +217,23 @@ export function ContactImportForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <a
               href={templateHref}
-              className="rounded-md border border-stone-200 bg-stone-0 p-5 transition-colors hover:border-ink-400"
+              className="rounded-xl bg-white shadow-sm p-5 transition-colors hover:border-indigo-400"
             >
               <div className="flex items-start justify-between gap-3">
                 <FileSpreadsheet
-                  className="size-8 text-moss-600"
+                  className="size-8 text-success"
                   strokeWidth={1.5}
                   aria-hidden
                 />
                 <Badge tone="success">Recommended</Badge>
               </div>
-              <p className="mt-4 font-semibold text-ink-800">
+              <p className="mt-4 font-semibold text-slate-900">
                 Download spreadsheet template
               </p>
-              <p className="mt-1 text-sm text-stone-600">
+              <p className="mt-1 text-sm text-slate-600">
                 Format your data correctly before uploading.
               </p>
-              <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-ink-700">
+              <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-700">
                 <Download className="size-3.5" aria-hidden />
                 Download template
               </span>
@@ -243,20 +243,20 @@ export function ContactImportForm({
               type="button"
               disabled={pending}
               onClick={() => fileRef.current?.click()}
-              className="rounded-md border border-stone-200 bg-stone-0 p-5 text-left transition-colors hover:border-ink-400 disabled:opacity-60"
+              className="rounded-xl bg-white shadow-sm p-5 text-left transition-colors hover:border-indigo-400 disabled:opacity-60"
             >
               <Upload
-                className="size-8 text-bronze-600"
+                className="size-8 text-indigo-600"
                 strokeWidth={1.5}
                 aria-hidden
               />
-              <p className="mt-4 font-semibold text-ink-800">
+              <p className="mt-4 font-semibold text-slate-900">
                 Import from spreadsheet
               </p>
-              <p className="mt-1 text-sm text-stone-600">
+              <p className="mt-1 text-sm text-slate-600">
                 Upload a .xlsx or .csv file with your invitees.
               </p>
-              <span className="mt-4 inline-flex text-sm font-medium text-ink-700">
+              <span className="mt-4 inline-flex text-sm font-medium text-slate-700">
                 {pending ? "Reading…" : "Choose file"}
               </span>
             </button>
@@ -270,52 +270,52 @@ export function ContactImportForm({
 
             <Link
               href={hubspotHref}
-              className="rounded-md border border-stone-200 bg-stone-0 p-5 transition-colors hover:border-ink-400"
+              className="rounded-xl bg-white shadow-sm p-5 transition-colors hover:border-indigo-400"
             >
               <HubSpotMark />
-              <p className="mt-4 font-semibold text-ink-800">
+              <p className="mt-4 font-semibold text-slate-900">
                 Import from HubSpot
               </p>
-              <p className="mt-1 text-sm text-stone-600">
+              <p className="mt-1 text-sm text-slate-600">
                 Select contacts from your connected organisation HubSpot
                 account. Read-only — nothing is written back to HubSpot.
               </p>
-              <span className="mt-4 inline-flex text-sm font-medium text-ink-700">
+              <span className="mt-4 inline-flex text-sm font-medium text-slate-700">
                 Choose HubSpot contacts
               </span>
             </Link>
 
             <Link
               href={salesforceHref}
-              className="rounded-md border border-stone-200 bg-stone-0 p-5 transition-colors hover:border-ink-400"
+              className="rounded-xl bg-white shadow-sm p-5 transition-colors hover:border-indigo-400"
             >
               <SalesforceMark />
-              <p className="mt-4 font-semibold text-ink-800">
+              <p className="mt-4 font-semibold text-slate-900">
                 Import from Salesforce
               </p>
-              <p className="mt-1 text-sm text-stone-600">
+              <p className="mt-1 text-sm text-slate-600">
                 Select contacts from your connected organisation Salesforce
                 account. Read-only — nothing is written back to Salesforce.
               </p>
-              <span className="mt-4 inline-flex text-sm font-medium text-ink-700">
+              <span className="mt-4 inline-flex text-sm font-medium text-slate-700">
                 Choose Salesforce contacts
               </span>
             </Link>
           </div>
 
-          <div className="rounded-md border border-stone-200 bg-stone-0 p-5">
-            <h2 className="font-semibold text-ink-800">Column requirements</h2>
-            <p className="mt-1 text-sm text-stone-600">
+          <div className="rounded-xl bg-white shadow-sm p-5">
+            <h2 className="font-semibold text-slate-900">Column requirements</h2>
+            <p className="mt-1 text-sm text-slate-600">
               Your spreadsheet should include these column headers in the first
               row.
             </p>
-            <div className="mt-4 divide-y divide-stone-100">
+            <div className="mt-4 divide-y divide-slate-100">
               {IMPORT_FIELDS.map((field) => (
                 <div
                   key={field.key}
                   className="flex items-center justify-between gap-4 py-2.5 text-sm"
                 >
-                  <span className="font-medium text-ink-800">{field.label}</span>
+                  <span className="font-medium text-slate-900">{field.label}</span>
                   <RequirementBadge requirement={field.requirement} />
                 </div>
               ))}
@@ -326,16 +326,16 @@ export function ContactImportForm({
 
       {step === "map" && inspect ? (
         <div className="space-y-6">
-          <div className="rounded-md border border-stone-200 bg-stone-0 p-5">
-            <p className="text-sm text-stone-600">
-              <span className="font-medium text-ink-800">{inspect.filename}</span>
+          <div className="rounded-xl bg-white shadow-sm p-5">
+            <p className="text-sm text-slate-600">
+              <span className="font-medium text-slate-900">{inspect.filename}</span>
               {" · "}
               {inspect.rowCount} data row{inspect.rowCount === 1 ? "" : "s"}
             </p>
-            <h2 className="mt-4 font-display text-xl text-ink-800">
+            <h2 className="mt-4 font-display text-xl text-slate-900">
               Map your columns
             </h2>
-            <p className="mt-1 text-sm text-stone-700">
+            <p className="mt-1 text-sm text-slate-700">
               Match each spreadsheet column to a Bizcon RSVP field. We guessed
               where we could.
             </p>
@@ -343,7 +343,7 @@ export function ContactImportForm({
             <div className="mt-6 overflow-x-auto">
               <table className="w-full min-w-[32rem] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-stone-200 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+                  <tr className="border-b border-slate-200 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
                     <th className="pb-2 pr-3 font-semibold">Your column</th>
                     <th className="pb-2 pr-3 font-semibold">Sample</th>
                     <th className="pb-2 font-semibold">Maps to</th>
@@ -351,16 +351,16 @@ export function ContactImportForm({
                 </thead>
                 <tbody>
                   {inspect.headers.map((header) => (
-                    <tr key={header} className="border-b border-stone-100">
-                      <td className="py-3 pr-3 font-medium text-ink-800">
+                    <tr key={header} className="border-b border-slate-100">
+                      <td className="py-3 pr-3 font-medium text-slate-900">
                         {header || "(empty)"}
                       </td>
-                      <td className="max-w-[12rem] truncate py-3 pr-3 text-stone-600">
+                      <td className="max-w-[12rem] truncate py-3 pr-3 text-slate-600">
                         {inspect.samples[0]?.[header] || "—"}
                       </td>
                       <td className="py-3">
                         <select
-                          className="h-9 w-full max-w-xs rounded-sm border border-stone-200 bg-stone-0 px-2 text-sm text-ink-800"
+                          className="h-9 w-full max-w-xs rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900"
                           value={columnMap[header] ?? "ignore"}
                           onChange={(e) =>
                             updateMap(header, e.target.value as ImportFieldKey)
@@ -382,7 +382,7 @@ export function ContactImportForm({
             {mapError ? (
               <p className="mt-4 text-sm text-danger">{mapError}</p>
             ) : (
-              <p className="mt-4 inline-flex items-center gap-1.5 text-sm text-moss-600">
+              <p className="mt-4 inline-flex items-center gap-1.5 text-sm text-success">
                 <CheckCircle2 className="size-4" aria-hidden />
                 Required fields are mapped
               </p>
@@ -412,20 +412,20 @@ export function ContactImportForm({
 
       {step === "preview" && preview ? (
         <div className="space-y-6">
-          <div className="rounded-md border border-stone-200 bg-stone-0 p-5">
-            <p className="text-sm text-stone-600">{preview.filename}</p>
+          <div className="rounded-xl bg-white shadow-sm p-5">
+            <p className="text-sm text-slate-600">{preview.filename}</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-4">
               <Count label="Rows" value={preview.uploaded} />
               <Count label="Valid" value={preview.valid} />
               <Count label="New" value={preview.createCount} />
               <Count label="Duplicates" value={preview.duplicateCount} />
             </div>
-            <p className="mt-3 text-sm text-stone-600">
+            <p className="mt-3 text-sm text-slate-600">
               {preview.issues.length} invalid row
               {preview.issues.length === 1 ? "" : "s"}
             </p>
             {preview.issues.length > 0 ? (
-              <ul className="mt-3 max-h-40 overflow-auto text-sm text-stone-700">
+              <ul className="mt-3 max-h-40 overflow-auto text-sm text-slate-700">
                 {preview.issues.slice(0, 40).map((issue) => (
                   <li key={`${issue.line}-${issue.reason}`}>
                     Line {issue.line}
@@ -437,14 +437,14 @@ export function ContactImportForm({
             ) : null}
             {preview.create.length > 0 ? (
               <div className="mt-4 max-h-48 overflow-auto text-sm">
-                <p className="mb-2 font-medium text-ink-800">Will create</p>
+                <p className="mb-2 font-medium text-slate-900">Will create</p>
                 {preview.create.slice(0, 50).map((row) => (
-                  <p key={row.email} className="text-stone-700">
+                  <p key={row.email} className="text-slate-700">
                     {row.firstName} {row.lastName} · {row.email}
                   </p>
                 ))}
                 {preview.create.length > 50 ? (
-                  <p className="text-stone-500">
+                  <p className="text-slate-500">
                     and {preview.create.length - 50} more
                   </p>
                 ) : null}
@@ -488,22 +488,22 @@ function StepIndicator({ step }: { step: Step }) {
         return (
           <li key={item.id} className="flex items-center gap-2">
             {index > 0 ? (
-              <span className="hidden h-px w-6 bg-stone-200 sm:block" aria-hidden />
+              <span className="hidden h-px w-6 bg-slate-200 sm:block" aria-hidden />
             ) : null}
             <span
               className={cn(
                 "inline-flex items-center gap-2",
-                active && "font-semibold text-ink-800",
-                done && "text-moss-600",
-                !active && !done && "text-stone-500",
+                active && "font-semibold text-slate-900",
+                done && "text-success",
+                !active && !done && "text-slate-500",
               )}
             >
               <span
                 className={cn(
                   "flex size-6 items-center justify-center rounded-full text-xs font-semibold",
-                  active && "bg-ink-700 text-white",
-                  done && "bg-moss-100 text-moss-700",
-                  !active && !done && "bg-stone-100 text-stone-500",
+                  active && "bg-indigo-600 text-white",
+                  done && "bg-emerald-50 text-success",
+                  !active && !done && "bg-slate-100 text-slate-500",
                 )}
               >
                 {done ? "✓" : index + 1}
@@ -536,11 +536,11 @@ function RequirementBadge({
 
 function Count({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-md border border-stone-200 bg-stone-50 px-3 py-2">
-      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
         {label}
       </p>
-      <p className="mt-1 text-2xl font-medium tabular-nums text-ink-800">{value}</p>
+      <p className="mt-1 text-2xl font-medium tabular-nums text-slate-900">{value}</p>
     </div>
   );
 }

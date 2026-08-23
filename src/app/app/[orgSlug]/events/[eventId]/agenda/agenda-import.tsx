@@ -88,53 +88,53 @@ export function AgendaImport({
       >
         {preview ? (
           <div className="space-y-4">
-            <p className="text-sm text-stone-700">
-              <span className="font-medium text-ink-800">{preview.filename}</span>
+            <p className="text-sm text-slate-700">
+              <span className="font-medium text-slate-900">{preview.filename}</span>
               {" · "}
               {preview.uploaded} row{preview.uploaded === 1 ? "" : "s"} uploaded
             </p>
 
-            <dl className="grid grid-cols-3 gap-3 rounded-md border border-stone-200 bg-stone-50 p-3 text-sm">
+            <dl className="grid grid-cols-3 gap-3 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
               <div>
-                <dt className="text-stone-500">Valid</dt>
-                <dd className="font-mono font-semibold text-ink-800">
+                <dt className="text-slate-500">Valid</dt>
+                <dd className="font-mono font-semibold text-slate-900">
                   {preview.valid}
                 </dd>
               </div>
               <div>
-                <dt className="text-stone-500">Issues</dt>
-                <dd className="font-mono font-semibold text-ink-800">
+                <dt className="text-slate-500">Issues</dt>
+                <dd className="font-mono font-semibold text-slate-900">
                   {preview.issueCount}
                 </dd>
               </div>
               <div>
-                <dt className="text-stone-500">Ready to import</dt>
-                <dd className="font-mono font-semibold text-ink-800">
+                <dt className="text-slate-500">Ready to import</dt>
+                <dd className="font-mono font-semibold text-slate-900">
                   {preview.rows.length}
                 </dd>
               </div>
             </dl>
 
             {preview.issues.length > 0 ? (
-              <div className="rounded-md border border-stone-200 bg-stone-0">
-                <p className="border-b border-stone-100 px-3 py-2 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+              <div className="rounded-xl bg-white shadow-sm">
+                <p className="border-b border-slate-100 px-3 py-2 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
                   Rows with issues
                 </p>
-                <ul className="max-h-40 divide-y divide-stone-100 overflow-y-auto text-sm">
+                <ul className="max-h-40 divide-y divide-slate-100 overflow-y-auto text-sm">
                   {preview.issues.slice(0, 20).map((issue) => (
                     <li key={`${issue.line}-${issue.reason}`} className="px-3 py-2">
-                      <span className="font-mono text-stone-500">
+                      <span className="font-mono text-slate-500">
                         Row {issue.line}
                       </span>
                       {issue.title ? (
-                        <span className="text-stone-700"> · {issue.title}</span>
+                        <span className="text-slate-700"> · {issue.title}</span>
                       ) : null}
                       <span className="text-danger"> — {issue.message}</span>
                     </li>
                   ))}
                 </ul>
                 {preview.issues.length > 20 ? (
-                  <p className="border-t border-stone-100 px-3 py-2 text-xs text-stone-500">
+                  <p className="border-t border-slate-100 px-3 py-2 text-xs text-slate-500">
                     And {preview.issues.length - 20} more…
                   </p>
                 ) : null}
@@ -142,15 +142,15 @@ export function AgendaImport({
             ) : null}
 
             {preview.rows.length > 0 ? (
-              <div className="rounded-md border border-stone-200 bg-stone-0">
-                <p className="border-b border-stone-100 px-3 py-2 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+              <div className="rounded-xl bg-white shadow-sm">
+                <p className="border-b border-slate-100 px-3 py-2 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
                   Preview (first {Math.min(preview.rows.length, 8)})
                 </p>
-                <ul className="divide-y divide-stone-100 text-sm">
+                <ul className="divide-y divide-slate-100 text-sm">
                   {preview.rows.slice(0, 8).map((row) => (
                     <li key={row.line} className="px-3 py-2">
-                      <p className="font-medium text-ink-800">{row.title}</p>
-                      <p className="text-xs text-stone-500">
+                      <p className="font-medium text-slate-900">{row.title}</p>
+                      <p className="text-xs text-slate-500">
                         {row.startsAt?.toLocaleString("en-GB") ?? "No time"}
                         {row.endsAt
                           ? ` – ${row.endsAt.toLocaleTimeString("en-GB", {
@@ -166,11 +166,11 @@ export function AgendaImport({
               </div>
             ) : null}
 
-            <div className="rounded-md border border-stone-200 bg-stone-0 p-3">
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500">
+            <div className="rounded-xl bg-white shadow-sm p-3">
+              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
                 Template columns
               </p>
-              <p className="mt-1 text-xs text-stone-600">
+              <p className="mt-1 text-xs text-slate-600">
                 {SESSION_TEMPLATE_HEADERS.join(" · ")}
               </p>
             </div>
@@ -218,7 +218,7 @@ export function AgendaImport({
             </div>
           </div>
         ) : (
-          <p className="text-sm text-stone-700">
+          <p className="text-sm text-slate-700">
             Upload a filled template to preview sessions before import.
           </p>
         )}

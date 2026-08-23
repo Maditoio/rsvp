@@ -46,11 +46,11 @@ export function EventSettingsForm({
   return (
     <div className="max-w-xl space-y-6">
       <div>
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
           Event
         </p>
-        <h1 className="mt-1 font-display text-3xl text-ink-800">Settings</h1>
-        <p className="mt-1 text-sm text-stone-700">
+        <h1 className="mt-1 font-display text-3xl text-slate-900">Settings</h1>
+        <p className="mt-1 text-sm text-slate-700">
           Invitation windows, capacity, public applications, and optional AI
           insights.
         </p>
@@ -82,7 +82,7 @@ export function EventSettingsForm({
             required
             defaultValue={settings.invitationExpiryDays}
           />
-          <p className="mt-1 text-xs text-stone-500">
+          <p className="mt-1 text-xs text-slate-500">
             New invitations expire this many days after they are created.
           </p>
         </div>
@@ -96,59 +96,59 @@ export function EventSettingsForm({
             placeholder="Unlimited"
             defaultValue={settings.capacity ?? ""}
           />
-          <p className="mt-1 text-xs text-stone-500">
+          <p className="mt-1 text-xs text-slate-500">
             Leave blank for no overall cap.
           </p>
         </div>
-        <label className="flex items-start gap-3 text-sm text-ink-700">
+        <label className="flex items-start gap-3 text-sm text-slate-700">
           <input
             type="checkbox"
             name="waitlistEnabled"
             value="on"
             defaultChecked={settings.waitlistEnabled}
-            className="mt-1 size-4 accent-ink-700"
+            className="mt-1 size-4 accent-indigo-600"
           />
           <span>
             <span className="font-semibold">Enable waitlist</span>
-            <span className="mt-1 block text-xs font-normal text-stone-500">
+            <span className="mt-1 block text-xs font-normal text-slate-500">
               Allow registrations to be waitlisted when capacity is reached.
             </span>
           </span>
         </label>
-        <label className="flex items-start gap-3 text-sm text-ink-700">
+        <label className="flex items-start gap-3 text-sm text-slate-700">
           <input
             type="checkbox"
             name="allowPublicApplication"
             value="on"
             defaultChecked={settings.allowPublicApplication}
-            className="mt-1 size-4 accent-ink-700"
+            className="mt-1 size-4 accent-indigo-600"
           />
           <span>
             <span className="font-semibold">Allow public applications</span>
-            <span className="mt-1 block text-xs font-normal text-stone-500">
+            <span className="mt-1 block text-xs font-normal text-slate-500">
               Publishes an Apply to attend page. Approving creates an invitation,
               not a registration.
             </span>
           </span>
         </label>
-        <label className="flex items-start gap-3 text-sm text-ink-700">
+        <label className="flex items-start gap-3 text-sm text-slate-700">
           <input
             type="checkbox"
             name="aiInsightsEnabled"
             value="on"
             defaultChecked={settings.aiInsightsEnabled}
-            className="mt-1 size-4 accent-ink-700"
+            className="mt-1 size-4 accent-indigo-600"
           />
           <span>
             <span className="font-semibold">Enable AI insights</span>
-            <span className="mt-1 block text-xs font-normal text-stone-500">
+            <span className="mt-1 block text-xs font-normal text-slate-500">
               Structured matching always runs. AI only writes explanations later,
               and only for attendees who opt in.
             </span>
           </span>
         </label>
 
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-stone-500 pt-2">
+        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500 pt-2">
           Scheduling
         </p>
         <div className="grid grid-cols-3 gap-3">
@@ -193,17 +193,17 @@ export function EventSettingsForm({
             <button
               type="button"
               onClick={copyUrl}
-              className="inline-flex h-[42px] items-center justify-center rounded-sm border border-stone-300 bg-stone-0 px-3 text-stone-700 hover:border-ink-400 hover:bg-stone-50"
+              className="inline-flex h-[42px] items-center justify-center rounded-full border border-slate-200 bg-white px-3 text-slate-700 hover:border-indigo-400 hover:bg-slate-50"
               title="Copy URL"
             >
               {copied ? (
-                <Check className="size-4 text-moss-600" />
+                <Check className="size-4 text-success" />
               ) : (
                 <Copy className="size-4" />
               )}
             </button>
           </div>
-          <p className="mt-1 text-xs text-stone-500">
+          <p className="mt-1 text-xs text-slate-500">
             Share this link on your website, emails, or printed materials.
           </p>
         </div>
@@ -217,7 +217,7 @@ export function EventSettingsForm({
                 label="Public apply page QR code"
               />
             </div>
-            <p className="mt-2 text-xs text-stone-500">
+            <p className="mt-2 text-xs text-slate-500">
               Right-click the QR code to save it for posters or print collateral.
             </p>
           </div>

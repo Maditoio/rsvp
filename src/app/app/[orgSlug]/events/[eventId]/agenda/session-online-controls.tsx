@@ -70,7 +70,7 @@ export const SessionOnlineControls = forwardRef<
 
   if (!sessionId) {
     return (
-      <p ref={ref} className="text-[0.8125rem] text-stone-500">
+      <p ref={ref} className="text-[0.8125rem] text-slate-500">
         Save the session first, then connect Microsoft Teams.
       </p>
     );
@@ -89,29 +89,29 @@ export const SessionOnlineControls = forwardRef<
   }
 
   return (
-    <div ref={ref} className="space-y-2 border-t border-stone-100 pt-3">
-      <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-500">
+    <div ref={ref} className="space-y-2 border-t border-slate-100 pt-3">
+      <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
         Online platform
       </p>
 
       {teamsMeeting ? (
-        <div className="rounded-sm border border-stone-200 bg-stone-0 px-3 py-2.5">
+        <div className="rounded-md border border-slate-200 bg-white px-3 py-2.5 shadow-xs">
           <div className="flex items-center gap-2">
             <TeamsMark />
-            <p className="text-sm font-semibold text-ink-700">Microsoft Teams</p>
+            <p className="text-sm font-semibold text-slate-700">Microsoft Teams</p>
             <Badge tone="success">Created</Badge>
           </div>
-          <p className="mt-1 truncate text-[0.8125rem] text-ink-800">
+          <p className="mt-1 truncate text-[0.8125rem] text-slate-900">
             {sessionTitle}
             {whenLabel ? (
-              <span className="text-stone-500"> · {whenLabel}</span>
+              <span className="text-slate-500"> · {whenLabel}</span>
             ) : null}
           </p>
           <a
             href={teamsMeeting.joinUrl!}
             target="_blank"
             rel="noreferrer"
-            className="mt-1 block truncate text-[0.75rem] font-medium text-ink-700 underline decoration-stone-300 underline-offset-2"
+            className="mt-1 block truncate text-[0.75rem] font-medium text-slate-700 underline decoration-slate-300 underline-offset-2"
           >
             {teamsMeeting.joinUrl}
           </a>
@@ -120,14 +120,14 @@ export const SessionOnlineControls = forwardRef<
               href={teamsMeeting.joinUrl!}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-7 items-center justify-center rounded-sm bg-ink-700 px-2.5 text-[0.75rem] font-semibold text-white hover:bg-ink-800"
+              className="inline-flex h-7 items-center justify-center rounded-full bg-indigo-600 px-2.5 text-[0.75rem] font-semibold text-white hover:bg-indigo-700"
             >
               Join
             </a>
             <button
               type="button"
               onClick={copyLink}
-              className="inline-flex h-7 items-center gap-1 rounded-sm border border-stone-300 px-2.5 text-[0.75rem] font-semibold text-ink-700 hover:bg-stone-50"
+              className="inline-flex h-7 items-center gap-1 rounded-full border border-slate-200 px-2.5 text-[0.75rem] font-semibold text-slate-700 hover:bg-slate-50"
             >
               {copied ? (
                 <Check className="size-3" aria-hidden />
@@ -140,7 +140,7 @@ export const SessionOnlineControls = forwardRef<
               href={teamsMeeting.joinUrl!}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-7 items-center gap-1 rounded-sm border border-stone-300 px-2.5 text-[0.75rem] font-semibold text-ink-700 hover:bg-stone-50"
+              className="inline-flex h-7 items-center gap-1 rounded-full border border-slate-200 px-2.5 text-[0.75rem] font-semibold text-slate-700 hover:bg-slate-50"
             >
               <ExternalLink className="size-3" aria-hidden />
               Open
@@ -149,7 +149,7 @@ export const SessionOnlineControls = forwardRef<
               type="button"
               disabled={pending}
               onClick={() => setConfirmRemove(true)}
-              className="inline-flex h-7 items-center justify-center rounded-sm border border-stone-200 px-2.5 text-[0.75rem] font-semibold text-[#8A2E26] hover:bg-stone-50"
+              className="inline-flex h-7 items-center justify-center rounded-full border border-slate-200 px-2.5 text-[0.75rem] font-semibold text-[#8A2E26] hover:bg-slate-50"
             >
               Remove
             </button>
@@ -167,10 +167,10 @@ export const SessionOnlineControls = forwardRef<
               <div
                 key={provider.id}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-sm border px-2.5 py-2",
+                  "flex items-center gap-2.5 rounded-lg border px-2.5 py-2",
                   active
-                    ? "border-stone-200 bg-stone-0"
-                    : "border-dashed border-stone-200 bg-stone-0",
+                    ? "border-slate-200 bg-white"
+                    : "border-dashed border-slate-200 bg-white",
                 )}
               >
                 {isTeams ? (
@@ -183,29 +183,29 @@ export const SessionOnlineControls = forwardRef<
                     <p
                       className={cn(
                         "text-sm font-semibold",
-                        active ? "text-ink-700" : "text-stone-500",
+                        active ? "text-slate-700" : "text-slate-500",
                       )}
                     >
                       {provider.label}
                     </p>
                     {isTeams && connected ? (
-                      <span className="inline-flex items-center gap-0.5 text-[0.6875rem] font-semibold text-moss-700">
+                      <span className="inline-flex items-center gap-0.5 text-[0.6875rem] font-semibold text-success">
                         <Check className="size-3" aria-hidden />
                         Connected
                       </span>
                     ) : null}
                     {!active ? (
-                      <span className="text-[0.6875rem] font-semibold text-stone-500">
+                      <span className="text-[0.6875rem] font-semibold text-slate-500">
                         Coming soon
                       </span>
                     ) : null}
                     {isTeams && microsoftNeedsReconnect ? (
-                      <span className="text-[0.6875rem] font-semibold text-bronze-600">
+                      <span className="text-[0.6875rem] font-semibold text-indigo-600">
                         Reconnect required
                       </span>
                     ) : null}
                   </div>
-                  <p className="text-[0.75rem] leading-tight text-stone-500">
+                  <p className="text-[0.75rem] leading-tight text-slate-500">
                     {isTeams && !connected
                       ? "Connect your Microsoft account to create Teams meetings."
                       : provider.description}
@@ -216,7 +216,7 @@ export const SessionOnlineControls = forwardRef<
                     <button
                       type="button"
                       disabled={pending}
-                      className="shrink-0 inline-flex h-7 items-center justify-center rounded-sm bg-ink-700 px-2.5 text-[0.75rem] font-semibold text-white hover:bg-ink-800 disabled:opacity-60"
+                      className="shrink-0 inline-flex h-7 items-center justify-center rounded-full bg-indigo-600 px-2.5 text-[0.75rem] font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
                       onClick={() => {
                         setError(null);
                         start(async () => {
@@ -243,7 +243,7 @@ export const SessionOnlineControls = forwardRef<
                     <button
                       type="button"
                       disabled={pending}
-                      className="shrink-0 inline-flex h-7 items-center justify-center rounded-sm bg-ink-700 px-2.5 text-[0.75rem] font-semibold text-white hover:bg-ink-800 disabled:opacity-60"
+                      className="shrink-0 inline-flex h-7 items-center justify-center rounded-full bg-indigo-600 px-2.5 text-[0.75rem] font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
                       onClick={() => {
                         setError(null);
                         start(async () => {
@@ -276,7 +276,7 @@ export const SessionOnlineControls = forwardRef<
 
       {error ? <p className="text-sm text-danger">{error}</p> : null}
       {teamsStatus === "connected" && !teamsMeeting ? (
-        <p className="text-[0.75rem] text-moss-700">
+        <p className="text-[0.75rem] text-success">
           Microsoft connected. You can create a Teams meeting.
         </p>
       ) : null}

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
@@ -37,28 +38,30 @@ export default async function EventMeetingsPage({
 
   return (
     <div>
-      <MeetingsPanel
-        orgSlug={orgSlug}
-        eventId={eventId}
-        canManage={hasPermission(ctx.grants, "event.update")}
-        rooms={rooms.map((row) => ({
-          id: row.id,
-          name: row.name,
-          capacity: row.capacity,
-        }))}
-        meetings={meetings.map((row) => ({
-          id: row.id,
-          status: row.status,
-          room: row.room?.name ?? null,
-          roomId: row.roomId,
-          when: row.startsAt?.toLocaleString("en-GB") ?? "",
-          startsAtLocal: toDatetimeLocalValue(row.startsAt),
-          endsAtLocal: toDatetimeLocalValue(row.endsAt),
-          participants: row.participants
-            .map((participant) => displayName(participant.attendee))
-            .join(" · "),
-        }))}
-      />
+      <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
+        <MeetingsPanel
+          orgSlug={orgSlug}
+          eventId={eventId}
+          canManage={hasPermission(ctx.grants, "event.update")}
+          rooms={rooms.map((row) => ({
+            id: row.id,
+            name: row.name,
+            capacity: row.capacity,
+          }))}
+          meetings={meetings.map((row) => ({
+            id: row.id,
+            status: row.status,
+            room: row.room?.name ?? null,
+            roomId: row.roomId,
+            when: row.startsAt?.toLocaleString("en-GB") ?? "",
+            startsAtLocal: toDatetimeLocalValue(row.startsAt),
+            endsAtLocal: toDatetimeLocalValue(row.endsAt),
+            participants: row.participants
+              .map((participant) => displayName(participant.attendee))
+              .join(" · "),
+          }))}
+        />
+      </Suspense>
     </div>
   );
 }

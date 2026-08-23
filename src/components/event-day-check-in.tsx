@@ -61,18 +61,18 @@ function ResultPanel({
     <Card className="h-full">
       <div className="flex h-full flex-col">
         {outcome === "checked_in" ? (
-          <div className="mb-4 inline-flex size-12 items-center justify-center rounded-full bg-moss-100">
-            <CheckCircle2 className="size-6 text-moss-600" aria-hidden />
+          <div className="mb-4 inline-flex size-12 items-center justify-center rounded-full bg-emerald-50">
+            <CheckCircle2 className="size-6 text-success" aria-hidden />
           </div>
         ) : (
-          <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md border border-stone-200 bg-stone-50">
-            <span className="h-2 w-2 rounded-full bg-bronze-500" aria-hidden />
+          <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-slate-50">
+            <span className="h-2 w-2 rounded-full bg-amber-500/100" aria-hidden />
           </div>
         )}
 
-        <p className="font-display text-3xl text-ink-800">{view.name}</p>
-        <p className="mt-2 text-stone-700">{view.company || "Company not listed"}</p>
-        <p className="mt-1 text-sm text-stone-500">
+        <p className="font-display text-3xl text-slate-900">{view.name}</p>
+        <p className="mt-2 text-slate-700">{view.company || "Company not listed"}</p>
+        <p className="mt-1 text-sm text-slate-500">
           {view.category || "Uncategorised"}
         </p>
 
@@ -87,14 +87,14 @@ function ResultPanel({
         </div>
 
         {outcome === "checked_in" ? (
-          <p className="mt-4 text-sm text-moss-600">
+          <p className="mt-4 text-sm text-success">
             Attendance recorded
             {checkedInAt ? ` · ${checkedInAt}` : ""}.
           </p>
         ) : null}
 
         {outcome === "already_checked_in" ? (
-          <p className="mt-4 text-sm text-stone-600">
+          <p className="mt-4 text-sm text-slate-600">
             This delegate was already checked in
             {checkedInAt ? ` at ${checkedInAt}` : ""}. No duplicate record was
             created.
@@ -300,7 +300,7 @@ export function EventDayCheckIn({
               {cameraOn ? "Stop camera" : "Scan with camera"}
             </Button>
           ) : (
-            <p className="self-center text-xs text-stone-500">
+            <p className="self-center text-xs text-slate-500">
               Camera QR scan is unavailable in this browser. Paste the token.
             </p>
           )}
@@ -308,13 +308,13 @@ export function EventDayCheckIn({
         {cameraOn ? (
           <video
             ref={videoRef}
-            className="mt-4 aspect-[4/3] w-full rounded-md bg-ink-900 object-cover"
+            className="mt-4 aspect-[4/3] w-full rounded-md bg-slate-900 object-cover"
             playsInline
             muted
           />
         ) : null}
         {error ? (
-          <p className="mt-3 rounded-sm border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger">
+          <p className="mt-3 rounded-md border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger">
             {error}
           </p>
         ) : null}
@@ -330,7 +330,7 @@ export function EventDayCheckIn({
         />
       ) : (
         <Card className="flex items-center">
-          <p className="text-sm text-stone-500">
+          <p className="text-sm text-slate-500">
             Scan a QR code to check someone in immediately, or paste a token and
             look them up first.
           </p>

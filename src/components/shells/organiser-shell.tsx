@@ -24,10 +24,10 @@ export function OrganiserShell({
 }) {
   return (
     <EventNavProvider>
-      <div className="flex h-screen overflow-hidden bg-stone-50">
+      <div className="flex h-screen overflow-hidden bg-slate-50">
         <Suspense
           fallback={
-            <aside className="hidden h-full w-[220px] shrink-0 border-r border-stone-200 bg-stone-0 md:block" />
+            <aside className="hidden h-full w-[220px] shrink-0 bg-white shadow-[2px_0_12px_rgba(15,23,42,0.03)] md:block" />
           }
         >
           <OrgRail
@@ -39,7 +39,7 @@ export function OrganiserShell({
           />
         </Suspense>
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <header className="border-b border-stone-200 bg-stone-0 px-4 py-3 md:hidden sm:px-6 sm:py-4">
+          <header className="bg-white px-4 py-3 shadow-[0_1px_0_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.03)] md:hidden sm:px-6 sm:py-4">
             <Suspense fallback={null}>
               <OrganiserMobileNav
                 orgName={orgName}
@@ -51,7 +51,7 @@ export function OrganiserShell({
                   hasClerk() ? (
                     <UserButton />
                   ) : (
-                    <span className="text-sm text-stone-700">
+                    <span className="text-sm text-slate-600">
                       Sign in not configured
                     </span>
                   )

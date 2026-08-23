@@ -53,8 +53,8 @@ export default async function EventSettingsPage({
 
   if (settingsError) {
     return (
-      <div className="rounded-md border border-stone-200 bg-stone-50 p-6 text-sm text-stone-600">
-        <p className="font-medium text-stone-700">Settings temporarily unavailable</p>
+      <div className="rounded-md border border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
+        <p className="font-medium text-slate-700">Settings temporarily unavailable</p>
         <p className="mt-1">
           A database update is in progress. Settings will be available once the
           migration completes. Please try again in a moment.

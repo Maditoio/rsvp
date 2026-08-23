@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Trash2, XCircle } from "lucide-react";
 import {
@@ -10,6 +10,10 @@ import {
   confirmRegistration,
   deleteAttendee,
 } from "@/modules/registrations/organiser-actions";
+import {
+  ActionsMenu,
+  type ActionsMenuItem,
+} from "@/components/data-table/actions-menu";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 
@@ -44,10 +48,43 @@ export function RegistrationStatusActions({
           status,
         )
       : status === "REGISTERED" || status === "CONFIRMED";
-  const canDelete =
-    kind === "attendee" && status !== "CHECKED_IN";
+  const canDelete = kind === "attendee" && status !== "CHECKED_IN";
 
-  if (!canConfirm && !canCancel && !canDelete) return null;
+  const items = useMemo(() => {
+    const next: ActionsMenuItem[] = [];
+    if (canConfirm) {
+      next.push({
+        id: "confirm",
+        label: "Confirm registration",
+        icon: <Check className="size-3.5 shrink-0" strokeWidth={1.75} />,
+        onSelect: () => setIntent("confirm"),
+      });
+    }
+    if (canCancel) {
+      next.push({
+        id: "cancel",
+        label: "Cancel registration",
+        destructive: true,
+        icon: <XCircle className="size-3.5 shrink-0" strokeWidth={1.75} />,
+        onSelect: () => setIntent("cancel"),
+      });
+    }
+    if (canDelete) {
+      if (next.length > 0) {
+        next.push({ type: "divider", id: "divider-delete" });
+      }
+      next.push({
+        id: "delete",
+        label: "Delete attendee",
+        destructive: true,
+        icon: <Trash2 className="size-3.5 shrink-0" strokeWidth={1.75} />,
+        onSelect: () => setIntent("delete"),
+      });
+    }
+    return next;
+  }, [canCancel, canConfirm, canDelete]);
+
+  if (items.length === 0) return null;
 
   function run(next: Intent) {
     setError(null);
@@ -90,43 +127,11 @@ export function RegistrationStatusActions({
   }
 
   return (
-    <div className="flex flex-col items-end gap-2">
-      <div className="flex items-center justify-end gap-1">
-        {canConfirm ? (
-          <button
-            type="button"
-            title="Confirm registration"
-            disabled={pending}
-            className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700 disabled:opacity-50"
-            onClick={() => setIntent("confirm")}
-          >
-            <Check className="size-4" />
-          </button>
-        ) : null}
-        {canCancel ? (
-          <button
-            type="button"
-            title="Cancel registration"
-            disabled={pending}
-            className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-danger disabled:opacity-50"
-            onClick={() => setIntent("cancel")}
-          >
-            <XCircle className="size-4" />
-          </button>
-        ) : null}
-        {canDelete ? (
-          <button
-            type="button"
-            title="Delete attendee"
-            disabled={pending}
-            className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-danger disabled:opacity-50"
-            onClick={() => setIntent("delete")}
-          >
-            <Trash2 className="size-4" />
-          </button>
-        ) : null}
-      </div>
-      {error ? <p className="text-xs text-danger">{error}</p> : null}
+    <>
+      <ActionsMenu items={items} disabled={pending} />
+      {error ? (
+        <p className="mt-1 text-right text-xs text-danger">{error}</p>
+      ) : null}
       <ConfirmDialog
         open={intent === "confirm"}
         onClose={() => (pending ? undefined : setIntent(null))}
@@ -158,6 +163,6 @@ export function RegistrationStatusActions({
         pending={pending}
         onConfirm={() => run("delete")}
       />
-    </div>
+    </>
   );
 }

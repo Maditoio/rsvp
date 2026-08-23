@@ -29,15 +29,15 @@ export default async function RegisterPage({
   ) {
     return (
       <Card>
-        <h1 className="font-display text-3xl text-ink-800">
+        <h1 className="font-display text-3xl text-slate-900">
           Registration is not available
         </h1>
-        <p className="mt-3 text-stone-700">
+        <p className="mt-3 text-slate-700">
           This invitation cannot be used to register for {invitation.eventName}.
         </p>
         <Link
           href={`/i/${encodeURIComponent(token)}`}
-          className="mt-5 inline-flex text-sm text-ink-700 underline"
+          className="mt-5 inline-flex text-sm text-slate-700 underline"
         >
           Back to invitation
         </Link>
@@ -48,16 +48,16 @@ export default async function RegisterPage({
   if (!invitation.accepted) {
     return (
       <Card>
-        <h1 className="font-display text-3xl text-ink-800">
+        <h1 className="font-display text-3xl text-slate-900">
           Accept the invitation first
         </h1>
-        <p className="mt-3 text-stone-700">
+        <p className="mt-3 text-slate-700">
           Invitation is not registration. Accept your place at{" "}
           {invitation.eventName}, then return here to complete the form.
         </p>
         <Link
           href={`/i/${encodeURIComponent(token)}`}
-          className="mt-5 inline-flex rounded-sm bg-ink-600 px-4 py-2 text-sm font-medium text-white"
+          className="mt-5 inline-flex rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
         >
           Review invitation
         </Link>
@@ -115,15 +115,15 @@ export default async function RegisterPage({
       size="lg"
     >
       <DecisionCard className="mb-6">
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-200">
+        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-indigo-200">
           Registration
         </p>
         <h1 className="mt-2 font-display text-4xl">{invitation.eventName}</h1>
-        <p className="mt-2 text-ink-100">
+        <p className="mt-2 text-slate-100">
           Confirm or correct the details we already have from your invitation.
         </p>
         {eventDays.length > 0 ? (
-          <p className="mt-3 text-sm text-ink-100/90">
+          <p className="mt-3 text-sm text-slate-100/90">
             Event dates: {eventDays.map((day) => day.label).join(" · ")}
           </p>
         ) : null}

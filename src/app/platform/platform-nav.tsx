@@ -26,10 +26,10 @@ export function PlatformNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "inline-flex items-center gap-2 rounded-sm px-3 py-2 text-sm font-semibold transition-colors",
+              "inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold transition-colors",
               active
-                ? "border-l-[3px] border-l-ink-700 bg-stone-100 text-ink-700"
-                : "text-stone-600 hover:bg-stone-50 hover:text-ink-700",
+                ? "bg-indigo-50 text-indigo-700"
+                : "text-slate-600 hover:bg-slate-50 hover:text-slate-700",
             )}
           >
             <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden />

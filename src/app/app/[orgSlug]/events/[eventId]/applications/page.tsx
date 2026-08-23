@@ -20,15 +20,15 @@ export default async function ApplicationsPage({
     <div>
       {applications.length === 0 ? (
         <Card>
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
             Public applications
           </p>
-          <h1 className="mt-1 font-display text-3xl text-ink-800">Applications</h1>
-          <p className="mt-2 text-sm text-stone-700">
+          <h1 className="mt-1 font-display text-3xl text-slate-900">Applications</h1>
+          <p className="mt-2 text-sm text-slate-700">
             No applications yet. Enable public applications in{" "}
             <Link
               href={`/app/${orgSlug}/events/${eventId}/settings`}
-              className="text-ink-700 underline"
+              className="text-slate-700 underline"
             >
               event settings
             </Link>{" "}

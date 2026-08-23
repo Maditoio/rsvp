@@ -1,15 +1,18 @@
 "use client";
 
+import { Suspense, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
 import { sendEventReminders } from "@/modules/events/settings";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/components/data-table/data-table";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Label } from "@/components/ui/label";
-import { Table, Td, Th } from "@/components/ui/table";
-
-const selectClassName =
-  "h-[42px] w-full rounded-sm border border-stone-300 bg-stone-0 px-4 text-[0.9375rem] text-ink-700 outline-none focus:border-ink-700 focus:ring-3 focus:ring-ink-700/12";
+import { PageHeader } from "@/components/ui/page-header";
+import { Select } from "@/components/ui/select";
+import { StatusBadge } from "@/components/status-badge";
 
 type MessageRow = {
   id: string;
@@ -36,60 +39,78 @@ export function CommunicationsPanel({
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
+  const columns: DataTableColumn<MessageRow>[] = [
+    {
+      id: "to",
+      header: "To",
+      width: "1.5fr",
+      cell: (row) => row.toEmail,
+    },
+    {
+      id: "subject",
+      header: "Subject",
+      width: "2fr",
+      cell: (row) => row.subject,
+    },
+    {
+      id: "status",
+      header: "Status",
+      width: "1fr",
+      cell: (row) => <StatusBadge status={row.status} />,
+    },
+    {
+      id: "sent",
+      header: "Sent",
+      width: "1.2fr",
+      cell: (row) => (
+        <span className="whitespace-nowrap">{row.sentAt || "—"}</span>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
-            Outreach
-          </p>
-          <h1 className="mt-1 font-display text-3xl text-ink-800">
-            Communications
-          </h1>
-          <p className="mt-1 text-sm text-stone-700">
-            Remind people who have not accepted, or who accepted but have not
-            registered.
-          </p>
-        </div>
-        {canSend ? (
-          <Button
-            type="button"
-            onClick={() => {
-              setError(null);
-              setNotice(null);
-              setOpen(true);
-            }}
-          >
-            Send reminders
-          </Button>
-        ) : null}
-      </div>
+      <PageHeader
+        eyebrow="Outreach"
+        title="Communications"
+        description="Remind people who have not accepted, or who accepted but have not registered."
+        actions={
+          canSend ? (
+            <Button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setNotice(null);
+                setOpen(true);
+              }}
+            >
+              Send reminders
+            </Button>
+          ) : null
+        }
+      />
 
-      {notice ? <p className="text-sm text-moss-600">{notice}</p> : null}
+      {notice ? <p className="text-sm text-success">{notice}</p> : null}
 
       {messages.length === 0 ? (
-        <p className="text-sm text-stone-700">No messages have been sent yet.</p>
+        <p className="text-sm text-slate-700">No messages have been sent yet.</p>
       ) : (
-        <Table>
-          <thead>
-            <tr>
-              <Th>To</Th>
-              <Th>Subject</Th>
-              <Th>Status</Th>
-              <Th>Sent</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {messages.map((row) => (
-              <tr key={row.id}>
-                <Td>{row.toEmail}</Td>
-                <Td>{row.subject}</Td>
-                <Td>{row.status}</Td>
-                <Td>{row.sentAt || "—"}</Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
+          <DataTable
+            rows={messages}
+            columns={columns}
+            getRowId={(row) => row.id}
+            searchPlaceholder="Search messages…"
+            searchFilter={(row, query) => {
+              const haystack = [row.toEmail, row.subject, row.status, row.sentAt]
+                .join(" ")
+                .toLowerCase();
+              return haystack.includes(query);
+            }}
+            emptyMessage="No messages have been sent yet."
+            showRowsPerPage
+          />
+        </Suspense>
       )}
 
       <Drawer
@@ -106,7 +127,9 @@ export function CommunicationsPanel({
               try {
                 const result = await sendEventReminders(orgSlug, eventId, formData);
                 setOpen(false);
-                setNotice(`Sent ${result.sent} reminder${result.sent === 1 ? "" : "s"}.`);
+                setNotice(
+                  `Sent ${result.sent} reminder${result.sent === 1 ? "" : "s"}.`,
+                );
                 router.refresh();
               } catch (e) {
                 setError(
@@ -118,12 +141,12 @@ export function CommunicationsPanel({
         >
           <div>
             <Label htmlFor="audience">Audience</Label>
-            <select id="audience" name="audience" required className={selectClassName}>
+            <Select id="audience" name="audience" required>
               <option value="unaccepted">Invited, not yet accepted</option>
               <option value="unregistered">Accepted, not yet registered</option>
-            </select>
+            </Select>
           </div>
-          <p className="text-xs text-stone-500">
+          <p className="text-xs text-slate-500">
             Reminder links replace the previous invitation token. Anyone still
             holding an older email will need this new message.
           </p>

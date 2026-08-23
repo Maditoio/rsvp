@@ -34,13 +34,13 @@ export function PublicApplyForm({
   if (submitted) {
     return (
       <div>
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
           Received
         </p>
-        <h2 className="mt-2 font-display text-3xl text-ink-800">
+        <h2 className="mt-2 font-display text-3xl text-slate-900">
           Application submitted
         </h2>
-        <p className="mt-2 text-sm text-stone-700">
+        <p className="mt-2 text-sm text-slate-700">
           The organiser will review your application. If approved, you will
           receive an invitation. Applying is not registration.
         </p>

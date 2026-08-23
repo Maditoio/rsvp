@@ -22,10 +22,10 @@ export function InvitationResponse({
   if (didDecline) {
     return (
       <div>
-        <p className="text-stone-700">
+        <p className="text-slate-700">
           You have declined this invitation. The organiser has been updated.
         </p>
-        <p className="mt-3 text-sm text-stone-500">
+        <p className="mt-3 text-sm text-slate-500">
           Declining is not the same as cancelling a registration — none was
           created.
         </p>
@@ -36,14 +36,14 @@ export function InvitationResponse({
   if (didAccept) {
     return (
       <div>
-        <p className="text-stone-700">
+        <p className="text-slate-700">
           {registered
             ? "You have accepted and completed registration."
             : "You have accepted. Registration is a separate step — complete it to confirm your place."}
         </p>
         <Link
           href={`/i/${encodeURIComponent(token)}/register`}
-          className="mt-5 inline-flex rounded-sm bg-ink-600 px-5 py-2.5 text-sm font-medium text-white"
+          className="mt-5 inline-flex rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white"
         >
           {registered ? "View registration" : "Continue to registration"}
         </Link>
@@ -53,7 +53,7 @@ export function InvitationResponse({
 
   return (
     <div>
-      <p className="text-sm text-stone-700">
+      <p className="text-sm text-slate-700">
         Accepting confirms your invitation. You still need to register
         afterwards.
       </p>

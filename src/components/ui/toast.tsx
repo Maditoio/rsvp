@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type ToastTone = "default" | "success" | "error";
@@ -35,15 +36,26 @@ type ToastContextValue = {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-function toneClasses(tone: ToastTone) {
-  switch (tone) {
-    case "success":
-      return "border-l-moss-600 bg-moss-50 text-moss-700";
-    case "error":
-      return "border-l-danger bg-danger-bg text-danger";
-    default:
-      return "border-l-ink-700 bg-stone-0 text-ink-800";
+function ToneIcon({ tone }: { tone: ToastTone }) {
+  if (tone === "success") {
+    return (
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-success-bg text-success">
+        <CheckCircle2 className="size-4" strokeWidth={2} />
+      </span>
+    );
   }
+  if (tone === "error") {
+    return (
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-danger-bg text-danger">
+        <AlertCircle className="size-4" strokeWidth={2} />
+      </span>
+    );
+  }
+  return (
+    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-info-bg text-info">
+      <Info className="size-4" strokeWidth={2} />
+    </span>
+  );
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -60,7 +72,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const toast = useCallback(
-    ({ title, message, tone = "default", durationMs = 5200 }: ToastInput) => {
+    ({ title, message, tone = "default", durationMs = 5000 }: ToastInput) => {
       const id = crypto.randomUUID();
       setItems((current) => [...current, { id, title, message, tone }]);
       const timer = setTimeout(() => dismiss(id), durationMs);
@@ -98,24 +110,31 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <div
             key={item.id}
             role="status"
-            className={cn(
-              "pointer-events-auto w-full max-w-sm rounded-sm border border-stone-200 border-l-[3px] px-4 py-3 shadow-md",
-              toneClasses(item.tone),
-            )}
+            className="pointer-events-auto flex w-full max-w-sm gap-3 rounded-lg bg-white px-4 py-3.5 shadow-lg"
           >
-            {item.title ? (
-              <p className="text-[0.8125rem] font-semibold">{item.title}</p>
-            ) : null}
-            <p className={cn("text-sm", item.title ? "mt-0.5" : undefined)}>
-              {item.message}
-            </p>
-            <button
-              type="button"
-              onClick={() => dismiss(item.id)}
-              className="mt-2 text-xs font-medium underline-offset-2 hover:underline"
-            >
-              Dismiss
-            </button>
+            <ToneIcon tone={item.tone} />
+            <div className="min-w-0 flex-1">
+              {item.title ? (
+                <p className="text-[0.8125rem] font-semibold text-slate-900">
+                  {item.title}
+                </p>
+              ) : null}
+              <p
+                className={cn(
+                  "text-sm text-slate-600",
+                  item.title ? "mt-0.5" : undefined,
+                )}
+              >
+                {item.message}
+              </p>
+              <button
+                type="button"
+                onClick={() => dismiss(item.id)}
+                className="mt-2 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
         ))}
       </div>

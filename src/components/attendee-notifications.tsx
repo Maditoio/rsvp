@@ -93,7 +93,7 @@ export function AttendeeNotifications() {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="relative inline-flex size-9 items-center justify-center rounded-sm text-stone-600 transition-colors hover:bg-stone-100 hover:text-ink-800"
+        className="relative inline-flex size-9 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
         aria-expanded={open}
         aria-label={
           badgeCount > 0
@@ -103,25 +103,25 @@ export function AttendeeNotifications() {
       >
         <Bell className="size-4" strokeWidth={1.75} aria-hidden />
         {badgeCount > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 flex min-w-[1.125rem] items-center justify-center rounded-xs bg-bronze-600 px-1 text-[0.625rem] font-semibold leading-none text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex min-w-[1.125rem] items-center justify-center rounded-xs bg-indigo-600 px-1 text-[0.625rem] font-semibold leading-none text-white">
             {badgeCount > 9 ? "9+" : badgeCount}
           </span>
         ) : null}
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-stone-200 bg-stone-0 shadow-lg">
-          <div className="flex items-center justify-between border-b border-stone-200 px-4 py-3">
+        <div className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl bg-white shadow-sm shadow-lg">
+          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
             <div>
-              <p className="text-sm font-semibold text-ink-800">Notifications</p>
-              <p className="text-xs text-stone-500">
+              <p className="text-sm font-semibold text-slate-900">Notifications</p>
+              <p className="text-xs text-slate-500">
                 {eventId ? "For this event" : "Across your events"}
               </p>
             </div>
             {inbox && inbox.unreadNotificationCount > 0 ? (
               <button
                 type="button"
-                className="text-xs font-medium text-bronze-700 hover:text-bronze-800"
+                className="text-xs font-medium text-indigo-700 hover:text-indigo-800"
                 onClick={() => {
                   start(async () => {
                     const result = await markAllInboxNotificationsRead(
@@ -138,28 +138,28 @@ export function AttendeeNotifications() {
 
           <div className="max-h-[min(24rem,60vh)] overflow-y-auto">
             {inbox && inbox.pendingRequests.length > 0 ? (
-              <section className="border-b border-stone-200 px-4 py-3">
-                <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+              <section className="border-b border-slate-200 px-4 py-3">
+                <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
                   Connection requests
                 </p>
                 <ul className="mt-2 space-y-3">
                   {inbox.pendingRequests.map((request) => (
                     <li
                       key={request.id}
-                      className="rounded-sm border border-bronze-200 bg-bronze-50 px-3 py-3"
+                      className="rounded-xl border border-amber-200/60 bg-amber-500/10 px-3 py-3"
                     >
-                      <p className="text-sm font-semibold text-ink-800">
+                      <p className="text-sm font-semibold text-slate-900">
                         {request.requesterName}
                       </p>
                       {request.requesterCompany ? (
-                        <p className="text-xs text-stone-600">
+                        <p className="text-xs text-slate-600">
                           {request.requesterCompany}
                         </p>
                       ) : null}
                       {request.message ? (
-                        <p className="mt-2 text-sm text-stone-700">{request.message}</p>
+                        <p className="mt-2 text-sm text-slate-700">{request.message}</p>
                       ) : null}
-                      <p className="mt-1 text-xs text-stone-500">
+                      <p className="mt-1 text-xs text-slate-500">
                         {formatWhen(request.createdAt)}
                       </p>
                       <div className="mt-3 flex gap-2">
@@ -190,18 +190,18 @@ export function AttendeeNotifications() {
             ) : null}
 
             {inbox && inbox.notifications.length > 0 ? (
-              <ul className="divide-y divide-stone-100 px-4 py-2">
+              <ul className="divide-y divide-slate-100 px-4 py-2">
                 {inbox.notifications.map((row) => (
                   <li
                     key={row.id}
                     className={cn(
                       "py-3",
-                      !row.readAt && "border-l-[3px] border-bronze-500 pl-3",
+                      !row.readAt && "bg-indigo-50/80 pl-3",
                     )}
                   >
-                    <p className="text-sm font-medium text-ink-800">{row.title}</p>
-                    <p className="mt-1 text-sm text-stone-700">{row.body}</p>
-                    <p className="mt-1 text-xs text-stone-500">
+                    <p className="text-sm font-medium text-slate-900">{row.title}</p>
+                    <p className="mt-1 text-sm text-slate-700">{row.body}</p>
+                    <p className="mt-1 text-xs text-slate-500">
                       {row.eventName ? `${row.eventName} · ` : ""}
                       {formatWhen(row.createdAt)}
                     </p>
@@ -213,17 +213,17 @@ export function AttendeeNotifications() {
             {inbox &&
             inbox.pendingRequests.length === 0 &&
             inbox.notifications.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-stone-600">
+              <p className="px-4 py-8 text-center text-sm text-slate-600">
                 No notifications yet.
               </p>
             ) : null}
           </div>
 
           {eventId ? (
-            <div className="border-t border-stone-200 px-4 py-3">
+            <div className="border-t border-slate-200 px-4 py-3">
               <Link
                 href={meetingsHref}
-                className="text-sm font-semibold text-ink-700 underline-offset-4 hover:underline"
+                className="text-sm font-semibold text-slate-700 underline-offset-4 hover:underline"
                 onClick={() => setOpen(false)}
               >
                 Open meetings

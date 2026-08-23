@@ -12,24 +12,24 @@ export function MobileMenu() {
       <button
         onClick={() => setOpen(!open)}
         aria-label="Toggle menu"
-        className="p-2 text-ink-700"
+        className="inline-flex size-9 items-center justify-center rounded-full text-slate-900 hover:bg-slate-100"
       >
         {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
       {open && (
-        <div className="absolute inset-x-0 top-16 border-b border-stone-200 bg-stone-0 p-6 shadow-md">
+        <div className="absolute inset-x-0 top-[60px] bg-white p-6 shadow-md">
           <div className="flex flex-col gap-4">
             <Link
               href="/sign-in"
               onClick={() => setOpen(false)}
-              className="text-sm font-medium text-stone-600"
+              className="text-sm font-medium text-slate-600"
             >
               Sign in
             </Link>
             <Link
               href="/sign-up"
               onClick={() => setOpen(false)}
-              className="inline-flex h-10 items-center justify-center rounded-sm bg-ink-700 px-5 text-sm font-semibold text-white hover:bg-ink-800"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-indigo-600 px-5 text-sm font-semibold text-white shadow-accent hover:bg-indigo-700"
             >
               Start organising
             </Link>

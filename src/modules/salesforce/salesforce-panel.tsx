@@ -87,7 +87,7 @@ export function SalesforcePanel({
 
   if (!canManage) {
     return (
-      <p className="text-sm text-stone-500">
+      <p className="text-sm text-slate-500">
         Only organisation admins can manage CRM integrations.
       </p>
     );
@@ -96,13 +96,13 @@ export function SalesforcePanel({
   if (connected) {
     return (
       <div className="space-y-3">
-        <div className="rounded-md border border-stone-200 bg-stone-0 p-4">
+        <div className="rounded-lg border border-slate-200 bg-white p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
               <SalesforceMark />
               <div className="min-w-0">
-                <p className="text-sm font-medium text-ink-800">Connected</p>
-                <p className="mt-0.5 text-xs text-stone-500">
+                <p className="text-sm font-medium text-slate-900">Connected</p>
+                <p className="mt-0.5 text-xs text-slate-500">
                   Salesforce
                   {salesforceOrgId ? ` — org ${salesforceOrgId}` : ""}
                   . Invitee import uses this connection.
@@ -121,7 +121,7 @@ export function SalesforcePanel({
           </div>
         </div>
         {success ? (
-          <p className="text-sm text-moss-700">
+          <p className="text-sm text-success">
             Salesforce connected successfully.
           </p>
         ) : null}
@@ -136,14 +136,14 @@ export function SalesforcePanel({
         <button
           type="button"
           disabled
-          className="inline-flex h-10 w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-sm border border-stone-200 bg-stone-50 px-4 text-sm font-medium text-stone-400"
+          className="inline-flex h-10 w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-full border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-400"
         >
           <span className="opacity-60">
             <SalesforceMark />
           </span>
           Connect Salesforce
         </button>
-        <p className="mt-1 text-xs text-stone-500">
+        <p className="mt-1 text-xs text-slate-500">
           Salesforce OAuth is not configured for this environment.
         </p>
       </div>
@@ -154,7 +154,7 @@ export function SalesforcePanel({
     <div className="space-y-3">
       <a
         href={`/api/auth/salesforce/start?orgSlug=${encodeURIComponent(orgSlug)}`}
-        className="inline-flex h-10 w-full items-center justify-center gap-2.5 rounded-sm border border-stone-200 bg-stone-0 px-4 text-sm font-medium text-ink-800 hover:border-ink-400 hover:bg-stone-50"
+        className="inline-flex h-10 w-full items-center justify-center gap-2.5 rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-900 hover:border-indigo-400 hover:bg-slate-50"
       >
         <SalesforceMark />
         Connect Salesforce

@@ -1,12 +1,9 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
-import { Card } from "@/components/ui/card";
-import { Table, Td, Th } from "@/components/ui/table";
-import { StatusBadge } from "@/components/status-badge";
-import { displayName } from "@/lib/utils";
-import { RegistrationStatusActions } from "../registrations/registration-status-actions";
+import { AttendeesTable } from "./attendees-table";
 
 export default async function AttendeesPage({
   params,
@@ -32,55 +29,29 @@ export default async function AttendeesPage({
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-ink-800">Attendees</h1>
-      <p className="mt-1 mb-6 text-sm text-stone-700">
+      <h1 className="font-display text-3xl text-slate-900">Attendees</h1>
+      <p className="mt-1 mb-6 text-[0.8125rem] text-slate-500">
         Registered delegates for this event. An accepted invitation does not
         create an attendee record on its own.
       </p>
-      {attendees.length === 0 ? (
-        <Card>No attendees yet.</Card>
-      ) : (
-        <Table>
-          <thead>
-            <tr className="border-b border-stone-200">
-              <Th>Name</Th>
-              <Th>Email</Th>
-              <Th>Company</Th>
-              <Th>Job title</Th>
-              <Th>Country</Th>
-              <Th>Category</Th>
-              <Th>Status</Th>
-              {canWrite ? <Th>Actions</Th> : null}
-            </tr>
-          </thead>
-          <tbody>
-            {attendees.map((attendee) => (
-              <tr key={attendee.id} className="border-b border-stone-100">
-                <Td>{displayName(attendee)}</Td>
-                <Td>{attendee.email}</Td>
-                <Td>{attendee.company ?? "—"}</Td>
-                <Td>{attendee.jobTitle ?? "—"}</Td>
-                <Td>{attendee.country ?? "—"}</Td>
-                <Td>{attendee.category?.name ?? "—"}</Td>
-                <Td>
-                  <StatusBadge status={attendee.status} />
-                </Td>
-                {canWrite ? (
-                  <Td>
-                    <RegistrationStatusActions
-                      orgSlug={orgSlug}
-                      eventId={eventId}
-                      subjectId={attendee.id}
-                      kind="attendee"
-                      status={attendee.status}
-                    />
-                  </Td>
-                ) : null}
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      )}
+      <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
+        <AttendeesTable
+          orgSlug={orgSlug}
+          eventId={eventId}
+          canWrite={canWrite}
+          attendees={attendees.map((attendee) => ({
+            id: attendee.id,
+            firstName: attendee.firstName,
+            lastName: attendee.lastName,
+            email: attendee.email,
+            company: attendee.company,
+            jobTitle: attendee.jobTitle,
+            country: attendee.country,
+            status: attendee.status,
+            categoryName: attendee.category?.name ?? null,
+          }))}
+        />
+      </Suspense>
     </div>
   );
 }

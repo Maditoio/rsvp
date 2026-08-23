@@ -1,12 +1,16 @@
 "use client";
 
+import { Suspense, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
 import { Eye } from "lucide-react";
 import { decideApplication } from "@/modules/applications/actions";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/components/data-table/data-table";
+import { ActionsMenu } from "@/components/data-table/actions-menu";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
-import { Table, Td, Th } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
 import { displayName, humanizeEnum } from "@/lib/utils";
 
@@ -40,62 +44,108 @@ export function ApplicationsPanel({
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
+  const columns: DataTableColumn<ApplicationRow>[] = [
+    {
+      id: "applicant",
+      header: "Applicant",
+      width: "2fr",
+      cell: (row) => (
+        <div>
+          <p className="font-medium text-slate-700">{displayName(row)}</p>
+          <p className="text-xs text-slate-500">{row.email}</p>
+        </div>
+      ),
+    },
+    {
+      id: "organisation",
+      header: "Organisation",
+      width: "1.5fr",
+      cell: (row) =>
+        [row.jobTitle, row.company].filter(Boolean).join(" · ") || "—",
+    },
+    {
+      id: "status",
+      header: "Status",
+      width: "1fr",
+      cell: (row) => <StatusBadge status={row.status} />,
+    },
+    {
+      id: "submitted",
+      header: "Submitted",
+      width: "1.2fr",
+      cell: (row) => (
+        <span className="whitespace-nowrap">{row.createdAt}</span>
+      ),
+    },
+    ...(canDecide
+      ? [
+          {
+            id: "actions",
+            header: "",
+            width: "60px",
+            headerClassName: "sr-only",
+            cellClassName: "justify-self-end",
+            cell: (row: ApplicationRow) => (
+              <ActionsMenu
+                disabled={pending}
+                items={[
+                  {
+                    id: "review",
+                    label: "Review application",
+                    icon: (
+                      <Eye className="size-3.5 shrink-0" strokeWidth={1.75} />
+                    ),
+                    onSelect: () => {
+                      setCurrent(row);
+                      setError(null);
+                      setOpen(true);
+                    },
+                  },
+                ]}
+              />
+            ),
+          } satisfies DataTableColumn<ApplicationRow>,
+        ]
+      : []),
+  ];
+
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-600">
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
           Public applications
         </p>
-        <h1 className="mt-1 font-display text-3xl text-ink-800">Applications</h1>
-        <p className="mt-1 text-sm text-stone-700">
+        <h1 className="mt-1 font-display text-3xl text-slate-900">Applications</h1>
+        <p className="mt-1 text-[0.8125rem] text-slate-500">
           Approving creates an invitation. Rejected applicants do not gain event
           access.
         </p>
       </div>
-      <Table>
-        <thead>
-          <tr>
-            <Th>Applicant</Th>
-            <Th>Organisation</Th>
-            <Th>Status</Th>
-            <Th>Submitted</Th>
-            {canDecide ? <Th></Th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {applications.map((row) => (
-            <tr key={row.id}>
-              <Td>
-                <p className="font-medium text-ink-800">{displayName(row)}</p>
-                <p className="text-xs text-stone-500">{row.email}</p>
-              </Td>
-              <Td className="text-stone-700">
-                {[row.jobTitle, row.company].filter(Boolean).join(" · ") || "—"}
-              </Td>
-              <Td>
-                <StatusBadge status={row.status} />
-              </Td>
-              <Td className="text-stone-700">{row.createdAt}</Td>
-              {canDecide ? (
-                <Td>
-                  <button
-                    type="button"
-                    title="Review application"
-                    className="rounded-sm p-1.5 text-stone-500 hover:bg-stone-100 hover:text-ink-700"
-                    onClick={() => {
-                      setCurrent(row);
-                      setError(null);
-                      setOpen(true);
-                    }}
-                  >
-                    <Eye className="size-4" />
-                  </button>
-                </Td>
-              ) : null}
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+
+      <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
+        <DataTable
+          rows={applications}
+          columns={columns}
+          getRowId={(row) => row.id}
+          searchPlaceholder="Search applications…"
+          searchFilter={(row, query) => {
+            const haystack = [
+              displayName(row),
+              row.email,
+              row.company,
+              row.jobTitle,
+              row.status,
+            ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase();
+            return haystack.includes(query);
+          }}
+          emptyMessage="No applications yet."
+          showRowsPerPage
+          minRowHeight="double"
+        />
+      </Suspense>
 
       <Drawer
         open={open}
@@ -114,35 +164,55 @@ export function ApplicationsPanel({
                   setOpen(false);
                   router.refresh();
                 } catch (e) {
-                  setError(e instanceof Error ? e.message : "Could not update application");
+                  setError(
+                    e instanceof Error
+                      ? e.message
+                      : "Could not update application",
+                  );
                 }
               });
             }}
           >
             <input type="hidden" name="applicationId" value={current.id} />
-            <p className="font-medium text-ink-800">{displayName(current)}</p>
-            <p className="text-sm text-stone-700">{current.email}</p>
+            <p className="font-medium text-slate-700">{displayName(current)}</p>
+            <p className="text-sm text-slate-700">{current.email}</p>
             {current.message ? (
-              <p className="text-sm text-stone-700">{current.message}</p>
+              <p className="text-sm text-slate-700">{current.message}</p>
             ) : null}
             {current.status === "PENDING" ? (
               <div className="grid grid-cols-2 gap-2">
-                <label className="rounded-sm border border-stone-200 p-3 text-sm">
-                  <input type="radio" name="decision" value="approve" required className="mr-2" />
+                <label className="rounded-md border border-slate-200 p-3 text-sm">
+                  <input
+                    type="radio"
+                    name="decision"
+                    value="approve"
+                    required
+                    className="mr-2"
+                  />
                   Approve
                 </label>
-                <label className="rounded-sm border border-stone-200 p-3 text-sm">
-                  <input type="radio" name="decision" value="reject" required className="mr-2" />
+                <label className="rounded-md border border-slate-200 p-3 text-sm">
+                  <input
+                    type="radio"
+                    name="decision"
+                    value="reject"
+                    required
+                    className="mr-2"
+                  />
                   Reject
                 </label>
               </div>
             ) : (
-              <p className="text-sm text-stone-700">Already {humanizeEnum(current.status)}.</p>
+              <p className="text-sm text-slate-700">
+                Already {humanizeEnum(current.status)}.
+              </p>
             )}
             {error ? <p className="text-sm text-danger">{error}</p> : null}
             {current.status === "PENDING" ? (
               <div className="flex justify-end">
-                <Button disabled={pending}>{pending ? "Saving…" : "Record decision"}</Button>
+                <Button disabled={pending}>
+                  {pending ? "Saving…" : "Record decision"}
+                </Button>
               </div>
             ) : null}
           </form>

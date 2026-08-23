@@ -109,11 +109,11 @@ export function EventDayLookup({
             {pending ? "Searching…" : "Search"}
           </Button>
         </div>
-        <p className="mt-2 text-xs text-stone-500">
+        <p className="mt-2 text-xs text-slate-500">
           Staff see name, company, category, and check-in status only.
         </p>
         {error ? (
-          <p className="mt-3 rounded-sm border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger">
+          <p className="mt-3 rounded-md border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger">
             {error}
           </p>
         ) : null}
@@ -125,11 +125,11 @@ export function EventDayLookup({
             <Card key={row.attendeeId}>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="font-medium text-ink-800">{row.name}</p>
-                  <p className="mt-1 text-sm text-stone-700">
+                  <p className="font-medium text-slate-900">{row.name}</p>
+                  <p className="mt-1 text-sm text-slate-700">
                     {row.company || "Company not listed"}
                   </p>
-                  <p className="mt-1 text-xs text-stone-500">
+                  <p className="mt-1 text-xs text-slate-500">
                     {row.category || "Uncategorised"}
                   </p>
                   <div className="mt-2">
@@ -162,7 +162,7 @@ export function EventDayLookup({
           ) : (
             <Badge tone="warning">Already checked in</Badge>
           )}
-          <p className="mt-3 text-sm text-stone-700">
+          <p className="mt-3 text-sm text-slate-700">
             {selected.name}
             {selected.checkedInAt
               ? ` · ${new Date(selected.checkedInAt).toLocaleString()}`

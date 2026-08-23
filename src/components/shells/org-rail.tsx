@@ -110,7 +110,7 @@ function AccountPopover({
           setOpen((value) => !value);
         }}
         className={cn(
-          "flex w-full items-center gap-2 rounded-sm text-sm text-stone-600 hover:bg-stone-100 hover:text-ink-700",
+          "flex w-full items-center gap-2 rounded-full text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900",
           collapsed
             ? "mx-auto size-[38px] justify-center"
             : "h-[38px] px-2",
@@ -118,7 +118,7 @@ function AccountPopover({
         title={collapsed ? (email ?? "Account") : undefined}
         aria-expanded={open}
       >
-        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-ink-700 text-[10px] font-semibold text-white">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 text-[10px] font-semibold text-white">
           {initials}
         </span>
         {!collapsed && (
@@ -128,7 +128,7 @@ function AccountPopover({
             </span>
             <ChevronUp
               className={cn(
-                "size-3 shrink-0 text-stone-400 transition-transform",
+                "size-3 shrink-0 text-slate-400 transition-transform",
                 open && "rotate-180",
               )}
               strokeWidth={2}
@@ -138,19 +138,19 @@ function AccountPopover({
       </button>
 
       {open && !collapsed ? (
-        <div className="absolute bottom-full left-0 z-20 mb-1 w-52 rounded-md border border-stone-200 bg-white py-1 shadow-lg">
+        <div className="absolute bottom-full left-0 z-20 mb-1 w-52 rounded-md bg-white py-1.5 shadow-md">
           {email && (
-            <div className="border-b border-stone-100 px-3 py-2">
-              <p className="truncate text-xs font-medium text-ink-700">
+            <div className="border-b border-slate-100 px-3 py-2">
+              <p className="truncate text-xs font-medium text-slate-900">
                 {user?.fullName ?? email}
               </p>
-              <p className="truncate text-[11px] text-stone-500">{email}</p>
+              <p className="truncate text-[11px] text-slate-500">{email}</p>
             </div>
           )}
           <Link
             href="/home"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 hover:text-ink-700"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900"
           >
             <UserRound className="size-3.5" strokeWidth={1.75} />
             All workspaces
@@ -160,21 +160,21 @@ function AccountPopover({
               href={`/app/${orgSlug}/settings`}
               onClick={() => setOpen(false)}
               className={cn(
-                "flex items-center gap-2 px-3 py-2 text-sm hover:bg-stone-50",
+                "flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50",
                 isNavActive(pathname, `/app/${orgSlug}/settings`)
-                  ? "font-medium text-ink-700"
-                  : "text-stone-700 hover:text-ink-700",
+                  ? "font-medium text-slate-900"
+                  : "text-slate-700 hover:text-slate-900",
               )}
             >
               <Settings className="size-3.5" strokeWidth={1.75} />
               Organisation settings
             </Link>
           )}
-          <div className="border-t border-stone-100">
+          <div className="border-t border-slate-100">
             <button
               type="button"
               onClick={() => signOut()}
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 hover:text-ink-700"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900"
             >
               <LogOut className="size-3.5" strokeWidth={1.75} />
               Sign out
@@ -220,28 +220,36 @@ export function OrgRail({
   return (
     <aside
       className={cn(
-        "relative hidden h-full shrink-0 flex-col border-r border-stone-200 bg-stone-0 transition-[width] duration-[220ms] ease-out md:flex motion-reduce:transition-none",
+        "relative hidden h-full shrink-0 flex-col bg-white shadow-[2px_0_12px_rgba(15,23,42,0.03)] transition-[width] duration-[220ms] ease-out md:flex motion-reduce:transition-none",
         collapsed ? "w-16" : "w-[220px]",
       )}
       style={{ willChange: "width" }}
     >
-      {/* Toggle button — sits on the rail edge; must not be inside overflow-x-hidden */}
+      {/* Toggle — Aurora floating ghost icon button on the rail edge */}
       <button
         type="button"
         onClick={toggle}
-        className="absolute -right-[11px] top-6 z-10 flex size-[22px] items-center justify-center rounded-full border border-stone-300 bg-white shadow-sm"
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        className={cn(
+          "absolute -right-[18px] top-5 z-10 inline-flex size-9 items-center justify-center rounded-full",
+          "bg-white text-slate-500 shadow-md",
+          "transition-[color,background-color,box-shadow,transform] duration-150 ease-out",
+          "hover:bg-indigo-50 hover:text-indigo-600 hover:shadow-accent",
+          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/12",
+          "active:scale-95",
+        )}
       >
         {collapsed ? (
-          <ChevronRight className="size-3 text-stone-600" strokeWidth={2} />
+          <ChevronRight className="size-4" strokeWidth={2} />
         ) : (
-          <ChevronLeft className="size-3 text-stone-600" strokeWidth={2} />
+          <ChevronLeft className="size-4" strokeWidth={2} />
         )}
       </button>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
       {/* Header */}
-      <div className="border-b border-stone-100 p-5 pr-6">
+      <div className="p-5 pr-6">
         {collapsed ? (
           <Link href={`/app/${orgSlug}`} className="mx-auto block w-fit">
             <BrandMark size={34} />
@@ -252,9 +260,9 @@ export function OrgRail({
               href={`/app/${orgSlug}`}
               wordmark="Bizcon"
               size={28}
-              wordmarkClassName="text-[21px] text-ink-700"
+              wordmarkClassName="text-[21px] font-bold tracking-[-0.02em] text-slate-900"
             />
-            <p className="mt-1 truncate text-xs text-stone-500" title={orgName}>
+            <p className="mt-1 truncate text-xs text-slate-500" title={orgName}>
               {orgName}
             </p>
           </>
@@ -276,7 +284,7 @@ export function OrgRail({
       </nav>
 
       {/* Footer */}
-      <div className="mt-auto border-t border-stone-100 p-3 pb-3">
+      <div className="mt-auto border-t border-slate-100 p-3 pb-3">
         {!collapsed && workspaces.length > 0 ? (
           <div className="mb-2 px-1">
             <WorkspaceSwitcher workspaces={workspaces} compact />

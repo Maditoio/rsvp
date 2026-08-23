@@ -57,7 +57,7 @@ function MobileNavList({
 
       {eventItems.length > 0 && (
         <div className="mt-4">
-          <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-400">
+          <p className="px-3.5 pb-1 text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-slate-400">
             {event?.eventName ?? "Event"}
           </p>
           {eventItems.map((item) => (
@@ -118,10 +118,10 @@ export function OrganiserMobileNav({
         ) : (
           <>
             <div className="min-w-0 flex-1 md:hidden">
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-bronze-600">
+              <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
                 Organisation workspace
               </p>
-              <p className="mt-1 truncate text-sm text-ink-700">{orgName}</p>
+              <p className="mt-1 truncate text-sm font-semibold text-slate-900">{orgName}</p>
             </div>
             {workspaces.length > 0 ? (
               <div className="hidden sm:block">
@@ -142,7 +142,7 @@ export function OrganiserMobileNav({
             aria-expanded={open}
             aria-label={open ? "Close navigation" : "Open navigation"}
             onClick={() => setOpenForPath(open ? null : pathname)}
-            className="rounded-sm p-2 text-ink-700 hover:bg-stone-100 md:hidden"
+            className="inline-flex size-9 items-center justify-center rounded-full text-slate-700 hover:bg-slate-100 md:hidden"
           >
             {open ? (
               <X className="size-4" strokeWidth={1.75} />
@@ -154,7 +154,7 @@ export function OrganiserMobileNav({
         </div>
       </div>
       {open ? (
-        <div className="mt-4 border-t border-stone-200 pt-4 md:hidden">
+        <div className="mt-4 border-t border-slate-100 pt-4 md:hidden">
           <MobileNavList
             orgSlug={orgSlug}
             grants={grants}

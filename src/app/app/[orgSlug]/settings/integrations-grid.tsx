@@ -32,7 +32,7 @@ type SoonIntegration = {
 
 function IconTile({ children }: { children: ReactNode }) {
   return (
-    <div className="flex size-9 shrink-0 items-center justify-center rounded-sm bg-stone-50">
+    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-slate-50">
       {children}
     </div>
   );
@@ -144,17 +144,17 @@ function oauthMessage(
 
 function SoonCard({ item }: { item: SoonIntegration }) {
   return (
-    <div className="flex min-h-[132px] flex-col rounded-md border border-dashed border-stone-200 bg-stone-0 p-5">
+    <div className="flex min-h-[132px] flex-col rounded-md border border-dashed border-slate-200 bg-white p-5">
       <div className="flex items-start gap-3">
         <IconTile>{item.icon}</IconTile>
-        <span className="ml-auto inline-flex rounded-xs bg-bronze-100 px-2 py-0.5 text-[0.8125rem] font-semibold text-bronze-600">
+        <span className="ml-auto inline-flex rounded-xs bg-amber-500/15 px-2 py-0.5 text-[0.8125rem] font-semibold text-indigo-600">
           SOON
         </span>
       </div>
-      <p className="mt-2.5 text-[0.9375rem] font-semibold text-stone-600">
+      <p className="mt-2.5 text-[0.9375rem] font-semibold text-slate-600">
         {item.name}
       </p>
-      <p className="mt-1 text-[0.8125rem] font-medium text-stone-400">
+      <p className="mt-1 text-[0.8125rem] font-medium text-slate-400">
         {item.description}
       </p>
     </div>
@@ -173,7 +173,7 @@ function LiveCard({
   pending: boolean;
 }) {
   return (
-    <div className="flex flex-col rounded-md border border-solid border-stone-200 bg-stone-0 p-5">
+    <div className="flex flex-col rounded-md border border-solid border-slate-200 bg-white p-5">
       <div className="flex items-start gap-3">
         <IconTile>{item.icon}</IconTile>
         <Badge
@@ -184,16 +184,16 @@ function LiveCard({
         </Badge>
       </div>
 
-      <h3 className="mt-2.5 font-display text-base font-semibold text-ink-700">
+      <h3 className="mt-2.5 font-display text-base font-semibold text-slate-700">
         {item.name}
       </h3>
-      <p className="mb-3.5 mt-1 text-[0.8125rem] font-medium text-stone-500">
+      <p className="mb-3.5 mt-1 text-[0.8125rem] font-medium text-slate-500">
         {item.description}
         {item.connected && item.detail ? ` ${item.detail}` : ""}
       </p>
 
       {item.oauthSuccess ? (
-        <p className="mb-3 text-[0.8125rem] text-moss-700">
+        <p className="mb-3 text-[0.8125rem] text-success">
           {item.name} connected successfully.
         </p>
       ) : null}
@@ -201,13 +201,13 @@ function LiveCard({
         <p className="mb-3 text-[0.8125rem] text-danger">{item.oauthError}</p>
       ) : null}
       {!item.connected && !item.configured && !item.oauthError ? (
-        <p className="mb-3 text-[0.8125rem] text-stone-500">
+        <p className="mb-3 text-[0.8125rem] text-slate-500">
           OAuth credentials are not set on this environment yet.
         </p>
       ) : null}
 
       {!canManage ? (
-        <p className="mt-auto text-[0.8125rem] text-stone-500">
+        <p className="mt-auto text-[0.8125rem] text-slate-500">
           Only organisation admins can manage CRM integrations.
         </p>
       ) : item.connected ? (
@@ -216,8 +216,8 @@ function LiveCard({
           disabled={pending}
           onClick={onDisconnect}
           className={cn(
-            "mt-auto inline-flex h-9 w-full items-center justify-center rounded-sm border border-stone-200 bg-transparent text-[0.78125rem] font-semibold text-[#8A2E26] transition-colors",
-            "hover:border-stone-300 hover:bg-stone-50",
+            "mt-auto inline-flex h-9 w-full items-center justify-center rounded-full border border-slate-200 bg-transparent text-[0.78125rem] font-semibold text-[#8A2E26] transition-colors",
+            "hover:border-slate-200 hover:bg-slate-50",
             "disabled:cursor-not-allowed disabled:opacity-60",
           )}
         >
@@ -226,7 +226,7 @@ function LiveCard({
       ) : (
         <a
           href={item.connectHref}
-          className="mt-auto inline-flex h-9 w-full items-center justify-center rounded-sm bg-ink-700 text-[0.78125rem] font-semibold text-white transition-colors hover:bg-ink-800"
+          className="mt-auto inline-flex h-9 w-full items-center justify-center rounded-full bg-indigo-600 text-[0.78125rem] font-semibold text-white transition-colors hover:bg-indigo-700"
         >
           Connect
         </a>
@@ -371,10 +371,10 @@ export function IntegrationsGrid({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-bronze-500">
+          <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
             Integrations
           </p>
-          <p className="mt-1 text-[0.8125rem] font-medium text-stone-500">
+          <p className="mt-1 text-[0.8125rem] font-medium text-slate-500">
             CRM connections are organisation-owned and shared across every
             event.
           </p>
@@ -383,7 +383,7 @@ export function IntegrationsGrid({
           <label className="relative block w-[220px]">
             <span className="sr-only">Search integrations</span>
             <Search
-              className="pointer-events-none absolute top-1/2 left-[11px] size-3.5 -translate-y-1/2 text-stone-400"
+              className="pointer-events-none absolute top-1/2 left-[11px] size-3.5 -translate-y-1/2 text-slate-400"
               aria-hidden
             />
             <input
@@ -391,7 +391,7 @@ export function IntegrationsGrid({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search"
-              className="h-[38px] w-full rounded-sm border border-stone-300 bg-stone-0 pr-3 pl-9 text-[0.9375rem] text-ink-700 outline-none placeholder:text-stone-400 focus:border-ink-700 focus:ring-3 focus:ring-ink-700/12"
+              className="h-[38px] w-full rounded-full border border-slate-200 bg-white pr-3 pl-9 text-[0.9375rem] text-slate-700 outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/12"
             />
           </label>
         ) : null}

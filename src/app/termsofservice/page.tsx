@@ -27,18 +27,18 @@ export default function TermsOfServicePage() {
         <p>Bizcon serves professional summits and conferences. Users include:</p>
         <ul className="list-disc space-y-1.5 pl-5">
           <li>
-            <strong style={{ color: "#1B1815" }}>Organisation customers</strong>{" "}
+            <strong className="text-slate-900">Organisation customers</strong>{" "}
             — summit organisers, conference directors, government event teams,
             investment forums, and industry associations that create and manage
             events.
           </li>
           <li>
-            <strong style={{ color: "#1B1815" }}>Organisation staff</strong> —
+            <strong className="text-slate-900">Organisation staff</strong> —
             owners, admins, event managers, registration staff, and check-in
             staff acting under an organisation.
           </li>
           <li>
-            <strong style={{ color: "#1B1815" }}>Attendees and invitees</strong>{" "}
+            <strong className="text-slate-900">Attendees and invitees</strong>{" "}
             — delegates, speakers, sponsors, exhibitors, VIPs, media,
             government or official guests, investors, and other invitees who
             accept invitations, register, or use the attendee portal.
@@ -251,16 +251,14 @@ export default function TermsOfServicePage() {
           Questions about these Terms:{" "}
           <a
             href="mailto:hello@bizconrsvp.com"
-            className="font-medium underline-offset-4 hover:underline"
-            style={{ color: "#1B1815" }}
+            className="font-medium text-slate-900 underline-offset-4 hover:underline"
           >
             hello@bizconrsvp.com
           </a>
           . For privacy matters, see our{" "}
           <a
             href="/privacystatment"
-            className="font-medium underline-offset-4 hover:underline"
-            style={{ color: "#1B1815" }}
+            className="font-medium text-slate-900 underline-offset-4 hover:underline"
           >
             Privacy Statement
           </a>

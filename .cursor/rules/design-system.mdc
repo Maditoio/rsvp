@@ -1,20 +1,19 @@
 ---
-description: UI must use the Delegate v3 ministerial design system
+description: UI must use the Delegate Aurora (v4) design system
 globs: "**/*.{tsx,css}"
 alwaysApply: true
 ---
 
 # Design system
 
-Use only tokens from [docs/design-system.md](docs/design-system.md). Map them in `src/app/globals.css` `@theme`.
+Use only tokens from [docs/design-system.md](docs/design-system.md) (Aurora v4). Full pack: `docs/DESIGN SYSTEM COMPLETE_V3/design-system-v4-aurora.md`. Map tokens in `src/app/globals.css` `@theme`.
 
-- Structure is monochrome: shared chrome, cards, buttons, and navigation use `ink` + `stone`, not saturated fills.
-- Canvas: `stone-50`. Surfaces: `stone-0`. Default borders: `stone-200`.
-- Accent color is sparse: use `bronze` for eyebrow labels, pending states, and at most one highlight per screen.
-- Success color is functional only: use `moss` for confirmed/success states, not general decoration.
-- Buttons and inputs use `radius-sm` (4px). Cards use `radius-md` (6px). No pill buttons or pill tags.
-- Status tags use the credential pattern: tinted background + 3px left bar + darker text, not filled pills.
-- Cards are flat at rest with `1px solid stone-200`. Shadows are reserved for floating UI only.
-- Fonts: Source Serif 4 for restrained display moments, Public Sans for UI/body, IBM Plex Mono for data.
-- Body text should generally sit on `stone-700`, headings on `ink-700`, muted text on `stone-500`.
-- Forms should feel formal and ministerial, not playful. Do not introduce off-palette colors or decorative flourishes.
+- Canvas: `slate-50`. Surfaces: `white` with resting `shadow-sm`. Default borders when needed: `slate-200`.
+- One interactive accent: `indigo-600` for primary buttons, links, active nav, focus rings, and checked states.
+- Secondary accents (`violet` / `rose` / `teal` / `amber`) are decorative only — avatars and category tags, never buttons.
+- Buttons, search fields, tags, avatars, and pagination use `radius-full` (pills). Form fields in drawers use `radius-md` (12px). Cards use `radius-xl` / `radius-lg`.
+- Status tags are dot-prefixed pills (tinted bg + colored dot), not left-bar credential tags.
+- Cards float at rest with soft shadow; no hard border by default.
+- Single typeface: Inter (400/500/600/700). No serif display pairing.
+- Body text: `slate-600`. Headings: `slate-900`. Muted: `slate-400`.
+- Do not mix Ministerial (ink/stone/bronze/moss sharp) patterns with Aurora. Prefer `indigo`/`slate` class names; legacy `ink`/`stone` aliases exist only for gradual migration.

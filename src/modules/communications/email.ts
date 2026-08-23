@@ -1,6 +1,26 @@
 import { Resend } from "resend";
 import { prisma } from "@/lib/db/prisma";
 
+/**
+ * Transactional email chrome — Aurora v4.
+ * Inline styles only (email clients). Keep colours in sync with docs/design-system.md.
+ */
+const aurora = {
+  canvas: "#F8FAFC",
+  surface: "#FFFFFF",
+  border: "#E2E8F0",
+  borderSubtle: "#F1F5F9",
+  text: "#0F172A",
+  body: "#475569",
+  muted: "#94A3B8",
+  indigo: "#4F46E5",
+  indigoSoft: "#EEF2FF",
+  indigoBorder: "#C7D2FE",
+  font: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
+  shadow: "0 1px 2px rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.05)",
+  shadowAccent: "0 4px 12px rgba(79,70,229,0.28)",
+} as const;
+
 type OutboundEmail = {
   organisationId: string;
   eventId?: string;
@@ -53,21 +73,53 @@ async function deliver(input: OutboundEmail) {
   return { id: message.id, simulated: false };
 }
 
+function p(html: string, muted = false) {
+  const color = muted ? aurora.muted : aurora.body;
+  const size = muted ? "13px" : "14px";
+  return `<p style="margin:0 0 12px;font-size:${size};line-height:1.55;color:${color}">${html}</p>`;
+}
+
 function letter(title: string, eyebrow: string, body: string, href: string, cta: string) {
   return `
-    <div style="font-family:'Public Sans',Arial,sans-serif;background:#F6F5F2;padding:32px">
-      <div style="max-width:560px;margin:auto;background:#FFFFFF;border:1px solid #E4E0D6;border-radius:6px;padding:32px">
-        <p style="letter-spacing:0.06em;text-transform:uppercase;font-size:11px;font-weight:600;color:#B4923F">${escapeHtml(eyebrow)}</p>
-        <h1 style="font-family:Georgia,serif;font-size:26px;margin:8px 0 16px;color:#1F2937">${escapeHtml(title)}</h1>
-        ${body}
-        <p style="margin:28px 0 8px">
-          <a href="${href}" style="display:inline-block;background:#1F2937;color:#ffffff;padding:12px 20px;border-radius:4px;text-decoration:none;font-weight:600">
-            ${escapeHtml(cta)}
-          </a>
+    <div style="margin:0;padding:0;background:${aurora.canvas};font-family:${aurora.font}">
+      <div style="padding:32px 16px">
+        <div style="max-width:560px;margin:0 auto;background:${aurora.surface};border-radius:20px;box-shadow:${aurora.shadow};overflow:hidden">
+          <div style="padding:32px 28px 28px">
+            <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:0.02em;color:${aurora.indigo}">Bizcon</p>
+            <p style="margin:0 0 20px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:${aurora.muted}">${escapeHtml(eyebrow)}</p>
+            <h1 style="margin:0 0 16px;font-family:${aurora.font};font-size:22px;font-weight:700;line-height:1.3;color:${aurora.text}">${escapeHtml(title)}</h1>
+            <div style="font-family:${aurora.font};font-size:14px;line-height:1.55;color:${aurora.body}">
+              ${body}
+            </div>
+            <p style="margin:28px 0 0">
+              <a href="${href}" style="display:inline-block;background:${aurora.indigo};color:#ffffff;padding:12px 22px;border-radius:999px;text-decoration:none;font-family:${aurora.font};font-size:14px;font-weight:600;box-shadow:${aurora.shadowAccent}">
+                ${escapeHtml(cta)}
+              </a>
+            </p>
+          </div>
+        </div>
+        <p style="max-width:560px;margin:16px auto 0;font-family:${aurora.font};font-size:12px;line-height:1.5;color:${aurora.muted};text-align:center">
+          Event intelligence for professional summits.
         </p>
       </div>
     </div>
   `;
+}
+
+function letterPair(
+  title: string,
+  eyebrow: string,
+  body: string,
+  primaryHref: string,
+  primaryCta: string,
+  secondaryHref?: string,
+  secondaryCta?: string,
+) {
+  const secondary =
+    secondaryHref && secondaryCta
+      ? `<p style="margin:16px 0 0;font-size:14px"><a href="${secondaryHref}" style="color:${aurora.indigo};font-weight:600;text-decoration:none">${escapeHtml(secondaryCta)}</a></p>`
+      : "";
+  return letter(title, eyebrow, `${body}${secondary}`, primaryHref, primaryCta);
 }
 
 export async function sendInvitationEmail(input: {
@@ -89,28 +141,12 @@ export async function sendInvitationEmail(input: {
     html: letter(
       `You have been invited to ${input.eventName}`,
       "Invitation",
-      `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} would like you to attend.</p>
-       <p style="font-size:13px;color:#8B8578">This link is unique to you. Do not forward it.</p>`,
+      `${p(`Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} would like you to attend.`)}
+       ${p("This link is unique to you. Do not forward it.", true)}`,
       input.acceptUrl,
       "View invitation",
     ),
   });
-}
-
-function letterPair(
-  title: string,
-  eyebrow: string,
-  body: string,
-  primaryHref: string,
-  primaryCta: string,
-  secondaryHref?: string,
-  secondaryCta?: string,
-) {
-  const secondary =
-    secondaryHref && secondaryCta
-      ? `<p style="margin:12px 0 0"><a href="${secondaryHref}" style="color:#1F2937;font-weight:600">${escapeHtml(secondaryCta)}</a></p>`
-      : "";
-  return letter(title, eyebrow, `${body}${secondary}`, primaryHref, primaryCta);
 }
 
 export async function sendRegistrationConfirmationEmail(input: {
@@ -161,11 +197,11 @@ export async function sendRegistrationConfirmationEmail(input: {
               : ""
           }`
         : "";
-      return `<div style="margin:16px 0;padding:12px 0;border-top:1px solid #E4E0D6">
-        <p style="margin:0;font-weight:600;color:#1F2937">${escapeHtml(session.title)}</p>
-        ${when ? `<p style="margin:4px 0;color:#5F5A4D;font-size:13px">${escapeHtml(when)}</p>` : ""}
-        <p style="margin:4px 0;color:#8B8578;font-size:12px">Online — Microsoft Teams</p>
-        <p style="margin:8px 0 0"><a href="${escapeHtml(joinUrl)}" style="color:#1F2937;font-weight:600">Join Teams meeting</a></p>
+      return `<div style="margin:16px 0;padding:14px 0;border-top:1px solid ${aurora.borderSubtle}">
+        <p style="margin:0;font-weight:600;color:${aurora.text}">${escapeHtml(session.title)}</p>
+        ${when ? `<p style="margin:4px 0;color:${aurora.body};font-size:13px">${escapeHtml(when)}</p>` : ""}
+        <p style="margin:4px 0;color:${aurora.muted};font-size:12px">Online — Microsoft Teams</p>
+        <p style="margin:8px 0 0"><a href="${escapeHtml(joinUrl)}" style="color:${aurora.indigo};font-weight:600;text-decoration:none">Join Teams meeting</a></p>
       </div>`;
     })
     .join("");
@@ -178,16 +214,16 @@ export async function sendRegistrationConfirmationEmail(input: {
     html: letter(
       `Your place at ${input.eventName} is registered`,
       "Registration",
-      `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} has recorded your registration.</p>
-       <p style="color:#5F5A4D">Create an account with <strong>${escapeHtml(input.toEmail)}</strong> to open the event app. There you can browse the agenda, request meetings, complete your matching profile, and access your check-in QR code on event day.</p>
-       <ul style="color:#5F5A4D;font-size:14px;line-height:1.6;padding-left:18px">
+      `${p(`Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} has recorded your registration.`)}
+       ${p(`Create an account with <strong style="color:${aurora.text}">${escapeHtml(input.toEmail)}</strong> to open the event app. There you can browse the agenda, request meetings, complete your matching profile, and access your check-in QR code on event day.`)}
+       <ul style="margin:0 0 12px;padding-left:18px;color:${aurora.body};font-size:14px;line-height:1.6">
          <li>Meetings and connection requests</li>
          <li>Agenda and online sessions</li>
          <li>Matchmaking directory</li>
          <li>Check-in QR code in the app</li>
        </ul>
        ${sessionBlocks}
-       <p style="color:#8B8578;font-size:13px">After signing up, complete your matching profile so the directory can introduce the right people.</p>`,
+       ${p("After signing up, complete your matching profile so the directory can introduce the right people.", true)}`,
       input.signUpUrl,
       "Create account",
     ),
@@ -208,8 +244,8 @@ export async function sendOrganizerWelcomeEmail(input: {
     html: letter(
       `Your organiser workspace is ready`,
       "Welcome",
-      `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} is set up on Bizcon RSVP.</p>
-       <p style="color:#5F5A4D">Use the platform console to manage invitations, registration, meetings, check-in, and event communications.</p>`,
+      `${p(`Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} is set up on Bizcon RSVP.`)}
+       ${p("Use the platform console to manage invitations, registration, meetings, check-in, and event communications.")}`,
       input.loginUrl,
       "Open organiser console",
     ),
@@ -231,11 +267,15 @@ export async function sendMeetingRequestEmail(input: {
   inAppUrl: string;
 }) {
   const details = [
-    input.requesterCompany ? `<strong>${escapeHtml(input.requesterCompany)}</strong>` : null,
+    input.requesterCompany ? `<strong style="color:${aurora.text}">${escapeHtml(input.requesterCompany)}</strong>` : null,
     input.requesterJobTitle ? escapeHtml(input.requesterJobTitle) : null,
   ]
     .filter(Boolean)
     .join(" · ");
+
+  const quote = input.message
+    ? `<blockquote style="margin:16px 0;padding:14px 16px;border-radius:12px;border:1px solid ${aurora.indigoBorder};background:${aurora.indigoSoft};color:${aurora.body};font-size:14px;line-height:1.55">${escapeHtml(input.message)}</blockquote>`
+    : "";
 
   return deliver({
     organisationId: input.organisationId,
@@ -245,10 +285,10 @@ export async function sendMeetingRequestEmail(input: {
     html: letterPair(
       `${input.requesterName} sent a connection request`,
       "Connection request",
-      `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.requesterName)} would like to meet at ${escapeHtml(input.eventName)}.</p>
-       ${details ? `<p style="color:#5F5A4D;font-size:14px">${details}</p>` : ""}
-       ${input.message ? `<blockquote style="margin:16px 0;padding:12px 16px;border-left:3px solid #B4923F;background:#FBF7EE;color:#5F5A4D">${escapeHtml(input.message)}</blockquote>` : ""}
-       <p style="color:#8B8578;font-size:13px">Accepting will create a meeting you can reschedule in the app.</p>`,
+      `${p(`Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.requesterName)} would like to meet at ${escapeHtml(input.eventName)}.`)}
+       ${details ? `<p style="margin:0 0 12px;color:${aurora.body};font-size:14px">${details}</p>` : ""}
+       ${quote}
+       ${p("Accepting will create a meeting you can reschedule in the app.", true)}`,
       input.acceptUrl,
       "Accept request",
       input.declineUrl,
@@ -283,7 +323,9 @@ export async function sendReminderEmail(input: {
         ? `Please respond to ${input.eventName}`
         : `Please complete registration for ${input.eventName}`,
       "Reminder",
-      `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} is waiting for your response.</p>`,
+      p(
+        `Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} is waiting for your response.`,
+      ),
       input.href,
       input.kind === "invitation" ? "Open invitation" : "Complete registration",
     ),
@@ -308,12 +350,12 @@ export async function sendEventStaffRoleEmail(input: {
     : `You've been assigned as ${input.roleLabel} for ${input.eventName}`;
 
   const body = changed
-    ? `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, your staff role for <strong>${escapeHtml(input.eventName)}</strong> (${escapeHtml(input.orgName)}) has been updated from ${escapeHtml(input.previousRoleLabel!)} to <strong>${escapeHtml(input.roleLabel)}</strong>.</p>
-       <p style="color:#5F5A4D">${escapeHtml(input.roleDescription)}.</p>
-       <p style="color:#8B8578;font-size:13px">Sign in with <strong>${escapeHtml(input.toEmail)}</strong> to open your workspace.</p>`
-    : `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} has assigned you as <strong>${escapeHtml(input.roleLabel)}</strong> for <strong>${escapeHtml(input.eventName)}</strong>.</p>
-       <p style="color:#5F5A4D">${escapeHtml(input.roleDescription)}.</p>
-       <p style="color:#8B8578;font-size:13px">Sign in with <strong>${escapeHtml(input.toEmail)}</strong> to open your workspace.</p>`;
+    ? `${p(`Hello ${escapeHtml(input.toName)}, your staff role for <strong style="color:${aurora.text}">${escapeHtml(input.eventName)}</strong> (${escapeHtml(input.orgName)}) has been updated from ${escapeHtml(input.previousRoleLabel!)} to <strong style="color:${aurora.text}">${escapeHtml(input.roleLabel)}</strong>.`)}
+       ${p(`${escapeHtml(input.roleDescription)}.`)}
+       ${p(`Sign in with <strong style="color:${aurora.text}">${escapeHtml(input.toEmail)}</strong> to open your workspace.`, true)}`
+    : `${p(`Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} has assigned you as <strong style="color:${aurora.text}">${escapeHtml(input.roleLabel)}</strong> for <strong style="color:${aurora.text}">${escapeHtml(input.eventName)}</strong>.`)}
+       ${p(`${escapeHtml(input.roleDescription)}.`)}
+       ${p(`Sign in with <strong style="color:${aurora.text}">${escapeHtml(input.toEmail)}</strong> to open your workspace.`, true)}`;
 
   return deliver({
     organisationId: input.organisationId,
@@ -352,8 +394,12 @@ export async function sendApplicationDecisionEmail(input: {
         : `Your application was not approved`,
       "Application",
       input.approved
-        ? `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, your application has been approved. Use the unique invitation link to accept and then register.</p>`
-        : `<p style="color:#5F5A4D">Hello ${escapeHtml(input.toName)}, the organiser has not approved this application.</p>`,
+        ? p(
+            `Hello ${escapeHtml(input.toName)}, your application has been approved. Use the unique invitation link to accept and then register.`,
+          )
+        : p(
+            `Hello ${escapeHtml(input.toName)}, the organiser has not approved this application.`,
+          ),
       input.href ?? "#",
       input.approved ? "View invitation" : "Close",
     ),
