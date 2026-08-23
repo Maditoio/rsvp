@@ -16,6 +16,7 @@ import {
 import { createEvent } from "@/modules/events/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 type Step = 1 | 2 | 3;
@@ -85,12 +86,12 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-3xl flex-col px-6 py-16 sm:px-10 sm:py-20 lg:max-w-4xl lg:py-24">
-      <div className="mb-16 flex items-center justify-between gap-6 sm:mb-20">
+    <div className="mx-auto flex w-full max-w-xl flex-col px-6 py-8 sm:py-10">
+      <div className="mb-8 flex items-center justify-between gap-4">
         {step > 1 ? (
           <button
             type="button"
-            className="shrink-0 text-sm font-medium text-indigo-700 hover:text-indigo-800"
+            className="shrink-0 text-body font-medium text-indigo-600 hover:text-indigo-700"
             onClick={() => {
               setError(null);
               setStep((s) => (s > 1 ? ((s - 1) as Step) : s));
@@ -101,70 +102,60 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
         ) : (
           <Link
             href={`/app/${orgSlug}/events`}
-            className="shrink-0 text-sm font-medium text-indigo-700 hover:text-indigo-800"
+            className="shrink-0 text-body font-medium text-indigo-600 hover:text-indigo-700"
           >
             ← Back
           </Link>
         )}
         <WizardStepper step={step} />
-        <span className="hidden w-14 shrink-0 sm:block" aria-hidden />
+        <span className="hidden w-12 shrink-0 sm:block" aria-hidden />
       </div>
 
       {step === 1 ? (
-        <div
-          key="step-1"
-          className="wizard-step-enter mx-auto w-full max-w-2xl space-y-10 text-center sm:space-y-12"
-        >
-          <div className="space-y-4">
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-indigo-600">
-              Step 1 of 3
-            </p>
-            <h1 className="font-display text-4xl leading-[1.15] text-slate-900 sm:text-5xl sm:leading-[1.1]">
+        <div key="step-1" className="wizard-step-enter space-y-6">
+          <div>
+            <p className="text-label text-indigo-600">Step 1 of 3</p>
+            <h1 className="mt-2 text-display text-slate-900">
               What is the name of your event?
             </h1>
           </div>
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Kolwezi Mining Copper Summit"
-            className="h-14 text-center text-lg sm:h-16 sm:text-xl"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                goNext();
-              }
-            }}
-          />
+          <div>
+            <Label htmlFor="event-name">Event name</Label>
+            <Input
+              id="event-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Kolwezi Mining Copper Summit"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  goNext();
+                }
+              }}
+            />
+          </div>
           {error ? <p className="text-sm text-danger">{error}</p> : null}
-          <Button
-            type="button"
-            size="lg"
-            className="h-12 w-full text-base sm:h-14"
-            onClick={goNext}
-          >
-            Continue
-          </Button>
+          <div className="flex justify-end pt-2">
+            <Button type="button" onClick={goNext}>
+              Continue
+            </Button>
+          </div>
         </div>
       ) : null}
 
       {step === 2 ? (
-        <div
-          key="step-2"
-          className="wizard-step-enter mx-auto w-full max-w-2xl space-y-10 text-center sm:space-y-12"
-        >
-          <div className="space-y-4">
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-indigo-600">
-              Step 2 of 3
-            </p>
-            <h1 className="font-display text-4xl leading-[1.15] text-slate-900 sm:text-5xl sm:leading-[1.1]">
+        <div key="step-2" className="wizard-step-enter space-y-6">
+          <div>
+            <p className="text-label text-indigo-600">Step 2 of 3</p>
+            <h1 className="mt-2 text-display text-slate-900">
               What best describes &lsquo;{name.trim()}&rsquo;?
             </h1>
-            <p className="text-base text-slate-600">
+            <p className="mt-1 text-body text-slate-600">
               This helps us customize your experience.
             </p>
           </div>
-          <div className="space-y-3.5 text-left">
+          <div className="space-y-2.5">
             <ChoiceCard
               selected={format === "single_day"}
               title="Single date, time and location"
@@ -185,34 +176,26 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
             />
           </div>
           {error ? <p className="text-sm text-danger">{error}</p> : null}
-          <Button
-            type="button"
-            size="lg"
-            className="h-12 w-full text-base sm:h-14"
-            onClick={goNext}
-          >
-            Continue
-          </Button>
+          <div className="flex justify-end pt-2">
+            <Button type="button" onClick={goNext}>
+              Continue
+            </Button>
+          </div>
         </div>
       ) : null}
 
       {step === 3 ? (
-        <div
-          key="step-3"
-          className="wizard-step-enter mx-auto w-full max-w-2xl space-y-10 text-center sm:space-y-12"
-        >
-          <div className="space-y-4">
-            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-indigo-600">
-              Step 3 of 3
-            </p>
-            <h1 className="font-display text-4xl leading-[1.15] text-slate-900 sm:text-5xl sm:leading-[1.1]">
+        <div key="step-3" className="wizard-step-enter space-y-6">
+          <div>
+            <p className="text-label text-indigo-600">Step 3 of 3</p>
+            <h1 className="mt-2 text-display text-slate-900">
               How will guests join?
             </h1>
-            <p className="text-base text-slate-600">
+            <p className="mt-1 text-body text-slate-600">
               This helps us customize your experience.
             </p>
           </div>
-          <div className="space-y-3.5 text-left">
+          <div className="space-y-2.5">
             <ChoiceCard
               selected={access === "invitation_only"}
               title="Invitation only — free to attend"
@@ -227,15 +210,11 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
             />
           </div>
           {error ? <p className="text-sm text-danger">{error}</p> : null}
-          <Button
-            type="button"
-            size="lg"
-            className="h-12 w-full text-base sm:h-14"
-            disabled={pending}
-            onClick={submit}
-          >
-            {pending ? "Creating…" : "Create event"}
-          </Button>
+          <div className="flex justify-end pt-2">
+            <Button type="button" disabled={pending} onClick={submit}>
+              {pending ? "Creating…" : "Create event"}
+            </Button>
+          </div>
         </div>
       ) : null}
     </div>
@@ -244,22 +223,22 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
 
 function WizardStepper({ step }: { step: Step }) {
   return (
-    <ol className="flex items-center gap-2.5 text-xs sm:gap-3 sm:text-sm">
+    <ol className="flex items-center gap-2 text-label">
       {STEPS.map((item, index) => {
         const active = item.id === step;
         const done = item.id < step;
         const Icon = item.icon;
         return (
-          <li key={item.id} className="flex items-center gap-2.5 sm:gap-3">
+          <li key={item.id} className="flex items-center gap-2">
             {index > 0 ? (
               <span
-                className="hidden h-px w-6 bg-slate-200 sm:block lg:w-8"
+                className="hidden h-px w-4 bg-slate-200 sm:block"
                 aria-hidden
               />
             ) : null}
             <span
               className={cn(
-                "inline-flex items-center gap-2",
+                "inline-flex items-center gap-1.5",
                 active && "font-semibold text-slate-900",
                 done && "text-success",
                 !active && !done && "text-slate-400",
@@ -267,7 +246,7 @@ function WizardStepper({ step }: { step: Step }) {
             >
               <span
                 className={cn(
-                  "flex size-8 items-center justify-center rounded-lg sm:size-9",
+                  "flex size-7 items-center justify-center rounded-full",
                   active && "bg-indigo-600 text-white",
                   done && "bg-emerald-50 text-success",
                   !active && !done && "bg-slate-100 text-slate-500",
@@ -275,9 +254,9 @@ function WizardStepper({ step }: { step: Step }) {
                 aria-hidden
               >
                 {done ? (
-                  <Check className="size-4" strokeWidth={2.5} />
+                  <Check className="size-3.5" strokeWidth={2.5} />
                 ) : (
-                  <Icon className="size-4" strokeWidth={2} />
+                  <Icon className="size-3.5" strokeWidth={2} />
                 )}
               </span>
               <span className="hidden sm:inline">{item.label}</span>
@@ -305,22 +284,23 @@ function ChoiceCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-4 rounded-md border bg-white px-6 py-5 text-left text-base font-medium transition-colors",
+        "flex w-full items-center gap-3 rounded-xl bg-white px-4 py-3.5 text-left shadow-sm transition-[box-shadow,ring-color] duration-150",
+        "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/30",
         selected
-          ? "border-indigo-600 text-slate-900 ring-1 ring-indigo-600/15"
-          : "border-slate-200 text-slate-900 hover:border-slate-200",
+          ? "ring-2 ring-indigo-600/20"
+          : "hover:shadow-md",
       )}
     >
       <span
         className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-lg",
+          "flex size-8 shrink-0 items-center justify-center rounded-lg",
           selected ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600",
         )}
         aria-hidden
       >
-        <Icon className="size-5" strokeWidth={2} />
+        <Icon className="size-4" strokeWidth={2} />
       </span>
-      <span>{title}</span>
+      <span className="text-body font-medium text-slate-900">{title}</span>
     </button>
   );
 }
