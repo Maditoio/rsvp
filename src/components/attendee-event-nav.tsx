@@ -9,6 +9,7 @@ import {
   GitMerge,
   Handshake,
   LayoutDashboard,
+  ListChecks,
   QrCode,
   User,
 } from "lucide-react";
@@ -24,6 +25,7 @@ function attendeeEventPrimaryItems(eventId: string) {
     { href: `${base}/directory`, label: "Directory", icon: BookUser },
     { href: `${base}/matchmaking`, label: "Matching", icon: GitMerge },
     { href: `${base}/meetings`, label: "Meetings", icon: Handshake },
+    { href: `${base}/polls`, label: "Polls", icon: ListChecks },
     { href: `${base}/calendar`, label: "Calendar", icon: Calendar },
   ];
 }

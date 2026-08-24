@@ -372,6 +372,91 @@ export async function sendEventStaffRoleEmail(input: {
   });
 }
 
+export async function sendMeetingReminderEmail(input: {
+  organisationId: string;
+  eventId: string;
+  toEmail: string;
+  toName: string;
+  eventName: string;
+  when: string;
+  room: string | null;
+  href: string;
+  kind: "24h" | "30min";
+}) {
+  const subject =
+    input.kind === "30min"
+      ? `Meeting in 30 minutes — ${input.eventName}`
+      : `Meeting tomorrow — ${input.eventName}`;
+  const roomLine = input.room
+    ? `<p style="margin:0 0 12px;color:${aurora.body};font-size:14px">Room: ${escapeHtml(input.room)}</p>`
+    : "";
+  return deliver({
+    organisationId: input.organisationId,
+    eventId: input.eventId,
+    toEmail: input.toEmail,
+    subject,
+    html: letter(
+      subject,
+      "Meeting reminder",
+      `${p(`Hello ${escapeHtml(input.toName)}, your meeting at ${escapeHtml(input.eventName)} is scheduled for ${escapeHtml(input.when)}.`)}
+       ${roomLine}
+       ${p("Open the app to view details or reschedule.", true)}`,
+      input.href,
+      "View meeting",
+    ),
+  });
+}
+
+export async function sendUnscheduledMeetingNudgeEmail(input: {
+  organisationId: string;
+  eventId: string;
+  toEmail: string;
+  toName: string;
+  eventName: string;
+  href: string;
+}) {
+  return deliver({
+    organisationId: input.organisationId,
+    eventId: input.eventId,
+    toEmail: input.toEmail,
+    subject: `Unscheduled meeting — ${input.eventName}`,
+    html: letter(
+      "Your meeting needs a time slot",
+      "Scheduling",
+      p(
+        `Hello ${escapeHtml(input.toName)}, you have an accepted meeting at ${escapeHtml(input.eventName)} that has not been placed on the schedule yet. Organisers are working on room assignments — check back soon.`,
+      ),
+      input.href,
+      "View meetings",
+    ),
+  });
+}
+
+export async function sendPostMeetingFollowUpEmail(input: {
+  organisationId: string;
+  eventId: string;
+  toEmail: string;
+  toName: string;
+  eventName: string;
+  href: string;
+}) {
+  return deliver({
+    organisationId: input.organisationId,
+    eventId: input.eventId,
+    toEmail: input.toEmail,
+    subject: `How was your meeting at ${input.eventName}?`,
+    html: letter(
+      "Share your feedback",
+      "Follow-up",
+      p(
+        `Hello ${escapeHtml(input.toName)}, we hope your meeting at ${escapeHtml(input.eventName)} went well. Optional: share quick feedback via a short poll.`,
+      ),
+      input.href,
+      "Open poll",
+    ),
+  });
+}
+
 export async function sendApplicationDecisionEmail(input: {
   organisationId: string;
   eventId: string;

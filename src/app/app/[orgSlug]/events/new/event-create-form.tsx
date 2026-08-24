@@ -1,13 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   CalendarDays,
   CalendarRange,
   Check,
+  ChevronLeft,
   Network,
   Shield,
   Sparkles,
@@ -23,6 +30,9 @@ type Step = 1 | 2 | 3;
 type Format = "single_day" | "multi_day" | "meeting_focused";
 type Access = "invitation_only" | "open_application";
 
+const CONCIERGE_IDLE_MS = 700;
+const CONCIERGE_VISIBLE_MS = 3000;
+
 const STEPS: { id: Step; label: string; icon: LucideIcon }[] = [
   { id: 1, label: "Name", icon: Sparkles },
   { id: 2, label: "Details", icon: CalendarRange },
@@ -37,6 +47,46 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
   const [access, setAccess] = useState<Access | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [showConcierge, setShowConcierge] = useState(false);
+  const showTimerRef = useRef<number | null>(null);
+  const hideTimerRef = useRef<number | null>(null);
+
+  const clearConciergeTimers = useCallback(() => {
+    if (showTimerRef.current !== null) {
+      window.clearTimeout(showTimerRef.current);
+      showTimerRef.current = null;
+    }
+    if (hideTimerRef.current !== null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+
+  const hideConcierge = useCallback(() => {
+    clearConciergeTimers();
+    setShowConcierge(false);
+  }, [clearConciergeTimers]);
+
+  const scheduleConcierge = useCallback(
+    (value: string) => {
+      clearConciergeTimers();
+      setShowConcierge(false);
+
+      if (value.trim().length < 2) return;
+
+      showTimerRef.current = window.setTimeout(() => {
+        showTimerRef.current = null;
+        setShowConcierge(true);
+        hideTimerRef.current = window.setTimeout(() => {
+          hideTimerRef.current = null;
+          setShowConcierge(false);
+        }, CONCIERGE_VISIBLE_MS);
+      }, CONCIERGE_IDLE_MS);
+    },
+    [clearConciergeTimers],
+  );
+
+  useEffect(() => () => clearConciergeTimers(), [clearConciergeTimers]);
 
   function goNext() {
     setError(null);
@@ -85,30 +135,15 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
     });
   }
 
+  function goBack() {
+    setError(null);
+    setStep((s) => (s > 1 ? ((s - 1) as Step) : s));
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col px-6 py-8 sm:py-10">
-      <div className="mb-8 flex items-center justify-between gap-4">
-        {step > 1 ? (
-          <button
-            type="button"
-            className="shrink-0 text-body font-medium text-indigo-600 hover:text-indigo-700"
-            onClick={() => {
-              setError(null);
-              setStep((s) => (s > 1 ? ((s - 1) as Step) : s));
-            }}
-          >
-            ← Back
-          </button>
-        ) : (
-          <Link
-            href={`/app/${orgSlug}/events`}
-            className="shrink-0 text-body font-medium text-indigo-600 hover:text-indigo-700"
-          >
-            ← Back
-          </Link>
-        )}
+      <div className="mb-8 flex justify-center">
         <WizardStepper step={step} />
-        <span className="hidden w-12 shrink-0 sm:block" aria-hidden />
       </div>
 
       {step === 1 ? (
@@ -121,26 +156,57 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
           </div>
           <div>
             <Label htmlFor="event-name">Event name</Label>
-            <Input
-              id="event-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Kolwezi Mining Copper Summit"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  goNext();
-                }
-              }}
-            />
+            <div className="relative">
+              <Input
+                id="event-name"
+                value={name}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setName(next);
+                  scheduleConcierge(next);
+                }}
+                placeholder="Kolwezi Mining Copper Summit"
+                autoFocus
+                className={showConcierge ? "pr-10" : undefined}
+                aria-describedby="event-name-concierge"
+                onKeyDown={(e) => {
+                  hideConcierge();
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    goNext();
+                  }
+                }}
+              />
+              {showConcierge ? (
+                <span
+                  className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-center"
+                  aria-hidden
+                >
+                  <Sparkles
+                    className="concierge-sparkle size-4 text-indigo-600"
+                    strokeWidth={1.75}
+                  />
+                </span>
+              ) : null}
+            </div>
+            <p
+              id="event-name-concierge"
+              className={cn(
+                "mt-1.5 min-h-[1.125rem] text-xs text-slate-400 transition-opacity duration-200",
+                showConcierge ? "opacity-100" : "opacity-0",
+              )}
+              aria-live="polite"
+            >
+              <span className="font-medium text-indigo-600">Con·cierge AI</span>{" "}
+              optimizing workspace
+            </p>
           </div>
           {error ? <p className="text-sm text-danger">{error}</p> : null}
-          <div className="flex justify-end pt-2">
+          <WizardFooter>
             <Button type="button" onClick={goNext}>
               Continue
             </Button>
-          </div>
+          </WizardFooter>
         </div>
       ) : null}
 
@@ -176,11 +242,11 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
             />
           </div>
           {error ? <p className="text-sm text-danger">{error}</p> : null}
-          <div className="flex justify-end pt-2">
+          <WizardFooter onBack={goBack}>
             <Button type="button" onClick={goNext}>
               Continue
             </Button>
-          </div>
+          </WizardFooter>
         </div>
       ) : null}
 
@@ -210,13 +276,35 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
             />
           </div>
           {error ? <p className="text-sm text-danger">{error}</p> : null}
-          <div className="flex justify-end pt-2">
+          <WizardFooter onBack={goBack}>
             <Button type="button" disabled={pending} onClick={submit}>
               {pending ? "Creating…" : "Create event"}
             </Button>
-          </div>
+          </WizardFooter>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function WizardFooter({
+  onBack,
+  children,
+}: {
+  onBack?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 pt-2">
+      {onBack ? (
+        <Button type="button" variant="ghost" onClick={onBack}>
+          <ChevronLeft className="size-4" strokeWidth={2} aria-hidden />
+          Back
+        </Button>
+      ) : (
+        <span aria-hidden />
+      )}
+      {children}
     </div>
   );
 }

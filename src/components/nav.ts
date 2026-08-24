@@ -6,7 +6,9 @@ import {
   ChartColumn,
   ClipboardList,
   Handshake,
+  IdCard,
   LayoutDashboard,
+  ListChecks,
   Mail,
   Megaphone,
   QrCode,
@@ -129,6 +131,12 @@ export function eventNavGroups(
           permission: "checkin.perform",
           icon: Users,
         },
+        {
+          href: `${base}/badges`,
+          label: "Badges",
+          permission: "checkin.perform",
+          icon: IdCard,
+        },
         { href: `${base}/agenda`, label: "Agenda", permission: "event.read", icon: CalendarDays },
         { href: `${base}/meetings`, label: "Meetings", permission: "event.read", icon: Handshake },
       ],
@@ -137,7 +145,9 @@ export function eventNavGroups(
       label: "Communications & data",
       items: [
         { href: `${base}/communications`, label: "Communications", permission: "invitations.write", icon: Megaphone },
-        { href: `${base}/reports`, label: "Reports", permission: "reports.export", icon: ChartColumn },
+        { href: `${base}/polls`, label: "Polls", permission: "event.read", icon: ListChecks },
+        { href: `${base}/analytics`, label: "Analytics", permission: "event.read", icon: ChartColumn },
+        { href: `${base}/reports`, label: "Reports", permission: "reports.export", icon: ScrollText },
       ],
     },
   ];

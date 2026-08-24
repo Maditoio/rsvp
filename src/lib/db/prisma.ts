@@ -1,6 +1,16 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import "server-only";
 
-const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+import { PrismaClient } from "@prisma/client";
+
+/**
+ * Use a versioned global key. Next.js HMR keeps `globalThis.prisma` across
+ * `prisma generate`, so a renamed key forces a fresh client after schema changes.
+ */
+const GLOBAL_KEY = "__bizcon_prisma_v4_organiser_roadmap__" as const;
+
+type PrismaGlobal = typeof globalThis & {
+  [GLOBAL_KEY]?: PrismaClient;
+};
 
 function createPrismaClient() {
   return new PrismaClient({
@@ -8,36 +18,43 @@ function createPrismaClient() {
   });
 }
 
-/**
- * After `prisma generate`, Next.js HMR can keep an old PrismaClient on
- * globalThis that is missing newly added model delegates (e.g. salesforce
- * after hubSpot was already present). Detect that and recreate.
- */
-function isStalePrismaClient(client: PrismaClient): boolean {
-  const delegates = client as unknown as Record<
-    string,
-    { findUnique?: unknown } | undefined
-  >;
-  for (const model of Prisma.dmmf.datamodel.models) {
-    const key = model.name.charAt(0).toLowerCase() + model.name.slice(1);
-    if (typeof delegates[key]?.findUnique !== "function") {
-      return true;
-    }
-  }
-  return false;
-}
-
 function getPrismaClient(): PrismaClient {
-  const existing = globalForPrisma.prisma;
-  if (existing && isStalePrismaClient(existing)) {
+  const g = globalThis as PrismaGlobal;
+  const existing = g[GLOBAL_KEY];
+
+  if (existing) {
+    const pollDelegate = (
+      existing as unknown as { eventPoll?: { findMany?: unknown } }
+    ).eventPoll;
+    if (typeof pollDelegate?.findMany === "function") {
+      return existing;
+    }
     void existing.$disconnect();
-    globalForPrisma.prisma = undefined;
+    g[GLOBAL_KEY] = undefined;
   }
 
-  const client = globalForPrisma.prisma ?? createPrismaClient();
-  if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = client;
+  const client = createPrismaClient();
+  const pollDelegate = (
+    client as unknown as { eventPoll?: { findMany?: unknown } }
+  ).eventPoll;
+
+  if (typeof pollDelegate?.findMany !== "function") {
+    throw new Error(
+      "Prisma client is missing EventPoll. Run `npx prisma generate`, delete the `.next` folder, and restart the dev server.",
+    );
   }
+
+  if (process.env.NODE_ENV !== "production") {
+    g[GLOBAL_KEY] = client;
+  }
+
+  // Drop legacy singleton if present from older code.
+  const legacy = globalThis as unknown as { prisma?: PrismaClient };
+  if (legacy.prisma && legacy.prisma !== client) {
+    void legacy.prisma.$disconnect();
+    legacy.prisma = undefined;
+  }
+
   return client;
 }
 

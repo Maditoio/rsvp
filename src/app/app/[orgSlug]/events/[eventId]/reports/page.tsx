@@ -15,7 +15,15 @@ export default async function ReportsPage({
         Reports
       </h1>
       <p className="mt-1 mb-6 text-sm text-slate-600">
-        CSV exports are permission-gated and written to the audit log.
+        CSV exports are permission-gated and written to the audit log. View live
+        metrics on{" "}
+        <a
+          href={`/app/${orgSlug}/events/${eventId}/analytics`}
+          className="font-medium text-indigo-600 hover:underline"
+        >
+          Analytics
+        </a>
+        .
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

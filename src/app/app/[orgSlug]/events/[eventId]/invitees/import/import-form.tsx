@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition, Suspense } from "react";
 import {
   CheckCircle2,
   Download,
@@ -60,6 +60,10 @@ import {
 } from "@/modules/contacts/parse";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DataTable,
+  type DataTableColumn,
+} from "@/components/data-table/data-table";
 import { cn } from "@/lib/utils";
 
 type Step = "prepare" | "map" | "preview";
@@ -326,7 +330,7 @@ export function ContactImportForm({
 
       {step === "map" && inspect ? (
         <div className="space-y-6">
-          <div className="rounded-xl bg-white shadow-sm p-5">
+          <div>
             <p className="text-sm text-slate-600">
               <span className="font-medium text-slate-900">{inspect.filename}</span>
               {" · "}
@@ -339,55 +343,94 @@ export function ContactImportForm({
               Match each spreadsheet column to a Bizcon RSVP field. We guessed
               where we could.
             </p>
-
-            <div className="mt-6 overflow-x-auto">
-              <table className="w-full min-w-[32rem] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-slate-500">
-                    <th className="pb-2 pr-3 font-semibold">Your column</th>
-                    <th className="pb-2 pr-3 font-semibold">Sample</th>
-                    <th className="pb-2 font-semibold">Maps to</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {inspect.headers.map((header) => (
-                    <tr key={header} className="border-b border-slate-100">
-                      <td className="py-3 pr-3 font-medium text-slate-900">
-                        {header || "(empty)"}
-                      </td>
-                      <td className="max-w-[12rem] truncate py-3 pr-3 text-slate-600">
-                        {inspect.samples[0]?.[header] || "—"}
-                      </td>
-                      <td className="py-3">
-                        <select
-                          className="h-9 w-full max-w-xs rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900"
-                          value={columnMap[header] ?? "ignore"}
-                          onChange={(e) =>
-                            updateMap(header, e.target.value as ImportFieldKey)
-                          }
-                        >
-                          {FIELD_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {mapError ? (
-              <p className="mt-4 text-sm text-danger">{mapError}</p>
-            ) : (
-              <p className="mt-4 inline-flex items-center gap-1.5 text-sm text-success">
-                <CheckCircle2 className="size-4" aria-hidden />
-                Required fields are mapped
-              </p>
-            )}
           </div>
+
+          <Suspense
+            fallback={
+              <div className="h-40 rounded-xl bg-white shadow-sm" />
+            }
+          >
+            <DataTable
+              rows={inspect.headers.map((header) => ({
+                header,
+                sample: inspect.samples[0]?.[header] || "—",
+                mappedTo: columnMap[header] ?? "ignore",
+              }))}
+              columns={
+                [
+                  {
+                    id: "header",
+                    header: "Your column",
+                    width: "1.2fr",
+                    cell: (row) => (
+                      <span className="font-medium text-slate-700">
+                        {row.header || "(empty)"}
+                      </span>
+                    ),
+                  },
+                  {
+                    id: "sample",
+                    header: "Sample",
+                    width: "1.2fr",
+                    cell: (row) => (
+                      <span className="truncate text-slate-600">
+                        {row.sample}
+                      </span>
+                    ),
+                  },
+                  {
+                    id: "mapsTo",
+                    header: "Maps to",
+                    width: "1.4fr",
+                    cell: (row) => (
+                      <select
+                        className="h-9 w-full max-w-xs rounded-full border border-slate-200 bg-slate-50 px-3 text-[0.84375rem] text-slate-700 outline-none shadow-xs focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/12"
+                        value={row.mappedTo}
+                        onChange={(e) =>
+                          updateMap(
+                            row.header,
+                            e.target.value as ImportFieldKey,
+                          )
+                        }
+                      >
+                        {FIELD_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    ),
+                  },
+                ] satisfies DataTableColumn<{
+                  header: string;
+                  sample: string;
+                  mappedTo: string;
+                }>[]
+              }
+              getRowId={(row) => row.header || "__empty__"}
+              searchPlaceholder="Search columns…"
+              searchFilter={(row, query) => {
+                const mappedLabel =
+                  FIELD_OPTIONS.find((o) => o.value === row.mappedTo)
+                    ?.label ?? row.mappedTo;
+                return [row.header, row.sample, mappedLabel]
+                  .join(" ")
+                  .toLowerCase()
+                  .includes(query);
+              }}
+              emptyMessage="No columns found in this file."
+              pageParam="mapPage"
+            />
+          </Suspense>
+
+          {mapError ? (
+            <p className="text-sm text-danger">{mapError}</p>
+          ) : (
+            <p className="inline-flex items-center gap-1.5 text-sm text-success">
+              <CheckCircle2 className="size-4" aria-hidden />
+              Required fields are mapped
+            </p>
+          )}
 
           <div className="flex flex-wrap gap-2">
             <Button type="button" disabled={pending || !!mapError} onClick={runPreview}>

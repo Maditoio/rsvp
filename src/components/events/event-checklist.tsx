@@ -22,7 +22,7 @@ import {
   type ChecklistItem,
   type ChecklistPhase,
   type ChecklistResult,
-} from "@/modules/events/checklist";
+} from "@/modules/events/checklist-types";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +38,7 @@ const ICONS: Record<string, typeof ClipboardList> = {
   agenda: CalendarDays,
   meeting_rooms: Handshake,
   matchmaking: Settings2,
+  polls: ClipboardList,
   check_in: DoorOpen,
   reports: ChartColumn,
 };

@@ -118,6 +118,20 @@ enum OnlineMeetingProvider {
   ZOOM
 }
 
+enum CommunicationAutomationTrigger {
+  INVITATION_NOT_ACCEPTED
+  INVITATION_NOT_REGISTERED
+  MEETING_ACCEPTED
+  EVENT_STARTS_BEFORE
+}
+
+enum CommunicationAutomationAction {
+  SEND_INVITATION_REMINDER
+  SEND_REGISTRATION_REMINDER
+  SEND_MEETING_CONFIRMATION
+  SEND_EVENT_REMINDER
+}
+
 model User {
   id            String   @id @default(cuid())
   clerkUserId   String   @unique
@@ -192,6 +206,11 @@ model Organisation {
   salesforceConnection    SalesforceConnection?
   oauthStates             OAuthState[]
   onlineMeetings          OnlineMeeting[]
+  eventPolls              EventPoll[]
+  eventPollQuestions      EventPollQuestion[]
+  eventPollResponses      EventPollResponse[]
+  eventPollAnswers        EventPollAnswer[]
+  communicationAutomations CommunicationAutomation[]
 }
 
 model OrganisationUser {
@@ -257,6 +276,11 @@ model Event {
   files                 FileObject[]
   applications          EventApplication[]
   onlineMeetings        OnlineMeeting[]
+  polls                 EventPoll[]
+  pollQuestions         EventPollQuestion[]
+  pollResponses         EventPollResponse[]
+  pollAnswers           EventPollAnswer[]
+  communicationAutomations CommunicationAutomation[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -271,12 +295,37 @@ model EventSettings {
   capacity               Int?
   waitlistEnabled        Boolean @default(false)
   aiInsightsEnabled      Boolean @default(false)
+  automationsEnabled     Boolean @default(true)
   meetingDurationMinutes Int     @default(15)
   eventStartTime         String  @default("09:00")
   eventEndTime           String  @default("18:00")
+  /// Category rules, caps, batch triggers, reminder toggles (JSON).
+  operationsConfig       Json?
+  /// Badge template id, field toggles (JSON).
+  badgeConfig            Json?
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model CommunicationAutomation {
+  id             String                         @id @default(cuid())
+  organisationId String
+  eventId        String
+  name           String?
+  trigger        CommunicationAutomationTrigger
+  delayDays      Int                            @default(5)
+  action         CommunicationAutomationAction
+  enabled        Boolean                        @default(true)
+  lastRunAt      DateTime?
+  createdAt      DateTime                       @default(now())
+  updatedAt      DateTime                       @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, eventId])
+  @@index([eventId, enabled])
 }
 
 model EventApplication {
@@ -535,6 +584,7 @@ model Attendee {
   meetingReqsFrom MeetingRequest[]   @relation("MeetingRequester")
   meetingReqsTo   MeetingRequest[]   @relation("MeetingTarget")
   meetingParts MeetingParticipant[]
+  pollResponses EventPollResponse[]
 
   @@unique([eventId, email])
   @@index([organisationId, eventId])
@@ -563,6 +613,7 @@ model AttendeePrivacy {
   attendeeId            String  @unique
   profileVisible        Boolean @default(true)
   matchmakingEnabled    Boolean @default(false)
+  matchmakingPaused     Boolean @default(false)
   showEmail             Boolean @default(false)
   showPhone             Boolean @default(false)
   aiInsightsOptIn       Boolean @default(false)
@@ -651,6 +702,8 @@ model MatchScore {
   score           Float
   reasons         Json?
   aiInsight       String?
+  aiRankScore     Float?
+  aiRankedAt      DateTime?
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -838,12 +891,13 @@ model CheckIn {
 }
 
 model Badge {
-  id             String @id @default(cuid())
-  organisationId String
-  eventId        String
-  attendeeId     String
-  template       String @default("default")
-  printedAt      DateTime?
+  id               String    @id @default(cuid())
+  organisationId   String
+  eventId          String
+  attendeeId       String
+  template         String    @default("zebra_4x3")
+  printedAt        DateTime?
+  printedByUserId  String?
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -1004,4 +1058,99 @@ model FileObject {
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+}
+
+enum EventPollStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum EventPollQuestionType {
+  SINGLE
+  MULTI
+  TEXT
+}
+
+model EventPoll {
+  id              String          @id @default(cuid())
+  organisationId  String
+  eventId         String
+  title           String
+  description     String?
+  status          EventPollStatus @default(DRAFT)
+  publishedAt     DateTime?
+  closedAt        DateTime?
+  createdByUserId String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  questions    EventPollQuestion[]
+  responses    EventPollResponse[]
+
+  @@index([organisationId, eventId])
+  @@index([eventId, status])
+}
+
+model EventPollQuestion {
+  id             String                @id @default(cuid())
+  organisationId String
+  eventId        String
+  pollId         String
+  label          String
+  type           EventPollQuestionType
+  required       Boolean               @default(true)
+  allowOther     Boolean               @default(false)
+  options        Json?
+  sortOrder      Int                   @default(0)
+
+  organisation Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  poll         EventPoll        @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  answers      EventPollAnswer[]
+
+  @@index([pollId, sortOrder])
+  @@index([organisationId, eventId])
+}
+
+model EventPollResponse {
+  id             String   @id @default(cuid())
+  organisationId String
+  eventId        String
+  pollId         String
+  attendeeId     String
+  userId         String?
+  submittedAt    DateTime @default(now())
+
+  organisation Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  poll         EventPoll        @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  attendee     Attendee         @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+  answers      EventPollAnswer[]
+
+  @@unique([pollId, attendeeId])
+  @@index([organisationId, eventId])
+  @@index([attendeeId])
+}
+
+model EventPollAnswer {
+  id                String  @id @default(cuid())
+  organisationId    String
+  eventId           String
+  responseId        String
+  questionId        String
+  selectedOptionIds Json?
+  otherText         String?
+  textValue         String?
+
+  organisation Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  response     EventPollResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question     EventPollQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([responseId, questionId])
+  @@index([organisationId, eventId])
+  @@index([questionId])
 }

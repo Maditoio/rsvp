@@ -45,6 +45,8 @@ export type DirectoryPerson = {
   connectionStatus: DirectoryConnectionStatus;
   /** Cached AI explanation when previously generated; null if none. */
   aiInsight: string | null;
+  /** Optional AI ranking boost (0–100); null when AI layer has not run. */
+  aiRankScore: number | null;
 };
 
 export type RankedDirectory = {
@@ -69,6 +71,9 @@ function byName(a: DirectoryPerson, b: DirectoryPerson) {
 }
 
 function forYouRank(a: DirectoryPerson, b: DirectoryPerson) {
+  const aAi = a.aiRankScore ?? 0;
+  const bAi = b.aiRankScore ?? 0;
+  if (bAi !== aAi) return bAi - aAi;
   return b.score - a.score || byName(a, b);
 }
 
@@ -121,7 +126,7 @@ function toDirectoryPerson(
   meScoreable: ReturnType<typeof toScoreableProfile>,
   storedByCandidate: Map<
     string,
-    { score: number; reasons: unknown; aiInsight: string | null }
+    { score: number; reasons: unknown; aiInsight: string | null; aiRankScore: number | null }
   >,
   connectionStatus: DirectoryConnectionStatus,
 ): DirectoryPerson {
@@ -157,6 +162,7 @@ function toDirectoryPerson(
     matchmakingEligible: isMatchmakingEligible(row),
     connectionStatus,
     aiInsight: storedRow?.aiInsight ?? null,
+    aiRankScore: storedRow?.aiRankScore ?? null,
   };
 }
 
@@ -180,7 +186,13 @@ export async function rankedDirectory(eventId: string): Promise<RankedDirectory>
       where: forOrganisation(me.organisationId, { eventId }),
     });
     if (attendeeCount <= 100) {
-      await recomputeMatchScoresForAttendee(eventId, me.id);
+      const flags = await loadAiInsightFlags(eventId, me.id);
+      if (flags.eventAiEnabled) {
+        const { refreshAttendeeMatchmaking } = await import("./batch");
+        await refreshAttendeeMatchmaking(eventId, me.id);
+      } else {
+        await recomputeMatchScoresForAttendee(eventId, me.id);
+      }
     }
   }
 

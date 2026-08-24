@@ -219,6 +219,22 @@ body {
   animation: wizard-step-enter 320ms ease-out both;
 }
 
+@keyframes concierge-sparkle {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.92) rotate(-8deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08) rotate(8deg);
+  }
+}
+
+.concierge-sparkle {
+  animation: concierge-sparkle 1.4s ease-in-out infinite;
+}
+
 @keyframes aurora-modal-enter {
   from {
     opacity: 0;
@@ -249,9 +265,15 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .wizard-step-enter,
+  .concierge-sparkle,
   .aurora-modal-enter,
   .aurora-drawer-enter {
     animation: none;
+  }
+
+  .concierge-sparkle {
+    opacity: 1;
+    transform: none;
   }
 }
 

@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PageHeader } from "@/components/ui/page-header";
 import { QrCodeImage } from "@/components/qr-code";
 
 export function EventSettingsForm({
@@ -28,6 +27,7 @@ export function EventSettingsForm({
     waitlistEnabled: boolean;
     allowPublicApplication: boolean;
     aiInsightsEnabled: boolean;
+    automationsEnabled: boolean;
     meetingDurationMinutes: number;
     eventStartTime: string;
     eventEndTime: string;
@@ -46,12 +46,17 @@ export function EventSettingsForm({
   }
 
   return (
-    <div className="max-w-xl space-y-6">
-      <PageHeader
-        eyebrow="Event"
-        title="Settings"
-        description="Invitation windows, capacity, public applications, and optional AI insights."
-      />
+    <div className="max-w-xl rounded-xl bg-white p-6 shadow-sm">
+      <div className="mb-6">
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
+          Registration & capacity
+        </p>
+        <h2 className="mt-1 text-lg font-semibold text-slate-900">General</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Invitation windows, capacity, public applications, and optional AI
+          insights.
+        </p>
+      </div>
       <form
         className="space-y-4"
         action={(formData) => {
@@ -138,6 +143,21 @@ export function EventSettingsForm({
             <span className="mt-1 block text-xs font-normal text-slate-500">
               Structured matching always runs. AI only writes explanations later,
               and only for attendees who opt in.
+            </span>
+          </span>
+        </label>
+        <label className="flex items-start gap-3 text-body text-slate-700">
+          <Checkbox
+            name="automationsEnabled"
+            value="on"
+            defaultChecked={settings.automationsEnabled}
+            className="mt-0.5"
+          />
+          <span>
+            <span className="font-semibold">Enable communication automations</span>
+            <span className="mt-1 block text-xs font-normal text-slate-500">
+              Rule-based reminders configured under Communications. Manual send
+              reminders always works.
             </span>
           </span>
         </label>

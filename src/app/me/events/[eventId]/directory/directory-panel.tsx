@@ -8,7 +8,7 @@ import { requestMeeting } from "@/modules/meetings/actions";
 import { getAiInsight } from "@/modules/matchmaking/ai-actions";
 import type { DirectoryPerson } from "@/modules/matchmaking/basic";
 import { matchmakingPath } from "@/modules/matchmaking/questionnaire";
-import { matchBandLabel, type MatchBand, type MatchReasons } from "@/modules/matchmaking/score";
+import { matchBandLabel, type MatchBand, type MatchReasons } from "@/modules/matchmaking/score-labels";
 import { AiInsightTeaser } from "@/components/matchmaking/ai-insight-teaser";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";

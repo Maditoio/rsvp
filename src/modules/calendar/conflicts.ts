@@ -164,11 +164,8 @@ export async function checkGoogleCalendarConflicts(
       try {
         blocks = await busyBlocksForConnection(connection, rangeStart, rangeEnd);
       } catch {
-        const who = `${attendee.firstName} ${attendee.lastName}`.trim();
-        const provider = connection.provider === "microsoft" ? "Outlook" : "Google";
-        throw new Error(
-          `Could not read ${who}'s ${provider} Calendar. Ask them to reconnect under Calendar settings.`,
-        );
+        // Unreadable or disconnected calendar — skip; event platform data remains authoritative.
+        continue;
       }
 
       const relevant = options?.ignoreBlock

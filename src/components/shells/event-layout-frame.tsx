@@ -24,13 +24,14 @@ export function EventLayoutFrame({
   const eventDayPrefix = `/app/${orgSlug}/events/${eventId}/day`;
   const isEventDay =
     pathname === eventDayPrefix || pathname.startsWith(`${eventDayPrefix}/`);
+  const isBadgePrint = pathname.includes(`/events/${eventId}/badges/print`);
 
   // Collapse org rail when entering an event workspace (not on every panel click).
   useEffect(() => {
-    if (!isEventDay) {
+    if (!isEventDay && !isBadgePrint) {
       setOrgRailCollapsed(true);
     }
-  }, [eventId, isEventDay]);
+  }, [eventId, isEventDay, isBadgePrint]);
 
   if (isEventDay) {
     return (
@@ -39,6 +40,12 @@ export function EventLayoutFrame({
           {children}
         </EventDayShell>
       </div>
+    );
+  }
+
+  if (isBadgePrint) {
+    return (
+      <div className="min-w-0 flex-1 overflow-y-auto bg-slate-50">{children}</div>
     );
   }
 

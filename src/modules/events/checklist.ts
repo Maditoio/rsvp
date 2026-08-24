@@ -1,23 +1,18 @@
+import "server-only";
+
 import { prisma } from "@/lib/db/prisma";
+import type {
+  ChecklistItem,
+  ChecklistResult,
+} from "./checklist-types";
 
-export type ChecklistPhase = "customize" | "launch" | "organize" | "follow_up";
+export type {
+  ChecklistItem,
+  ChecklistPhase,
+  ChecklistResult,
+} from "./checklist-types";
 
-export type ChecklistItem = {
-  id: string;
-  phase: ChecklistPhase;
-  title: string;
-  description: string;
-  href: string;
-  optional?: boolean;
-  complete: boolean;
-};
-
-export type ChecklistResult = {
-  items: ChecklistItem[];
-  completed: number;
-  total: number;
-  percent: number;
-};
+export { CHECKLIST_PHASES } from "./checklist-types";
 
 export async function getEventChecklist(
   organisationId: string,
@@ -34,6 +29,7 @@ export async function getEventChecklist(
     roomCount,
     formFieldCount,
     categoryCount,
+    pollCount,
   ] = await Promise.all([
     prisma.event.findFirst({
       where: { id: eventId, organisationId },
@@ -60,6 +56,7 @@ export async function getEventChecklist(
     prisma.meetingRoom.count({ where: { eventId, organisationId } }),
     prisma.registrationField.count({ where: { eventId, organisationId } }),
     prisma.invitationCategory.count({ where: { eventId, organisationId } }),
+    prisma.eventPoll.count({ where: { eventId, organisationId } }),
   ]);
 
   const items: ChecklistItem[] = [
@@ -67,7 +64,8 @@ export async function getEventChecklist(
       id: "event_details",
       phase: "customize",
       title: "Event details",
-      description: "Add venue, dates, and a short description for organisers and guests.",
+      description:
+        "Add venue, dates, and a short description for organisers and guests.",
       href: `${base}/edit`,
       complete: Boolean(event?.venue && event?.startsAt),
     },
@@ -160,6 +158,15 @@ export async function getEventChecklist(
       complete: event?.settings?.aiInsightsEnabled === true,
     },
     {
+      id: "polls",
+      phase: "follow_up",
+      title: "Attendee polls",
+      description: "Collect feedback with Con·cierge AI–assisted polls.",
+      href: `${base}/polls`,
+      optional: true,
+      complete: pollCount > 0,
+    },
+    {
       id: "check_in",
       phase: "follow_up",
       title: "Check-in readiness",
@@ -174,27 +181,14 @@ export async function getEventChecklist(
       title: "Reports",
       description: "Export invitees, attendees, and registration data.",
       href: `${base}/reports`,
-      // Always available once the event exists
       complete: true,
       optional: true,
     },
   ];
 
-  // Treat optional incomplete as not counting against "required" progress,
-  // but include them in total for the RSVPify-style percentage.
   const completed = items.filter((i) => i.complete).length;
   const total = items.length;
   const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
 
   return { items, completed, total, percent };
 }
-
-export const CHECKLIST_PHASES: {
-  id: ChecklistPhase;
-  label: string;
-}[] = [
-  { id: "customize", label: "Customize" },
-  { id: "launch", label: "Launch" },
-  { id: "organize", label: "Organize" },
-  { id: "follow_up", label: "Follow up" },
-];

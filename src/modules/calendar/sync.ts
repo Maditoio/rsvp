@@ -441,3 +441,42 @@ export async function removeMeetingCalendarsWithWarning(
     return "Meeting was cancelled, but calendar events could not be removed. Try reconnecting calendars.";
   }
 }
+
+/** Force re-sync calendar events for a single meeting (clears stale rows first). */
+export async function retryCalendarSyncForMeeting(
+  meetingId: string,
+): Promise<CalendarSyncResult> {
+  await prisma.calendarEvent.deleteMany({ where: { meetingId } });
+  return syncCalendarForMeeting(meetingId);
+}
+
+/** Retry calendar sync for all scheduled meetings with sync warnings. */
+export async function retryAllFailedCalendarSyncs(
+  organisationId: string,
+  eventId: string,
+): Promise<{ retried: number; synced: number; warnings: string[] }> {
+  const meetings = await prisma.meeting.findMany({
+    where: {
+      organisationId,
+      eventId,
+      status: "SCHEDULED",
+      startsAt: { not: null },
+      endsAt: { not: null },
+    },
+    select: { id: true },
+  });
+
+  let synced = 0;
+  const warnings: string[] = [];
+  for (const meeting of meetings) {
+    const result = await retryCalendarSyncForMeeting(meeting.id);
+    synced += result.synced;
+    warnings.push(...result.warnings);
+  }
+
+  return {
+    retried: meetings.length,
+    synced,
+    warnings: [...new Set(warnings)],
+  };
+}

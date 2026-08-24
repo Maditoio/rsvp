@@ -26,6 +26,11 @@ import { createNotification } from "@/modules/notifications/service";
 import { recomputeMatchScoresForAttendee } from "@/modules/matchmaking/score";
 import { getAppUrl, displayName } from "@/lib/utils";
 import { loadMeetingRequestByToken } from "@/modules/meetings/respond-token";
+import {
+  parseOperationsConfig,
+  categoryAutoAccepts,
+  maxConcurrentForCategory,
+} from "@/modules/events/operations-config";
 
 export type MeetingActionResult = ActionResult<{ calendarWarning?: string }>;
 
@@ -110,6 +115,32 @@ export async function requestMeeting(
     if (target.privacy && !target.privacy.profileVisible) {
       return actionFail("This attendee is not visible for meetings.");
     }
+    if (target.privacy?.matchmakingPaused) {
+      return actionFail("This attendee is not available for matchmaking.");
+    }
+
+    const settings = await prisma.eventSettings.findUnique({
+      where: { eventId },
+      select: { operationsConfig: true },
+    });
+    const opsConfig = parseOperationsConfig(settings?.operationsConfig);
+
+    const cap = maxConcurrentForCategory(opsConfig, target.categoryId);
+    if (cap) {
+      const concurrent = await prisma.meeting.count({
+        where: {
+          eventId,
+          status: "SCHEDULED",
+          startsAt: { not: null },
+          participants: { some: { attendeeId: targetId } },
+        },
+      });
+      if (concurrent >= cap) {
+        return actionFail(
+          "This attendee has reached the maximum concurrent meetings for their category.",
+        );
+      }
+    }
 
     const existing = await prisma.meetingRequest.findFirst({
       where: {
@@ -121,7 +152,30 @@ export async function requestMeeting(
     });
     if (existing) return actionFail("A meeting request is already pending.");
 
-    const responseToken = generateOpaqueToken();
+    if (categoryAutoAccepts(opsConfig, target.categoryId)) {
+      const request = await prisma.meetingRequest.create({
+        data: {
+          organisationId: requester.organisationId,
+          eventId,
+          requesterId: requester.id,
+          targetId,
+          message: message || null,
+        },
+      });
+      const result = await applyMeetingRequestDecision({
+        requestId: request.id,
+        eventId,
+        organisationId: requester.organisationId,
+        decision: "accept",
+        autoSchedule: true,
+      });
+      revalidatePath(`/me/events/${eventId}/meetings`);
+      revalidatePath(`/me/events/${eventId}/directory`);
+      return result as ActionResult;
+    }
+
+    const needsModeration = opsConfig.requestModerationEnabled;
+    const responseToken = needsModeration ? null : generateOpaqueToken();
     const request = await prisma.meetingRequest.create({
       data: {
         organisationId: requester.organisationId,
@@ -129,9 +183,15 @@ export async function requestMeeting(
         requesterId: requester.id,
         targetId,
         message: message || null,
-        responseTokenHash: responseToken.hash,
+        responseTokenHash: responseToken?.hash ?? null,
       },
     });
+
+    if (needsModeration) {
+      revalidatePath(`/me/events/${eventId}/meetings`);
+      revalidatePath(`/me/events/${eventId}/directory`);
+      return actionOk();
+    }
 
     const appUrl = getAppUrl();
     const requesterName = displayName(requester);
@@ -158,8 +218,8 @@ export async function requestMeeting(
         requesterCompany: requester.company,
         requesterJobTitle: requester.jobTitle,
         message: message || null,
-        acceptUrl: `${appUrl}/m/${responseToken.raw}?decision=accept`,
-        declineUrl: `${appUrl}/m/${responseToken.raw}?decision=decline`,
+        acceptUrl: `${appUrl}/m/${responseToken!.raw}?decision=accept`,
+        declineUrl: `${appUrl}/m/${responseToken!.raw}?decision=decline`,
         inAppUrl: `${appUrl}/me/events/${eventId}/meetings`,
       });
     } catch (error) {
@@ -492,6 +552,12 @@ export async function autoScheduleSingle(
   return actionOk({ calendarWarning });
 }
 
+export type AutoScheduleFailure = {
+  meetingId: string;
+  participants: string;
+  reason: string;
+};
+
 export async function autoScheduleAll(orgSlug: string, eventId: string) {
   const ctx = await requireEvent(orgSlug, eventId, "event.update");
 
@@ -502,15 +568,24 @@ export async function autoScheduleAll(orgSlug: string, eventId: string) {
       status: "SCHEDULED",
       startsAt: null,
     },
-    select: { id: true },
+    include: {
+      participants: {
+        include: {
+          attendee: { select: { firstName: true, lastName: true } },
+        },
+      },
+    },
   });
 
   let scheduled = 0;
   let failed = 0;
   const calendarWarnings: string[] = [];
-  const errors: string[] = [];
+  const failures: AutoScheduleFailure[] = [];
 
   for (const m of unscheduled) {
+    const participants = m.participants
+      .map((p) => displayName(p.attendee))
+      .join(" · ");
     try {
       await autoScheduleMeeting(eventId, m.id);
       scheduled += 1;
@@ -518,11 +593,18 @@ export async function autoScheduleAll(orgSlug: string, eventId: string) {
       if (warning) calendarWarnings.push(warning);
     } catch (error) {
       failed += 1;
-      if (error instanceof AutoScheduleError) {
-        errors.push(error.message);
-      }
+      failures.push({
+        meetingId: m.id,
+        participants,
+        reason:
+          error instanceof AutoScheduleError
+            ? error.message
+            : "Could not auto-schedule this meeting.",
+      });
     }
   }
+
+  const uniqueErrors = [...new Set(failures.map((row) => row.reason))];
 
   await writeAudit({
     organisationId: ctx.organisation.id,
@@ -530,15 +612,17 @@ export async function autoScheduleAll(orgSlug: string, eventId: string) {
     userId: ctx.user.id,
     action: "meeting.auto_schedule_all",
     resource: "meeting",
-    metadata: { scheduled, failed, total: unscheduled.length },
+    metadata: { scheduled, failed, total: unscheduled.length, uniqueErrors },
   });
   revalidatePath(`/app/${orgSlug}/events/${eventId}/meetings`);
   return {
     scheduled,
     failed,
     total: unscheduled.length,
+    error: uniqueErrors.length > 0 ? uniqueErrors.join(" ") : undefined,
     calendarWarnings,
-    error: errors[0],
+    failureDetails: uniqueErrors,
+    failures,
   };
 }
 

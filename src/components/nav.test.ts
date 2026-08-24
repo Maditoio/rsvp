@@ -16,6 +16,8 @@ describe("eventNav", () => {
     expect(labels).not.toContain("Dashboard");
     expect(labels).toContain("Overview");
     expect(labels).toContain("Staff");
+    expect(labels).toContain("Analytics");
+    expect(labels).toContain("Badges");
     expect(new Set(items.map((item) => item.href)).size).toBe(items.length);
   });
 });

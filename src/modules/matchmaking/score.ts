@@ -1,6 +1,14 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { AuthzError, forOrganisation } from "@/lib/db/tenant";
+import {
+  matchBandLabel,
+  type MatchBand,
+  type MatchReasons,
+} from "./score-labels";
+
+export type { MatchBand, MatchReasons };
+export { matchBandLabel };
 
 export type MatchQuestionnaire = {
   lookingFor: string[];
@@ -10,19 +18,6 @@ export type MatchQuestionnaire = {
   meetingPreferences: string[];
   completedAt?: string | null;
 };
-
-export type MatchReasons = {
-  lookingOfferingOverlap: string[];
-  offeringLookingOverlap: string[];
-  sharedIndustries: string[];
-  sharedGeographies: string[];
-  sharedMeetingPreferences: string[];
-  sharedInterests: string[];
-  sameCountry: boolean;
-  labels: string[];
-};
-
-export type MatchBand = "strong" | "good" | "possible";
 
 export type ScoredMatch = {
   score: number;
@@ -258,13 +253,6 @@ export function matchBandFromScore(score: number): MatchBand | null {
   return null;
 }
 
-export function matchBandLabel(band: MatchBand | null): string | null {
-  if (band === "strong") return "Strong match";
-  if (band === "good") return "Good match";
-  if (band === "possible") return "Possible match";
-  return null;
-}
-
 function cappedCount(count: number, cap: number) {
   return Math.min(count, cap);
 }
@@ -366,9 +354,10 @@ export function isMatchmakingEligible(person: {
 }
 
 export function isMatchCandidate(person: {
-  privacy: { profileVisible: boolean } | null;
+  privacy: { profileVisible: boolean; matchmakingPaused?: boolean } | null;
   category: { matchmakingEligible: boolean } | null;
 }) {
+  if (person.privacy?.matchmakingPaused) return false;
   return isProfileVisible(person) && isMatchmakingEligible(person);
 }
 
