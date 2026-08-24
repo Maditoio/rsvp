@@ -17,24 +17,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/toast";
-
-type BarcodeDetectorLike = {
-  detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue: string }>>;
-};
-
-function getDetector(): BarcodeDetectorLike | null {
-  const Ctor = (
-    window as unknown as {
-      BarcodeDetector?: new (opts: { formats: string[] }) => BarcodeDetectorLike;
-    }
-  ).BarcodeDetector;
-  if (!Ctor) return null;
-  try {
-    return new Ctor({ formats: ["qr_code"] });
-  } catch {
-    return null;
-  }
-}
+import {
+  detectQrFromVideo,
+  isQrCameraAvailable,
+  openQrCameraStream,
+} from "@/lib/qr-camera";
 
 function ResultPanel({
   view,
@@ -105,14 +92,14 @@ export function EventDayEntranceScan({
   const [requireDeskCheckIn, setRequireDeskCheckIn] = useState(true);
   const [pending, start] = useTransition();
   const [cameraOn, setCameraOn] = useState(false);
-  const [cameraSupported] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      Boolean(getDetector() && navigator.mediaDevices?.getUserMedia),
-  );
+  const [cameraSupported, setCameraSupported] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanning = useRef(false);
+
+  useEffect(() => {
+    setCameraSupported(isQrCameraAvailable());
+  }, []);
 
   function showError(message: string) {
     setError(message);
@@ -159,13 +146,11 @@ export function EventDayEntranceScan({
     }
 
     let cancelled = false;
-    const detector = getDetector();
+    let detecting = false;
 
     (async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-        });
+        const stream = await openQrCameraStream();
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
@@ -176,27 +161,28 @@ export function EventDayEntranceScan({
           await videoRef.current.play();
         }
       } catch {
-        showError("Camera permission was denied.");
+        showError(
+          "Camera permission was denied or no camera is available on this device.",
+        );
         setCameraOn(false);
       }
     })();
 
     const timer = window.setInterval(async () => {
-      if (scanning.current || !detector || !videoRef.current) return;
-      if (videoRef.current.readyState < 2) return;
+      if (scanning.current || detecting || !videoRef.current) return;
+      detecting = true;
       try {
-        const codes = await detector.detect(videoRef.current);
-        const raw = codes[0]?.rawValue?.trim();
+        const raw = await detectQrFromVideo(videoRef.current);
         if (raw) {
           scanning.current = true;
           setToken(raw);
           setCameraOn(false);
           runScan(raw);
         }
-      } catch {
-        // retry
+      } finally {
+        detecting = false;
       }
-    }, 400);
+    }, 350);
 
     return () => {
       cancelled = true;
@@ -266,6 +252,7 @@ export function EventDayEntranceScan({
               className="mt-4 aspect-[4/3] w-full rounded-md bg-slate-900 object-cover"
               playsInline
               muted
+              autoPlay
             />
           ) : null}
           {error ? (

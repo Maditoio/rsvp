@@ -129,6 +129,13 @@ function eventDayLinks(
       kind: "event_operations",
     },
     {
+      href: `${base}/badges`,
+      label: "Badge print queue",
+      description: `${eventName} · Print and invalidate badges after desk check-in`,
+      roleLabel: eventRoleLabel("CHECKIN_STAFF"),
+      kind: "event_operations",
+    },
+    {
       href: `${base}/entrance`,
       label: "Entrance scan",
       description: `${eventName} · Validate printed badge credentials (reprints revoke old badges)`,

@@ -896,18 +896,31 @@ model CheckIn {
   @@index([organisationId, eventId])
 }
 
+/// Desk check-in queues a badge for print; print station marks PRINTED.
+/// Invalidate rotates the badge credential and re-queues for a replacement print.
+enum BadgeQueueStatus {
+  QUEUED
+  PRINTED
+}
+
 model Badge {
-  id               String    @id @default(cuid())
+  id               String           @id @default(cuid())
   organisationId   String
   eventId          String
   attendeeId       String
-  template         String    @default("zebra_4x3")
+  template         String           @default("zebra_4x3")
+  status           BadgeQueueStatus @default(QUEUED)
+  /// When the delegate joined the print queue (usually at desk check-in).
+  queuedAt         DateTime?
   printedAt        DateTime?
   printedByUserId  String?
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   attendee     Attendee     @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, attendeeId])
+  @@index([organisationId, eventId, status, queuedAt])
 }
 
 /// Printed badge QR credentials — separate from Attendee.qrTokenHash (desk check-in).

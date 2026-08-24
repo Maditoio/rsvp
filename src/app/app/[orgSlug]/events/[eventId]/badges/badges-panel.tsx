@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { Printer, Settings } from "lucide-react";
 import type { BadgeListRow } from "@/modules/badges/service";
+import { invalidateBadgeAndRequeue } from "@/modules/badges/actions";
 import {
   DataTable,
   type DataTableColumn,
@@ -11,17 +12,17 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { useToast } from "@/components/ui/toast";
 
 function printUrl(
   orgSlug: string,
   eventId: string,
   attendeeIds: string[],
-  options: { autoPrint?: boolean; reprint?: boolean } = {},
+  options: { autoPrint?: boolean } = {},
 ) {
   const params = new URLSearchParams({
     ids: attendeeIds.join(","),
     ...(options.autoPrint ? { autoprint: "1" } : {}),
-    ...(options.reprint ? { reprint: "1" } : {}),
   });
   return `/app/${orgSlug}/events/${eventId}/badges/print?${params.toString()}`;
 }
@@ -29,7 +30,7 @@ function printUrl(
 export function BadgesPanel({
   orgSlug,
   eventId,
-  rows,
+  rows: initialRows,
   canPrint,
 }: {
   orgSlug: string;
@@ -37,23 +38,61 @@ export function BadgesPanel({
   rows: BadgeListRow[];
   canPrint: boolean;
 }) {
-  const [filter, setFilter] = useState<"all" | "unprinted" | "ready">("all");
+  const toast = useToast();
+  const [rows, setRows] = useState(initialRows);
+  const [filter, setFilter] = useState<"all" | "queued" | "printed">("all");
+  const [pending, start] = useTransition();
 
-  const unprintedIds = useMemo(
+  const queuedIds = useMemo(
     () =>
-      rows.filter((r) => r.hasQr && !r.printedAt).map((r) => r.attendeeId),
+      rows
+        .filter((r) => r.hasQr && r.queueStatus === "QUEUED")
+        .map((r) => r.attendeeId),
     [rows],
   );
 
   const filtered = useMemo(() => {
-    if (filter === "unprinted") {
-      return rows.filter((r) => r.hasQr && !r.printedAt);
+    if (filter === "queued") {
+      return rows.filter((r) => r.queueStatus === "QUEUED");
     }
-    if (filter === "ready") {
-      return rows.filter((r) => r.hasQr);
+    if (filter === "printed") {
+      return rows.filter((r) => r.queueStatus === "PRINTED");
     }
     return rows;
   }, [rows, filter]);
+
+  function invalidate(row: BadgeListRow) {
+    const ok = window.confirm(
+      `Invalidate badge for ${row.firstName} ${row.lastName}?\n\nThe current badge QR will be denied at entrance. They return to the print queue for a replacement.`,
+    );
+    if (!ok) return;
+
+    start(async () => {
+      const result = await invalidateBadgeAndRequeue(
+        orgSlug,
+        eventId,
+        row.attendeeId,
+      );
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`Invalidated — Badge #${result.data.printNumber} queued`);
+      setRows((prev) =>
+        prev.map((r) =>
+          r.attendeeId === row.attendeeId
+            ? {
+                ...r,
+                queueStatus: "QUEUED",
+                queuedAt: new Date(),
+                activePrintNumber: result.data.printNumber,
+              }
+            : r,
+        ),
+      );
+      setFilter("queued");
+    });
+  }
 
   const columns: DataTableColumn<BadgeListRow>[] = [
     {
@@ -80,19 +119,31 @@ export function BadgesPanel({
     },
     {
       id: "status",
-      header: "Print",
-      width: "1fr",
+      header: "Badge",
+      width: "1.4fr",
       cell: (row) => {
         if (!row.hasQr) {
-          return <Badge tone="muted">No QR yet</Badge>;
+          return <Badge tone="muted">No desk QR yet</Badge>;
         }
-        if (row.printedAt) {
+        if (row.queueStatus === "QUEUED") {
+          return (
+            <span className="inline-flex flex-wrap items-center gap-1">
+              <Badge tone="warning">Waiting to print</Badge>
+              {row.activePrintNumber ? (
+                <Badge tone="muted">Badge #{row.activePrintNumber}</Badge>
+              ) : (
+                <Badge tone="muted">First issue</Badge>
+              )}
+            </span>
+          );
+        }
+        if (row.queueStatus === "PRINTED") {
           return (
             <span className="inline-flex flex-wrap items-center gap-1">
               <Badge tone="success">Printed</Badge>
-              {row.activePrintNumber && row.activePrintNumber > 1 ? (
-                <Badge tone="muted">Badge #{row.activePrintNumber}</Badge>
-              ) : null}
+              <Badge tone="muted">
+                Badge #{row.activePrintNumber ?? 1}
+              </Badge>
             </span>
           );
         }
@@ -102,7 +153,7 @@ export function BadgesPanel({
     {
       id: "actions",
       header: "",
-      width: "1.2fr",
+      width: "1.4fr",
       cell: (row) =>
         row.hasQr && canPrint ? (
           <div className="flex justify-end gap-1">
@@ -112,10 +163,7 @@ export function BadgesPanel({
               size="sm"
               onClick={() => {
                 window.open(
-                  printUrl(orgSlug, eventId, [row.attendeeId], {
-                    autoPrint: false,
-                    reprint: false,
-                  }),
+                  printUrl(orgSlug, eventId, [row.attendeeId]),
                   "_blank",
                   "noopener",
                 );
@@ -123,28 +171,15 @@ export function BadgesPanel({
             >
               Preview
             </Button>
-            {row.printedAt ? (
+            {row.queueStatus === "PRINTED" ? (
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
-                title="Issues a new badge QR and invalidates the previous one"
-                onClick={() => {
-                  const ok = window.confirm(
-                    `Reprint badge for ${row.firstName} ${row.lastName}?\n\nThe previous badge QR will be invalidated and will be denied at entrance scans.`,
-                  );
-                  if (!ok) return;
-                  window.open(
-                    printUrl(orgSlug, eventId, [row.attendeeId], {
-                      autoPrint: true,
-                      reprint: true,
-                    }),
-                    "_blank",
-                    "noopener",
-                  );
-                }}
+                disabled={pending}
+                onClick={() => invalidate(row)}
               >
-                Reprint
+                Invalidate
               </Button>
             ) : (
               <Button
@@ -155,7 +190,6 @@ export function BadgesPanel({
                   window.open(
                     printUrl(orgSlug, eventId, [row.attendeeId], {
                       autoPrint: true,
-                      reprint: false,
                     }),
                     "_blank",
                     "noopener",
@@ -175,30 +209,36 @@ export function BadgesPanel({
       <PageHeader
         eyebrow="Event day"
         title="Badge printing"
-        description="Print name badges with category tags. Badge QR codes are separate from desk check-in — reprinting invalidates the previous badge at entrance."
+        description="Desk check-in adds people to the print queue. Print marks Badge #1, #2, … Invalidate revokes the old QR and re-queues a replacement."
         actions={
           <div className="flex flex-wrap gap-2">
+            <Link href={`/app/${orgSlug}/events/${eventId}/day/badges`}>
+              <Button type="button" variant="secondary">
+                Event day queue
+              </Button>
+            </Link>
             <Link href={`/app/${orgSlug}/events/${eventId}/settings?tab=badges`}>
-              <Button type="button" variant="secondary" leadingIcon={<Settings className="size-4" strokeWidth={1.75} />}>
+              <Button
+                type="button"
+                variant="secondary"
+                leadingIcon={<Settings className="size-4" strokeWidth={1.75} />}
+              >
                 Badge settings
               </Button>
             </Link>
-            {canPrint && unprintedIds.length > 0 ? (
+            {canPrint && queuedIds.length > 0 ? (
               <Button
                 type="button"
                 leadingIcon={<Printer className="size-4" strokeWidth={1.75} />}
                 onClick={() => {
                   window.open(
-                    printUrl(orgSlug, eventId, unprintedIds, {
-                      autoPrint: true,
-                      reprint: false,
-                    }),
+                    printUrl(orgSlug, eventId, queuedIds, { autoPrint: true }),
                     "_blank",
                     "noopener",
                   );
                 }}
               >
-                Print unprinted ({unprintedIds.length})
+                Print queue ({queuedIds.length})
               </Button>
             ) : null}
           </div>
@@ -209,8 +249,8 @@ export function BadgesPanel({
         {(
           [
             ["all", "All"],
-            ["ready", "Ready to print"],
-            ["unprinted", "Not printed yet"],
+            ["queued", "Waiting to print"],
+            ["printed", "Printed"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -219,8 +259,8 @@ export function BadgesPanel({
             onClick={() => setFilter(key)}
             className={
               filter === key
-                ? "rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold text-white"
-                : "rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-200"
+                ? "rounded-full bg-indigo-50 px-3.5 py-1.5 text-sm font-medium text-indigo-700"
+                : "rounded-full bg-white px-3.5 py-1.5 text-sm font-medium text-slate-600 shadow-sm hover:text-slate-900"
             }
           >
             {label}
@@ -233,6 +273,11 @@ export function BadgesPanel({
         columns={columns}
         getRowId={(row) => row.attendeeId}
         emptyMessage="No attendees match this filter."
+        searchFilter={(row, query) => {
+          const hay =
+            `${row.firstName} ${row.lastName} ${row.company ?? ""} ${row.categoryName ?? ""}`.toLowerCase();
+          return hay.includes(query);
+        }}
       />
     </div>
   );

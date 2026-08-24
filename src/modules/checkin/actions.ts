@@ -19,6 +19,11 @@ import type {
   CheckInSearchResult,
   CheckInSearchRow,
 } from "./types";
+import {
+  enqueueBadgeAfterCheckIn,
+  getBadgeQueueInfo,
+  type BadgeQueueInfo,
+} from "@/modules/badges/queue";
 
 const NOT_FOUND_MESSAGE =
   "No attendee found for this event. Check the QR code or search by name on Lookup.";
@@ -26,6 +31,7 @@ const NOT_FOUND_MESSAGE =
 function eventDayPaths(orgSlug: string, eventId: string) {
   return [
     `/app/${orgSlug}/events/${eventId}/day`,
+    `/app/${orgSlug}/events/${eventId}/day/badges`,
     `/app/${orgSlug}/events/${eventId}/check-in`,
   ];
 }
@@ -123,8 +129,9 @@ async function recordCheckIn(
 function toSuccess(
   view: ReturnType<typeof maskAttendeeForCheckIn>,
   outcome: CheckInOutcome,
+  badgeQueue?: BadgeQueueInfo,
 ): CheckInActionResult {
-  return actionOk({ view, outcome });
+  return actionOk({ view, outcome, badgeQueue });
 }
 
 export async function lookupCheckIn(
@@ -167,10 +174,20 @@ export async function performCheckIn(
 
     const view = maskAttendeeForCheckIn(attendee);
     if (view.alreadyCheckedIn) {
-      return toSuccess(view, "already_checked_in");
+      const badgeQueue = await getBadgeQueueInfo({
+        organisationId: ctx.organisation.id,
+        eventId,
+        attendeeId: view.attendeeId,
+      });
+      return toSuccess(view, "already_checked_in", badgeQueue);
     }
 
     await recordCheckIn(ctx, view.attendeeId);
+    const badgeQueue = await enqueueBadgeAfterCheckIn({
+      organisationId: ctx.organisation.id,
+      eventId,
+      attendeeId: view.attendeeId,
+    });
     revalidateCheckIn(orgSlug, eventId);
 
     const updated = await loadAttendeeByToken(
@@ -180,7 +197,7 @@ export async function performCheckIn(
     );
     if (!updated) return actionFail(NOT_FOUND_MESSAGE);
 
-    return toSuccess(maskAttendeeForCheckIn(updated), "checked_in");
+    return toSuccess(maskAttendeeForCheckIn(updated), "checked_in", badgeQueue);
   } catch (error) {
     return actionFail(publicActionError(error, "Could not complete check-in."));
   }
@@ -204,10 +221,20 @@ export async function performCheckInByAttendeeId(
 
     const view = maskAttendeeForCheckIn(attendee);
     if (view.alreadyCheckedIn) {
-      return toSuccess(view, "already_checked_in");
+      const badgeQueue = await getBadgeQueueInfo({
+        organisationId: ctx.organisation.id,
+        eventId,
+        attendeeId: view.attendeeId,
+      });
+      return toSuccess(view, "already_checked_in", badgeQueue);
     }
 
     await recordCheckIn(ctx, attendeeId);
+    const badgeQueue = await enqueueBadgeAfterCheckIn({
+      organisationId: ctx.organisation.id,
+      eventId,
+      attendeeId,
+    });
     revalidateCheckIn(orgSlug, eventId);
 
     const updated = await loadAttendeeById(
@@ -217,7 +244,7 @@ export async function performCheckInByAttendeeId(
     );
     if (!updated) return actionFail(NOT_FOUND_MESSAGE);
 
-    return toSuccess(maskAttendeeForCheckIn(updated), "checked_in");
+    return toSuccess(maskAttendeeForCheckIn(updated), "checked_in", badgeQueue);
   } catch (error) {
     return actionFail(publicActionError(error, "Could not complete check-in."));
   }

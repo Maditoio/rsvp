@@ -127,6 +127,12 @@ export function eventNavGroups(
           exact: true,
         },
         {
+          href: `${base}/day/badges`,
+          label: "Badge queue",
+          permission: "checkin.perform",
+          icon: IdCard,
+        },
+        {
           href: `${base}/day/lookup`,
           label: "Delegate lookup",
           permission: "checkin.perform",

@@ -48,7 +48,14 @@ export function RoomBoardTab({
   if (board.rooms.length === 0) {
     return (
       <p className="rounded-xl bg-white px-4 py-8 text-center text-sm text-slate-600 shadow-sm">
-        Add meeting rooms to use the room board.
+        Add meeting rooms in the{" "}
+        <a
+          href={`/app/${orgSlug}/events/${eventId}/meetings?tab=room-list`}
+          className="font-medium text-indigo-600 hover:text-indigo-700"
+        >
+          Rooms
+        </a>{" "}
+        tab to use the room board.
       </p>
     );
   }

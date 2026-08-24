@@ -32,6 +32,7 @@ export type OfflineSyncItemResult = {
 function eventDayPaths(orgSlug: string, eventId: string) {
   return [
     `/app/${orgSlug}/events/${eventId}/day`,
+    `/app/${orgSlug}/events/${eventId}/day/badges`,
     `/app/${orgSlug}/events/${eventId}/check-in`,
   ];
 }
@@ -199,6 +200,15 @@ export async function syncOfflineCheckIns(
             where: { id: attendee.id },
             data: { status: "CHECKED_IN" },
           });
+        });
+
+        const { enqueueBadgeAfterCheckIn } = await import(
+          "@/modules/badges/queue"
+        );
+        await enqueueBadgeAfterCheckIn({
+          organisationId: ctx.organisation.id,
+          eventId,
+          attendeeId: attendee.id,
         });
 
         await writeAudit({

@@ -22,6 +22,8 @@ export type BadgeListRow = {
   status: string;
   hasQr: boolean;
   badgeId: string | null;
+  queueStatus: "QUEUED" | "PRINTED" | null;
+  queuedAt: Date | null;
   printedAt: Date | null;
   template: string | null;
   activePrintNumber: number | null;
@@ -51,6 +53,8 @@ export async function loadBadgeList(
       select: {
         id: true,
         attendeeId: true,
+        status: true,
+        queuedAt: true,
         printedAt: true,
         template: true,
       },
@@ -78,6 +82,8 @@ export async function loadBadgeList(
       status: a.status,
       hasQr: Boolean(a.attendanceTokenEnc),
       badgeId: badge?.id ?? null,
+      queueStatus: badge?.status ?? null,
+      queuedAt: badge?.queuedAt ?? null,
       printedAt: badge?.printedAt ?? null,
       template: badge?.template ?? null,
       activePrintNumber: printByAttendee.get(a.id) ?? null,
@@ -159,21 +165,26 @@ export async function ensureBadgeRecord(input: {
   templateId: BadgeTemplateId;
   printedByUserId: string;
 }) {
-  const existing = await prisma.badge.findFirst({
+  const existing = await prisma.badge.findUnique({
     where: {
-      organisationId: input.organisationId,
-      eventId: input.eventId,
-      attendeeId: input.attendeeId,
+      eventId_attendeeId: {
+        eventId: input.eventId,
+        attendeeId: input.attendeeId,
+      },
     },
   });
+
+  const now = new Date();
 
   if (existing) {
     return prisma.badge.update({
       where: { id: existing.id },
       data: {
         template: input.templateId,
-        printedAt: new Date(),
+        status: "PRINTED",
+        printedAt: now,
         printedByUserId: input.printedByUserId,
+        queuedAt: existing.queuedAt ?? now,
       },
     });
   }
@@ -184,7 +195,9 @@ export async function ensureBadgeRecord(input: {
       eventId: input.eventId,
       attendeeId: input.attendeeId,
       template: input.templateId,
-      printedAt: new Date(),
+      status: "PRINTED",
+      queuedAt: now,
+      printedAt: now,
       printedByUserId: input.printedByUserId,
     },
   });

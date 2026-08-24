@@ -30,6 +30,7 @@ const VALID_TABS = new Set<MeetingsTabId>([
   "conflicts",
   "suggestions",
   "heatmap",
+  "room-list",
   "rooms",
   "moderation",
 ]);

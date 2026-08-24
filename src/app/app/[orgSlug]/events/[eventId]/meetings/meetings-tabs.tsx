@@ -11,6 +11,7 @@ export const MEETINGS_TABS = [
   { id: "conflicts", label: "Conflicts" },
   { id: "suggestions", label: "Suggested pairings" },
   { id: "heatmap", label: "Slot heatmap" },
+  { id: "room-list", label: "Rooms" },
   { id: "rooms", label: "Room board" },
   { id: "moderation", label: "Moderation" },
 ] as const;

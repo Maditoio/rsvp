@@ -43,6 +43,8 @@ function newSponsorId() {
 function badgePaths(orgSlug: string, eventId: string) {
   return [
     `/app/${orgSlug}/events/${eventId}/badges`,
+    `/app/${orgSlug}/events/${eventId}/day/badges`,
+    `/app/${orgSlug}/events/${eventId}/day`,
     `/app/${orgSlug}/events/${eventId}/settings`,
   ];
 }
@@ -539,6 +541,7 @@ export async function markBadgePrinted(
     });
 
     revalidatePath(`/app/${orgSlug}/events/${eventId}/badges`);
+    revalidatePath(`/app/${orgSlug}/events/${eventId}/day/badges`);
     return { badgeId: badge.id };
   }, "Could not record badge print.");
 }
@@ -591,6 +594,50 @@ export async function markBadgesPrintedBulk(
     });
 
     revalidatePath(`/app/${orgSlug}/events/${eventId}/badges`);
+    revalidatePath(`/app/${orgSlug}/events/${eventId}/day/badges`);
     return { printed };
   }, "Could not record bulk print.");
+}
+
+const attendeeIdSchema = z.object({
+  attendeeId: z.string().min(1),
+});
+
+/**
+ * Invalidate the current badge QR (entrance will deny it) and re-queue for reprint.
+ * Does not open the print dialog — staff prints from the queue next.
+ */
+export async function invalidateBadgeAndRequeue(
+  orgSlug: string,
+  eventId: string,
+  attendeeId: string,
+) {
+  return runAction(async () => {
+    const ctx = await requireEvent(orgSlug, eventId, "checkin.perform");
+    const parsed = attendeeIdSchema.parse({ attendeeId });
+
+    const attendee = await prisma.attendee.findFirst({
+      where: {
+        id: parsed.attendeeId,
+        eventId,
+        organisationId: ctx.organisation.id,
+      },
+      select: { id: true },
+    });
+    if (!attendee) throw new Error("Attendee not found.");
+
+    const { invalidateAndRequeueBadge } = await import("./queue");
+    const result = await invalidateAndRequeueBadge({
+      organisationId: ctx.organisation.id,
+      eventId,
+      attendeeId: attendee.id,
+      issuedByUserId: ctx.user.id,
+    });
+
+    for (const path of badgePaths(orgSlug, eventId)) {
+      revalidatePath(path);
+    }
+
+    return result;
+  }, "Could not invalidate badge.");
 }

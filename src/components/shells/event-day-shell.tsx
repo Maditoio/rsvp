@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DoorOpen, QrCode, Search } from "lucide-react";
+import { DoorOpen, IdCard, QrCode, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = (orgSlug: string, eventId: string) =>
@@ -12,6 +12,11 @@ const tabs = (orgSlug: string, eventId: string) =>
       label: "Desk check-in",
       icon: QrCode,
       exact: true,
+    },
+    {
+      href: `/app/${orgSlug}/events/${eventId}/day/badges`,
+      label: "Badge queue",
+      icon: IdCard,
     },
     {
       href: `/app/${orgSlug}/events/${eventId}/day/entrance`,
@@ -50,8 +55,8 @@ export function EventDayShell({
             {eventName}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Desk check-in issues attendance; entrance scans validate the printed
-            badge (reprints invalidate old badges).
+            Check in at the desk, print from the badge queue, then validate at
+            entrance. Reprints invalidate older badges.
           </p>
         </div>
         <nav

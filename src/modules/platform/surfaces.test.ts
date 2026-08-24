@@ -24,6 +24,7 @@ describe("buildPlatformSurfaceCatalog", () => {
     const dayGroup = groups.find((g) => g.id === "event_day:evt_1");
     expect(dayGroup?.links.some((l) => l.href.endsWith("/day"))).toBe(true);
     expect(dayGroup?.links.some((l) => l.href.endsWith("/day/lookup"))).toBe(true);
+    expect(dayGroup?.links.some((l) => l.href.endsWith("/day/badges"))).toBe(true);
     expect(dayGroup?.links.some((l) => l.href.endsWith("/day/entrance"))).toBe(true);
 
     const roleGroup = groups.find((g) => g.id === "event_roles:evt_1");

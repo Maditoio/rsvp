@@ -6,10 +6,12 @@
  * When offline (or pack mode), scans validate against a local encrypted pack.
  */
 import { useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import {
   CheckCircle2,
   CloudOff,
   Download,
+  IdCard,
   RefreshCw,
   Wifi,
   WifiOff,
@@ -21,6 +23,7 @@ import {
 import { useOfflineCheckIn } from "@/modules/checkin/use-offline-check-in";
 import type { CheckInOutcome } from "@/modules/checkin/types";
 import type { CheckInView } from "@/lib/authz/fields";
+import type { BadgeQueueInfo } from "@/modules/badges/queue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,24 +31,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
-
-type BarcodeDetectorLike = {
-  detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue: string }>>;
-};
-
-function getDetector(): BarcodeDetectorLike | null {
-  const Ctor = (
-    window as unknown as {
-      BarcodeDetector?: new (opts: { formats: string[] }) => BarcodeDetectorLike;
-    }
-  ).BarcodeDetector;
-  if (!Ctor) return null;
-  try {
-    return new Ctor({ formats: ["qr_code"] });
-  } catch {
-    return null;
-  }
-}
+import {
+  detectQrFromVideo,
+  isQrCameraAvailable,
+  openQrCameraStream,
+} from "@/lib/qr-camera";
 
 function formatCheckedInAt(value: Date | null) {
   if (!value) return null;
@@ -71,6 +61,9 @@ function ResultPanel({
   outcome,
   pending,
   offlineSaved,
+  badgeQueue,
+  orgSlug,
+  eventId,
   onConfirm,
   onReset,
 }: {
@@ -78,10 +71,14 @@ function ResultPanel({
   outcome: CheckInOutcome;
   pending: boolean;
   offlineSaved?: boolean;
+  badgeQueue?: BadgeQueueInfo | null;
+  orgSlug: string;
+  eventId: string;
   onConfirm: () => void;
   onReset: () => void;
 }) {
   const checkedInAt = formatCheckedInAt(view.checkedInAt);
+  const queueHref = `/app/${orgSlug}/events/${eventId}/day/badges`;
 
   return (
     <Card className="h-full">
@@ -91,12 +88,14 @@ function ResultPanel({
             <CheckCircle2 className="size-6 text-success" aria-hidden />
           </div>
         ) : (
-          <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-slate-50">
-            <span className="h-2 w-2 rounded-full bg-amber-500/100" aria-hidden />
+          <div className="mb-4 inline-flex size-10 items-center justify-center rounded-full bg-slate-100">
+            <span className="size-2 rounded-full bg-amber-500" aria-hidden />
           </div>
         )}
 
-        <p className="font-display text-3xl text-slate-900">{view.name}</p>
+        <p className="text-3xl font-semibold tracking-[-0.02em] text-slate-900">
+          {view.name}
+        </p>
         <p className="mt-2 text-slate-700">{view.company || "Company not listed"}</p>
         <p className="mt-1 text-sm text-slate-500">
           {view.category || "Uncategorised"}
@@ -111,12 +110,21 @@ function ResultPanel({
             <Badge tone="muted">Ready to check in</Badge>
           )}
           {offlineSaved ? <Badge tone="muted">Saved offline</Badge> : null}
+          {badgeQueue?.justQueued ? (
+            <Badge tone="warning">Added to badge queue</Badge>
+          ) : badgeQueue?.status === "QUEUED" ? (
+            <Badge tone="warning">Waiting for badge print</Badge>
+          ) : badgeQueue?.status === "PRINTED" ? (
+            <Badge tone="success">
+              Badge #{badgeQueue.printNumber ?? 1} printed
+            </Badge>
+          ) : null}
         </div>
 
         {outcome === "checked_in" ? (
           <p className="mt-4 text-sm text-success">
             {offlineSaved
-              ? "Attendance saved on this device — sync when online."
+              ? "Attendance saved on this device — sync when online (then joins the badge queue)."
               : "Attendance recorded"}
             {checkedInAt ? ` · ${checkedInAt}` : ""}.
           </p>
@@ -130,6 +138,27 @@ function ResultPanel({
           </p>
         ) : null}
 
+        {badgeQueue?.justQueued ||
+        (outcome !== "ready" && badgeQueue?.status === "QUEUED") ? (
+          <div className="mt-4 rounded-xl bg-indigo-50 px-3.5 py-3">
+            <p className="text-sm font-medium text-indigo-900">
+              Next: print their badge
+            </p>
+            <p className="mt-1 text-sm text-indigo-700/90">
+              {badgeQueue.printNumber
+                ? `Replacement Badge #${badgeQueue.printNumber} is waiting in the queue.`
+                : "They are in the badge queue for their first issue."}
+            </p>
+            <Link
+              href={queueHref}
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-700 hover:text-indigo-800"
+            >
+              <IdCard className="size-4" strokeWidth={1.75} aria-hidden />
+              Open badge queue
+            </Link>
+          </div>
+        ) : null}
+
         {outcome === "ready" ? (
           <Button
             type="button"
@@ -141,10 +170,17 @@ function ResultPanel({
           </Button>
         ) : null}
 
-        <div className="mt-auto pt-6">
+        <div className="mt-auto flex flex-wrap gap-2 pt-6">
           <Button type="button" variant="secondary" onClick={onReset}>
             Scan next guest
           </Button>
+          {outcome !== "ready" ? (
+            <Link href={queueHref}>
+              <Button type="button" variant="ghost">
+                Badge queue
+              </Button>
+            </Link>
+          ) : null}
         </div>
       </div>
     </Card>
@@ -164,17 +200,18 @@ export function EventDayCheckIn({
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<CheckInView | null>(null);
   const [outcome, setOutcome] = useState<CheckInOutcome | null>(null);
+  const [badgeQueue, setBadgeQueue] = useState<BadgeQueueInfo | null>(null);
   const [offlineSaved, setOfflineSaved] = useState(false);
   const [pending, start] = useTransition();
   const [cameraOn, setCameraOn] = useState(false);
-  const [cameraSupported] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      Boolean(getDetector() && navigator.mediaDevices?.getUserMedia),
-  );
+  const [cameraSupported, setCameraSupported] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanning = useRef(false);
+
+  useEffect(() => {
+    setCameraSupported(isQrCameraAvailable());
+  }, []);
 
   const showingOfflineDesk = !offline.online && offline.canScanOffline;
 
@@ -187,6 +224,7 @@ export function EventDayCheckIn({
     setToken("");
     setView(null);
     setOutcome(null);
+    setBadgeQueue(null);
     setError(null);
     setOfflineSaved(false);
     scanning.current = false;
@@ -194,17 +232,26 @@ export function EventDayCheckIn({
   }
 
   function applyResult(
-    result: { view: CheckInView; outcome: CheckInOutcome },
+    result: {
+      view: CheckInView;
+      outcome: CheckInOutcome;
+      badgeQueue?: BadgeQueueInfo;
+    },
     savedOffline = false,
   ) {
     setView(result.view);
     setOutcome(result.outcome);
+    setBadgeQueue(result.badgeQueue ?? null);
     setOfflineSaved(savedOffline);
     if (result.outcome === "checked_in") {
+      const queuedNote =
+        !savedOffline && result.badgeQueue?.justQueued
+          ? " Added to badge queue."
+          : "";
       toast.success(
         savedOffline
           ? `${result.view.name} saved offline.`
-          : `${result.view.name} checked in.`,
+          : `${result.view.name} checked in.${queuedNote}`,
       );
     } else if (result.outcome === "already_checked_in") {
       toast.error(`${result.view.name} is already checked in.`);
@@ -278,13 +325,11 @@ export function EventDayCheckIn({
     }
 
     let cancelled = false;
-    const detector = getDetector();
+    let detecting = false;
 
     (async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-        });
+        const stream = await openQrCameraStream();
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
@@ -295,17 +340,18 @@ export function EventDayCheckIn({
           await videoRef.current.play();
         }
       } catch {
-        showError("Camera permission was denied.");
+        showError(
+          "Camera permission was denied or no camera is available on this device.",
+        );
         setCameraOn(false);
       }
     })();
 
     const timer = window.setInterval(async () => {
-      if (scanning.current || !detector || !videoRef.current) return;
-      if (videoRef.current.readyState < 2) return;
+      if (scanning.current || detecting || !videoRef.current) return;
+      detecting = true;
       try {
-        const codes = await detector.detect(videoRef.current);
-        const raw = codes[0]?.rawValue?.trim();
+        const raw = await detectQrFromVideo(videoRef.current);
         if (raw) {
           scanning.current = true;
           setToken(raw);
@@ -321,10 +367,10 @@ export function EventDayCheckIn({
             applyResult(result, result.savedOffline);
           });
         }
-      } catch {
-        // Unsupported frame; try again.
+      } finally {
+        detecting = false;
       }
-    }, 400);
+    }, 350);
 
     return () => {
       cancelled = true;
@@ -558,7 +604,7 @@ export function EventDayCheckIn({
               </Button>
             ) : (
               <p className="self-center text-xs text-slate-500">
-                Camera QR scan is unavailable in this browser. Paste the token.
+                Camera needs HTTPS (or localhost). Paste the token instead.
               </p>
             )}
           </div>
@@ -568,6 +614,7 @@ export function EventDayCheckIn({
               className="mt-4 aspect-[4/3] w-full rounded-md bg-slate-900 object-cover"
               playsInline
               muted
+              autoPlay
             />
           ) : null}
           {error ? (
@@ -588,6 +635,9 @@ export function EventDayCheckIn({
             outcome={outcome}
             pending={pending}
             offlineSaved={offlineSaved}
+            badgeQueue={badgeQueue}
+            orgSlug={orgSlug}
+            eventId={eventId}
             onConfirm={runCheckIn}
             onReset={resetScanner}
           />

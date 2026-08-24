@@ -443,7 +443,7 @@ export function MeetingsPanel({
       <PageHeader
         eyebrow="Networking"
         title="Meetings"
-        description="Rooms, scheduling, conflicts, and matchmaking suggestions."
+        description="Scheduling, conflicts, rooms, and matchmaking suggestions."
         actions={
           canManage ? (
             <>
@@ -502,16 +502,18 @@ export function MeetingsPanel({
                   </Button>
                 </>
               ) : null}
-              <Button
-                type="button"
-                leadingIcon="plus"
-                onClick={() => {
-                  setError(null);
-                  setOpen(true);
-                }}
-              >
-                Add room
-              </Button>
+              {activeTab === "room-list" ? (
+                <Button
+                  type="button"
+                  leadingIcon="plus"
+                  onClick={() => {
+                    setError(null);
+                    setOpen(true);
+                  }}
+                >
+                  Add room
+                </Button>
+              ) : null}
             </>
           ) : undefined
         }
@@ -564,34 +566,7 @@ export function MeetingsPanel({
           ) : null}
 
           <div>
-            <h2 className="font-display text-xl text-slate-900">Rooms</h2>
-            <p className="mt-1 text-[0.8125rem] text-slate-500">
-              Rooms for accepted meetings.
-            </p>
-            {rooms.length === 0 ? (
-              <p className="mt-2 text-sm text-slate-700">No rooms yet.</p>
-            ) : (
-              <div className="mt-3">
-                <DataTable
-                  rows={rooms}
-                  columns={roomColumns}
-                  getRowId={(row) => row.id}
-                  searchPlaceholder="Search rooms…"
-                  searchFilter={(row, query) =>
-                    [row.name, row.capacity?.toString() ?? ""]
-                      .join(" ")
-                      .toLowerCase()
-                      .includes(query)
-                  }
-                  emptyMessage="No rooms yet."
-                  pageParam="rpage"
-                />
-              </div>
-            )}
-          </div>
-
-          <div>
-            <h2 className="font-display text-xl text-slate-900">
+            <h2 className="text-xl font-semibold tracking-[-0.02em] text-slate-900">
               Scheduled meetings
             </h2>
             <p className="mt-1 text-[0.8125rem] text-slate-500">
@@ -626,6 +601,40 @@ export function MeetingsPanel({
             )}
           </div>
         </>
+      ) : null}
+
+      {activeTab === "room-list" ? (
+        <div>
+          <h2 className="text-xl font-semibold tracking-[-0.02em] text-slate-900">
+            Meeting rooms
+          </h2>
+          <p className="mt-1 text-[0.8125rem] text-slate-500">
+            Define rooms for accepted meetings. Assign them from All meetings,
+            Unscheduled, or the Room board.
+          </p>
+          {rooms.length === 0 ? (
+            <p className="mt-4 rounded-xl bg-white px-4 py-8 text-center text-sm text-slate-600 shadow-sm">
+              No rooms yet. Add a room to start assigning meetings.
+            </p>
+          ) : (
+            <div className="mt-3">
+              <DataTable
+                rows={rooms}
+                columns={roomColumns}
+                getRowId={(row) => row.id}
+                searchPlaceholder="Search rooms…"
+                searchFilter={(row, query) =>
+                  [row.name, row.capacity?.toString() ?? ""]
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(query)
+                }
+                emptyMessage="No rooms yet."
+                pageParam="rpage"
+              />
+            </div>
+          )}
+        </div>
       ) : null}
 
       {activeTab === "unscheduled" ? (
