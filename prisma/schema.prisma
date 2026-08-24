@@ -189,6 +189,8 @@ model Organisation {
   calendarEvents          CalendarEvent[]
   checkIns                CheckIn[]
   badges                  Badge[]
+  badgeCredentials        BadgeCredential[]
+  badgeAccessScans        BadgeAccessScan[]
   emailTemplates          EmailTemplate[]
   emailCampaigns          EmailCampaign[]
   emailMessages           EmailMessage[]
@@ -267,6 +269,8 @@ model Event {
   calendarEvents        CalendarEvent[]
   checkIns              CheckIn[]
   badges                Badge[]
+  badgeCredentials      BadgeCredential[]
+  badgeAccessScans      BadgeAccessScan[]
   emailTemplates        EmailTemplate[]
   emailCampaigns        EmailCampaign[]
   emailMessages         EmailMessage[]
@@ -577,6 +581,8 @@ model Attendee {
   privacy      AttendeePrivacy?
   checkIns     CheckIn[]
   badges       Badge[]
+  badgeCredentials BadgeCredential[]
+  badgeAccessScans BadgeAccessScan[]
   sessionRegs  SessionRegistration[]
   matchProfile MatchmakingProfile?
   matchScoresA MatchScore[]          @relation("MatchSubject")
@@ -902,6 +908,73 @@ model Badge {
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   attendee     Attendee     @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+}
+
+/// Printed badge QR credentials — separate from Attendee.qrTokenHash (desk check-in).
+/// Reprinting rotates credentials: old hash is REVOKED so shared/lost badges fail at entrance.
+enum BadgeCredentialStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum BadgeAccessResult {
+  ALLOWED
+  DENIED
+}
+
+enum BadgeAccessDenyReason {
+  REVOKED
+  NOT_FOUND
+  NOT_CHECKED_IN
+}
+
+model BadgeCredential {
+  id             String                @id @default(cuid())
+  organisationId String
+  eventId        String
+  attendeeId     String
+  /// SHA-256 of the opaque token printed on this badge physical copy.
+  tokenHash      String                @unique
+  /// Encrypted raw token — only for regenerating this badge's QR.
+  tokenEnc       String
+  status         BadgeCredentialStatus @default(ACTIVE)
+  printNumber    Int
+  issuedAt       DateTime              @default(now())
+  revokedAt      DateTime?
+  revokedReason  String?
+  replacedById   String?
+  issuedByUserId String?
+
+  organisation Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  attendee     Attendee         @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+  accessScans  BadgeAccessScan[]
+
+  @@index([organisationId, eventId, attendeeId])
+  @@index([eventId, status])
+  @@index([attendeeId, status])
+}
+
+model BadgeAccessScan {
+  id               String                 @id @default(cuid())
+  organisationId   String
+  eventId          String
+  attendeeId       String?
+  credentialId     String?
+  scannedAt        DateTime               @default(now())
+  scannedByUserId  String?
+  result           BadgeAccessResult
+  denyReason       BadgeAccessDenyReason?
+  /// Hash presented at scan (even when revoked/unknown) for audit.
+  presentedHash    String?
+
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  attendee     Attendee?       @relation(fields: [attendeeId], references: [id], onDelete: SetNull)
+  credential   BadgeCredential? @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, eventId, scannedAt])
+  @@index([eventId, attendeeId, scannedAt])
 }
 
 model EmailTemplate {

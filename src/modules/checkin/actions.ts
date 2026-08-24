@@ -89,6 +89,7 @@ async function loadAttendeeById(
 async function recordCheckIn(
   ctx: Awaited<ReturnType<typeof requireEvent>> & { eventId: string },
   attendeeId: string,
+  options?: { checkedInAt?: Date; offlineClientId?: string },
 ) {
   await prisma.$transaction(async (tx) => {
     await tx.checkIn.create({
@@ -97,6 +98,7 @@ async function recordCheckIn(
         eventId: ctx.eventId,
         attendeeId,
         checkedInById: ctx.user.id,
+        ...(options?.checkedInAt ? { checkedInAt: options.checkedInAt } : {}),
       },
     });
     await tx.attendee.update({
@@ -112,6 +114,9 @@ async function recordCheckIn(
     action: "checkin.perform",
     resource: "attendee",
     resourceId: attendeeId,
+    metadata: options?.offlineClientId
+      ? { source: "offline_sync", clientId: options.offlineClientId }
+      : undefined,
   });
 }
 

@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ChartColumn,
   ClipboardList,
+  DoorOpen,
   Handshake,
   IdCard,
   LayoutDashboard,
@@ -130,6 +131,12 @@ export function eventNavGroups(
           label: "Delegate lookup",
           permission: "checkin.perform",
           icon: Users,
+        },
+        {
+          href: `${base}/day/entrance`,
+          label: "Entrance",
+          permission: "checkin.perform",
+          icon: DoorOpen,
         },
         {
           href: `${base}/badges`,

@@ -25,10 +25,17 @@ export default async function BadgePrintPage({
     notFound();
   }
 
+  const autoPrint = sp.autoprint === "1";
+  /** Explicit reprint rotates badge credential QR — desk check-in QR is unchanged. */
+  const rotate = sp.reprint === "1";
+
   const payloads = (
     await Promise.all(
       attendeeIds.map((id) =>
-        loadBadgePrintPayload(ctx.organisation.id, eventId, id),
+        loadBadgePrintPayload(ctx.organisation.id, eventId, id, {
+          mode: rotate ? "rotate" : "reuse",
+          issuedByUserId: ctx.user.id,
+        }),
       ),
     )
   ).filter(isBadgePrintPayload);
@@ -37,7 +44,6 @@ export default async function BadgePrintPage({
     notFound();
   }
 
-  const autoPrint = sp.autoprint === "1";
   if (autoPrint) {
     await markBadgesPrintedBulk(
       orgSlug,

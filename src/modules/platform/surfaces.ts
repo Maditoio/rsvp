@@ -129,6 +129,13 @@ function eventDayLinks(
       kind: "event_operations",
     },
     {
+      href: `${base}/entrance`,
+      label: "Entrance scan",
+      description: `${eventName} · Validate printed badge credentials (reprints revoke old badges)`,
+      roleLabel: eventRoleLabel("CHECKIN_STAFF"),
+      kind: "event_operations",
+    },
+    {
       href: `/app/${orgSlug}/events/${eventId}/check-in`,
       label: "Check-in (redirect)",
       description: `${eventName} · Legacy URL redirects to event day scan`,

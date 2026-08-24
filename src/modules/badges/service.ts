@@ -1,11 +1,14 @@
 import "server-only";
 
 import { prisma } from "@/lib/db/prisma";
-import { decryptSecret } from "@/lib/crypto/secret";
 import { opaqueQrDataUrl } from "@/lib/qr";
-import { parseBadgeConfig, selectedSponsors, type BadgeConfig } from "./config";
+import { parseBadgeConfig, selectedSponsors } from "./config";
 import { getBadgeTemplate, type BadgeTemplateId } from "./templates";
 import type { BadgePrintPayload } from "./print-payload";
+import {
+  resolveBadgeCredentialForPrint,
+  type BadgeCredentialIssueMode,
+} from "./credentials";
 
 export type { BadgePrintPayload } from "./print-payload";
 
@@ -21,13 +24,14 @@ export type BadgeListRow = {
   badgeId: string | null;
   printedAt: Date | null;
   template: string | null;
+  activePrintNumber: number | null;
 };
 
 export async function loadBadgeList(
   organisationId: string,
   eventId: string,
 ): Promise<BadgeListRow[]> {
-  const [attendees, badges] = await Promise.all([
+  const [attendees, badges, credentials] = await Promise.all([
     prisma.attendee.findMany({
       where: { organisationId, eventId },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
@@ -51,9 +55,16 @@ export async function loadBadgeList(
         template: true,
       },
     }),
+    prisma.badgeCredential.findMany({
+      where: { organisationId, eventId, status: "ACTIVE" },
+      select: { attendeeId: true, printNumber: true },
+    }),
   ]);
 
   const badgeByAttendee = new Map(badges.map((b) => [b.attendeeId, b]));
+  const printByAttendee = new Map(
+    credentials.map((c) => [c.attendeeId, c.printNumber]),
+  );
 
   return attendees.map((a) => {
     const badge = badgeByAttendee.get(a.id);
@@ -69,6 +80,7 @@ export async function loadBadgeList(
       badgeId: badge?.id ?? null,
       printedAt: badge?.printedAt ?? null,
       template: badge?.template ?? null,
+      activePrintNumber: printByAttendee.get(a.id) ?? null,
     };
   });
 }
@@ -77,6 +89,10 @@ export async function loadBadgePrintPayload(
   organisationId: string,
   eventId: string,
   attendeeId: string,
+  options?: {
+    mode?: BadgeCredentialIssueMode;
+    issuedByUserId?: string | null;
+  },
 ): Promise<BadgePrintPayload | null> {
   const event = await prisma.event.findFirst({
     where: { id: eventId, organisationId },
@@ -101,11 +117,19 @@ export async function loadBadgePrintPayload(
       category: { select: { name: true } },
     },
   });
+  // Registered attendees still need a desk QR on record; printed badge uses a separate credential QR.
   if (!attendee?.attendanceTokenEnc) return null;
 
-  const token = decryptSecret(attendee.attendanceTokenEnc);
+  const credential = await resolveBadgeCredentialForPrint({
+    organisationId,
+    eventId,
+    attendeeId,
+    mode: options?.mode ?? "reuse",
+    issuedByUserId: options?.issuedByUserId,
+  });
+
   const config = parseBadgeConfig(event.settings?.badgeConfig);
-  const qrDataUrl = await opaqueQrDataUrl(token, {
+  const qrDataUrl = await opaqueQrDataUrl(credential.rawToken, {
     dark: config.qrDarkColor,
     light: config.qrLightColor,
     width: Math.max(128, Math.min(1000, config.qrPx * 2)),

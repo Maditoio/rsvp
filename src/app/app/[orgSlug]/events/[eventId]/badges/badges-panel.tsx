@@ -16,11 +16,12 @@ function printUrl(
   orgSlug: string,
   eventId: string,
   attendeeIds: string[],
-  autoPrint: boolean,
+  options: { autoPrint?: boolean; reprint?: boolean } = {},
 ) {
   const params = new URLSearchParams({
     ids: attendeeIds.join(","),
-    ...(autoPrint ? { autoprint: "1" } : {}),
+    ...(options.autoPrint ? { autoprint: "1" } : {}),
+    ...(options.reprint ? { reprint: "1" } : {}),
   });
   return `/app/${orgSlug}/events/${eventId}/badges/print?${params.toString()}`;
 }
@@ -86,7 +87,14 @@ export function BadgesPanel({
           return <Badge tone="muted">No QR yet</Badge>;
         }
         if (row.printedAt) {
-          return <Badge tone="success">Printed</Badge>;
+          return (
+            <span className="inline-flex flex-wrap items-center gap-1">
+              <Badge tone="success">Printed</Badge>
+              {row.activePrintNumber && row.activePrintNumber > 1 ? (
+                <Badge tone="muted">Badge #{row.activePrintNumber}</Badge>
+              ) : null}
+            </span>
+          );
         }
         return <Badge tone="accent">Ready</Badge>;
       },
@@ -104,7 +112,10 @@ export function BadgesPanel({
               size="sm"
               onClick={() => {
                 window.open(
-                  printUrl(orgSlug, eventId, [row.attendeeId], false),
+                  printUrl(orgSlug, eventId, [row.attendeeId], {
+                    autoPrint: false,
+                    reprint: false,
+                  }),
                   "_blank",
                   "noopener",
                 );
@@ -112,20 +123,48 @@ export function BadgesPanel({
             >
               Preview
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                window.open(
-                  printUrl(orgSlug, eventId, [row.attendeeId], true),
-                  "_blank",
-                  "noopener",
-                );
-              }}
-            >
-              Print
-            </Button>
+            {row.printedAt ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                title="Issues a new badge QR and invalidates the previous one"
+                onClick={() => {
+                  const ok = window.confirm(
+                    `Reprint badge for ${row.firstName} ${row.lastName}?\n\nThe previous badge QR will be invalidated and will be denied at entrance scans.`,
+                  );
+                  if (!ok) return;
+                  window.open(
+                    printUrl(orgSlug, eventId, [row.attendeeId], {
+                      autoPrint: true,
+                      reprint: true,
+                    }),
+                    "_blank",
+                    "noopener",
+                  );
+                }}
+              >
+                Reprint
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  window.open(
+                    printUrl(orgSlug, eventId, [row.attendeeId], {
+                      autoPrint: true,
+                      reprint: false,
+                    }),
+                    "_blank",
+                    "noopener",
+                  );
+                }}
+              >
+                Print
+              </Button>
+            )}
           </div>
         ) : null,
     },
@@ -136,7 +175,7 @@ export function BadgesPanel({
       <PageHeader
         eyebrow="Event day"
         title="Badge printing"
-        description="Print name badges with category tags and check-in QR codes. Configure templates and logo in settings."
+        description="Print name badges with category tags. Badge QR codes are separate from desk check-in — reprinting invalidates the previous badge at entrance."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link href={`/app/${orgSlug}/events/${eventId}/settings?tab=badges`}>
@@ -150,7 +189,10 @@ export function BadgesPanel({
                 leadingIcon={<Printer className="size-4" strokeWidth={1.75} />}
                 onClick={() => {
                   window.open(
-                    printUrl(orgSlug, eventId, unprintedIds, true),
+                    printUrl(orgSlug, eventId, unprintedIds, {
+                      autoPrint: true,
+                      reprint: false,
+                    }),
                     "_blank",
                     "noopener",
                   );

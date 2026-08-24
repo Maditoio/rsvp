@@ -1,15 +1,24 @@
 "use client";
 
 /**
- * Event-day check-in scanner.
+ * Event-day check-in scanner with offline pack support.
  * Camera scan checks in immediately; manual paste uses look up then confirm.
+ * When offline (or pack mode), scans validate against a local encrypted pack.
  */
 import { useEffect, useRef, useState, useTransition } from "react";
-import { CheckCircle2 } from "lucide-react";
+import {
+  CheckCircle2,
+  CloudOff,
+  Download,
+  RefreshCw,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
 import {
   lookupCheckIn,
   performCheckIn,
 } from "@/modules/checkin/actions";
+import { useOfflineCheckIn } from "@/modules/checkin/use-offline-check-in";
 import type { CheckInOutcome } from "@/modules/checkin/types";
 import type { CheckInView } from "@/lib/authz/fields";
 import { Button } from "@/components/ui/button";
@@ -18,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
 
 type BarcodeDetectorLike = {
   detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue: string }>>;
@@ -42,16 +52,32 @@ function formatCheckedInAt(value: Date | null) {
   return new Date(value).toLocaleString();
 }
 
+function isNetworkError(error: unknown) {
+  if (typeof navigator !== "undefined" && !navigator.onLine) return true;
+  if (error instanceof TypeError) return true;
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    return (
+      msg.includes("failed to fetch") ||
+      msg.includes("network") ||
+      msg.includes("load failed")
+    );
+  }
+  return false;
+}
+
 function ResultPanel({
   view,
   outcome,
   pending,
+  offlineSaved,
   onConfirm,
   onReset,
 }: {
   view: CheckInView;
   outcome: CheckInOutcome;
   pending: boolean;
+  offlineSaved?: boolean;
   onConfirm: () => void;
   onReset: () => void;
 }) {
@@ -76,7 +102,7 @@ function ResultPanel({
           {view.category || "Uncategorised"}
         </p>
 
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap gap-2">
           {outcome === "checked_in" ? (
             <Badge tone="success">Checked in successfully</Badge>
           ) : outcome === "already_checked_in" ? (
@@ -84,11 +110,14 @@ function ResultPanel({
           ) : (
             <Badge tone="muted">Ready to check in</Badge>
           )}
+          {offlineSaved ? <Badge tone="muted">Saved offline</Badge> : null}
         </div>
 
         {outcome === "checked_in" ? (
           <p className="mt-4 text-sm text-success">
-            Attendance recorded
+            {offlineSaved
+              ? "Attendance saved on this device — sync when online."
+              : "Attendance recorded"}
             {checkedInAt ? ` · ${checkedInAt}` : ""}.
           </p>
         ) : null}
@@ -130,10 +159,12 @@ export function EventDayCheckIn({
   eventId: string;
 }) {
   const toast = useToast();
+  const offline = useOfflineCheckIn(orgSlug, eventId);
   const [token, setToken] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<CheckInView | null>(null);
   const [outcome, setOutcome] = useState<CheckInOutcome | null>(null);
+  const [offlineSaved, setOfflineSaved] = useState(false);
   const [pending, start] = useTransition();
   const [cameraOn, setCameraOn] = useState(false);
   const [cameraSupported] = useState(
@@ -145,6 +176,8 @@ export function EventDayCheckIn({
   const streamRef = useRef<MediaStream | null>(null);
   const scanning = useRef(false);
 
+  const showingOfflineDesk = !offline.online && offline.canScanOffline;
+
   function showError(message: string) {
     setError(message);
     toast.error(message);
@@ -155,17 +188,85 @@ export function EventDayCheckIn({
     setView(null);
     setOutcome(null);
     setError(null);
+    setOfflineSaved(false);
     scanning.current = false;
     setCameraOn(false);
   }
 
-  function applyResult(result: { view: CheckInView; outcome: CheckInOutcome }) {
+  function applyResult(
+    result: { view: CheckInView; outcome: CheckInOutcome },
+    savedOffline = false,
+  ) {
     setView(result.view);
     setOutcome(result.outcome);
+    setOfflineSaved(savedOffline);
     if (result.outcome === "checked_in") {
-      toast.success(`${result.view.name} checked in.`);
+      toast.success(
+        savedOffline
+          ? `${result.view.name} saved offline.`
+          : `${result.view.name} checked in.`,
+      );
     } else if (result.outcome === "already_checked_in") {
       toast.error(`${result.view.name} is already checked in.`);
+    }
+  }
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker
+        .register("/sw-checkin.js")
+        .catch(() => {
+          // Non-fatal — offline pack still works without SW.
+        });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!offline.online || offline.pendingCount === 0 || offline.busy) return;
+    const timer = window.setTimeout(() => {
+      void offline.syncPending().then((result) => {
+        if (result.ok && result.synced > 0) {
+          toast.success(
+            `Synced ${result.synced} offline check-in${result.synced === 1 ? "" : "s"}.`,
+          );
+        }
+      }).catch(() => {
+        // Stay quiet; staff can tap Sync.
+      });
+    }, 800);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- auto-sync when connectivity returns
+  }, [offline.online, offline.pendingCount]);
+
+  async function checkInWithFallback(raw: string) {
+    const preferOffline = !offline.online && offline.canScanOffline;
+    if (preferOffline) {
+      const local = await offline.checkInOffline(raw);
+      if ("error" in local) return { error: local.error };
+      return { ...local, savedOffline: true };
+    }
+
+    try {
+      const result = await performCheckIn(orgSlug, eventId, raw);
+      if (!result.ok) {
+        if (isNetworkError(result.error) && offline.canScanOffline) {
+          const local = await offline.checkInOffline(raw);
+          if ("error" in local) return { error: local.error };
+          return { ...local, savedOffline: true };
+        }
+        return { error: result.error };
+      }
+      return { ...result.data, savedOffline: false };
+    } catch (error) {
+      if (offline.canScanOffline && isNetworkError(error)) {
+        const local = await offline.checkInOffline(raw);
+        if ("error" in local) return { error: local.error };
+        return { ...local, savedOffline: true };
+      }
+      return {
+        error:
+          error instanceof Error ? error.message : "Could not complete check-in.",
+      };
     }
   }
 
@@ -211,13 +312,13 @@ export function EventDayCheckIn({
           setCameraOn(false);
           start(async () => {
             setError(null);
-            const result = await performCheckIn(orgSlug, eventId, raw);
-            if (!result.ok) {
-              showError(result.error);
+            const result = await checkInWithFallback(raw);
+            if ("error" in result) {
+              showError(result.error ?? "Could not complete check-in.");
               scanning.current = false;
               return;
             }
-            applyResult(result.data);
+            applyResult(result, result.savedOffline);
           });
         }
       } catch {
@@ -232,7 +333,7 @@ export function EventDayCheckIn({
       streamRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- scanner effect keyed to camera session
-  }, [cameraOn, eventId, orgSlug]);
+  }, [cameraOn, eventId, orgSlug, offline.online, offline.canScanOffline]);
 
   function runLookup() {
     const raw = token.trim();
@@ -242,15 +343,56 @@ export function EventDayCheckIn({
     }
     setError(null);
     start(async () => {
-      const result = await lookupCheckIn(orgSlug, eventId, raw);
-      if (!result.ok) {
-        setView(null);
-        setOutcome(null);
-        showError(result.error);
+      if (!offline.online && offline.canScanOffline) {
+        const local = await offline.lookupOffline(raw);
+        if ("error" in local) {
+          setView(null);
+          setOutcome(null);
+          showError(local.error);
+          return;
+        }
+        setOfflineSaved(false);
+        setView(local);
+        setOutcome(local.alreadyCheckedIn ? "already_checked_in" : "ready");
         return;
       }
-      setView(result.data);
-      setOutcome(result.data.alreadyCheckedIn ? "already_checked_in" : "ready");
+
+      try {
+        const result = await lookupCheckIn(orgSlug, eventId, raw);
+        if (!result.ok) {
+          if (isNetworkError(result.error) && offline.canScanOffline) {
+            const local = await offline.lookupOffline(raw);
+            if ("error" in local) {
+              showError(local.error);
+              return;
+            }
+            setView(local);
+            setOutcome(local.alreadyCheckedIn ? "already_checked_in" : "ready");
+            return;
+          }
+          setView(null);
+          setOutcome(null);
+          showError(result.error);
+          return;
+        }
+        setOfflineSaved(false);
+        setView(result.data);
+        setOutcome(result.data.alreadyCheckedIn ? "already_checked_in" : "ready");
+      } catch (error) {
+        if (offline.canScanOffline && isNetworkError(error)) {
+          const local = await offline.lookupOffline(raw);
+          if ("error" in local) {
+            showError(local.error);
+            return;
+          }
+          setView(local);
+          setOutcome(local.alreadyCheckedIn ? "already_checked_in" : "ready");
+          return;
+        }
+        showError(
+          error instanceof Error ? error.message : "Could not look up this attendee.",
+        );
+      }
     });
   }
 
@@ -259,83 +401,205 @@ export function EventDayCheckIn({
     if (!raw) return;
     setError(null);
     start(async () => {
-      const result = await performCheckIn(orgSlug, eventId, raw);
-      if (!result.ok) {
-        showError(result.error);
+      const result = await checkInWithFallback(raw);
+      if ("error" in result) {
+        showError(result.error ?? "Could not complete check-in.");
         return;
       }
-      applyResult(result.data);
+      applyResult(result, result.savedOffline);
     });
   }
 
+  const packLabel = offline.pack
+    ? offline.pack.expired
+      ? "Pack expired — re-download"
+      : !offline.pack.unlockable
+        ? "Pack locked (re-open this tab after download)"
+        : `${offline.pack.attendeeCount} attendees · ready`
+    : "No pack on this device";
+
   return (
-    <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-      <Card>
-        <Label htmlFor="attendance-token">Attendance token</Label>
-        <Input
-          id="attendance-token"
-          value={token}
-          onChange={(e) => {
-            setToken(e.target.value);
-            scanning.current = false;
-          }}
-          placeholder="Paste the opaque token from the attendee QR"
-          autoComplete="off"
-          spellCheck={false}
-        />
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button type="button" disabled={pending} onClick={runLookup}>
-            {pending ? "Working…" : "Look up"}
-          </Button>
-          {cameraSupported ? (
+    <div className="space-y-4">
+      <Card className="!p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              {offline.online ? (
+                <Badge tone="success">
+                  <Wifi className="mr-1 size-3" aria-hidden />
+                  Online
+                </Badge>
+              ) : (
+                <Badge tone="warning">
+                  <WifiOff className="mr-1 size-3" aria-hidden />
+                  Offline
+                </Badge>
+              )}
+              {offline.canScanOffline ? (
+                <Badge tone="muted">
+                  <CloudOff className="mr-1 size-3" aria-hidden />
+                  Offline desk ready
+                </Badge>
+              ) : null}
+              {offline.pendingCount > 0 ? (
+                <Badge tone="warning">
+                  {offline.pendingCount} waiting to sync
+                </Badge>
+              ) : null}
+            </div>
+            <p className="mt-2 text-sm text-slate-600">
+              Download the encrypted attendee pack while online. If Wi‑Fi drops,
+              keep this tab open — scans continue locally, then sync when you
+              reconnect.
+            </p>
+            <p className="mt-1 text-xs text-slate-500">{packLabel}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               variant="secondary"
-              disabled={pending}
+              size="sm"
+              disabled={offline.busy || pending || !offline.online}
               onClick={() => {
-                setError(null);
-                setCameraOn((value) => !value);
+                start(async () => {
+                  try {
+                    const result = await offline.downloadPack();
+                    toast.success(
+                      `Offline pack ready (${result.count} attendee${result.count === 1 ? "" : "s"}).`,
+                    );
+                  } catch (e) {
+                    showError(
+                      e instanceof Error
+                        ? e.message
+                        : "Could not download offline pack.",
+                    );
+                  }
+                });
               }}
             >
-              {cameraOn ? "Stop camera" : "Scan with camera"}
+              <Download className="mr-1.5 size-3.5" aria-hidden />
+              {offline.pack ? "Refresh pack" : "Download pack"}
             </Button>
-          ) : (
-            <p className="self-center text-xs text-slate-500">
-              Camera QR scan is unavailable in this browser. Paste the token.
-            </p>
-          )}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={
+                offline.busy ||
+                pending ||
+                !offline.online ||
+                offline.pendingCount === 0
+              }
+              onClick={() => {
+                start(async () => {
+                  try {
+                    const result = await offline.syncPending();
+                    if (result.synced === 0) {
+                      toast.success("Nothing left to sync.");
+                    } else {
+                      toast.success(
+                        `Synced ${result.synced} check-in${result.synced === 1 ? "" : "s"}.`,
+                      );
+                    }
+                  } catch (e) {
+                    showError(
+                      e instanceof Error ? e.message : "Could not sync.",
+                    );
+                  }
+                });
+              }}
+            >
+              <RefreshCw className="mr-1.5 size-3.5" aria-hidden />
+              Sync now
+            </Button>
+          </div>
         </div>
-        {cameraOn ? (
-          <video
-            ref={videoRef}
-            className="mt-4 aspect-[4/3] w-full rounded-md bg-slate-900 object-cover"
-            playsInline
-            muted
-          />
-        ) : null}
-        {error ? (
-          <p className="mt-3 rounded-md border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger">
-            {error}
+        {!offline.online && !offline.canScanOffline ? (
+          <p
+            className={cn(
+              "mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900",
+            )}
+          >
+            You are offline and this device has no unlocked pack. Reconnect,
+            open Event Day, and download the pack before the doors open.
           </p>
         ) : null}
       </Card>
 
-      {view && outcome ? (
-        <ResultPanel
-          view={view}
-          outcome={outcome}
-          pending={pending}
-          onConfirm={runCheckIn}
-          onReset={resetScanner}
-        />
-      ) : (
-        <Card className="flex items-center">
-          <p className="text-sm text-slate-500">
-            Scan a QR code to check someone in immediately, or paste a token and
-            look them up first.
-          </p>
+      <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <Card>
+          <Label htmlFor="attendance-token">Attendance token</Label>
+          <Input
+            id="attendance-token"
+            value={token}
+            onChange={(e) => {
+              setToken(e.target.value);
+              scanning.current = false;
+            }}
+            placeholder="Paste the opaque token from the attendee QR"
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button type="button" disabled={pending} onClick={runLookup}>
+              {pending ? "Working…" : "Look up"}
+            </Button>
+            {cameraSupported ? (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={pending}
+                onClick={() => {
+                  setError(null);
+                  setCameraOn((value) => !value);
+                }}
+              >
+                {cameraOn ? "Stop camera" : "Scan with camera"}
+              </Button>
+            ) : (
+              <p className="self-center text-xs text-slate-500">
+                Camera QR scan is unavailable in this browser. Paste the token.
+              </p>
+            )}
+          </div>
+          {cameraOn ? (
+            <video
+              ref={videoRef}
+              className="mt-4 aspect-[4/3] w-full rounded-md bg-slate-900 object-cover"
+              playsInline
+              muted
+            />
+          ) : null}
+          {error ? (
+            <p className="mt-3 rounded-md border border-danger/20 bg-danger/5 px-3 py-2 text-sm text-danger">
+              {error}
+            </p>
+          ) : null}
+          {showingOfflineDesk ? (
+            <p className="mt-3 text-xs text-slate-500">
+              Using local offline pack for validation on this desk.
+            </p>
+          ) : null}
         </Card>
-      )}
+
+        {view && outcome ? (
+          <ResultPanel
+            view={view}
+            outcome={outcome}
+            pending={pending}
+            offlineSaved={offlineSaved}
+            onConfirm={runCheckIn}
+            onReset={resetScanner}
+          />
+        ) : (
+          <Card className="flex items-center">
+            <p className="text-sm text-slate-500">
+              Scan a QR code to check someone in immediately, or paste a token
+              and look them up first.
+            </p>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

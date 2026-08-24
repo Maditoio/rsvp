@@ -2,16 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { QrCode, Search } from "lucide-react";
+import { DoorOpen, QrCode, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = (orgSlug: string, eventId: string) =>
   [
     {
       href: `/app/${orgSlug}/events/${eventId}/day`,
-      label: "Scan",
+      label: "Desk check-in",
       icon: QrCode,
       exact: true,
+    },
+    {
+      href: `/app/${orgSlug}/events/${eventId}/day/entrance`,
+      label: "Entrance",
+      icon: DoorOpen,
     },
     {
       href: `/app/${orgSlug}/events/${eventId}/day/lookup`,
@@ -45,7 +50,8 @@ export function EventDayShell({
             {eventName}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Staff check-in — scan QR codes or look up delegates by name.
+            Desk check-in issues attendance; entrance scans validate the printed
+            badge (reprints invalidate old badges).
           </p>
         </div>
         <nav
