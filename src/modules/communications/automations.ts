@@ -198,7 +198,7 @@ async function sendEventReminderForAutomation(
       eventName: event.name,
       orgName: event.organisation.name,
       href: `${getAppUrl()}/me/events/${eventId}`,
-      kind: "registration",
+      kind: "event",
     });
     sent += 1;
   }
