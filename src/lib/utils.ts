@@ -15,6 +15,30 @@ export function getAppUrl() {
   return "http://localhost:3000";
 }
 
+/**
+ * Relative in-app path only (open-redirect safe). Used after Clerk sign-up/in.
+ */
+export function safeAppRedirectPath(
+  value: unknown,
+  fallback = "/home",
+): string {
+  if (typeof value !== "string") return fallback;
+  const path = value.trim();
+  if (!path.startsWith("/") || path.startsWith("//") || path.includes("://")) {
+    return fallback;
+  }
+  return path;
+}
+
+/** Sign-up URL that returns attendees to the delegate portal after Clerk. */
+export function attendeeSignUpUrl(email: string, redirectPath = "/me") {
+  const params = new URLSearchParams({
+    email_address: email.trim().toLowerCase(),
+    redirect_url: safeAppRedirectPath(redirectPath, "/me"),
+  });
+  return `${getAppUrl()}/sign-up?${params.toString()}`;
+}
+
 export function displayName(
   person: { firstName?: string | null; lastName?: string | null },
 ) {

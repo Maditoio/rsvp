@@ -37,21 +37,28 @@ export async function POST(req: Request) {
   if (event.type === "user.created" || event.type === "user.updated") {
     const email = event.data.email_addresses?.[0]?.email_address;
     if (email) {
-      await prisma.user.upsert({
+      const normalizedEmail = email.trim().toLowerCase();
+      const user = await prisma.user.upsert({
         where: { clerkUserId: event.data.id },
         create: {
           clerkUserId: event.data.id,
-          email,
+          email: normalizedEmail,
           firstName: event.data.first_name,
           lastName: event.data.last_name,
           imageUrl: event.data.image_url,
         },
         update: {
-          email,
+          email: normalizedEmail,
           firstName: event.data.first_name,
           lastName: event.data.last_name,
           imageUrl: event.data.image_url,
         },
+      });
+
+      // Link any prior registrations (invite → register before account create).
+      await prisma.attendee.updateMany({
+        where: { email: normalizedEmail, userId: null },
+        data: { userId: user.id },
       });
     }
   }

@@ -9,12 +9,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   CheckCircle2,
-  CloudOff,
-  Download,
   IdCard,
-  RefreshCw,
-  Wifi,
-  WifiOff,
 } from "lucide-react";
 import {
   lookupCheckIn,
@@ -30,7 +25,6 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
 import {
   detectQrFromVideo,
   isQrCameraAvailable,
@@ -204,14 +198,10 @@ export function EventDayCheckIn({
   const [offlineSaved, setOfflineSaved] = useState(false);
   const [pending, start] = useTransition();
   const [cameraOn, setCameraOn] = useState(false);
-  const [cameraSupported, setCameraSupported] = useState(false);
+  const [cameraSupported] = useState(() => isQrCameraAvailable());
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanning = useRef(false);
-
-  useEffect(() => {
-    setCameraSupported(isQrCameraAvailable());
-  }, []);
 
   const showingOfflineDesk = !offline.online && offline.canScanOffline;
 
@@ -456,121 +446,16 @@ export function EventDayCheckIn({
     });
   }
 
-  const packLabel = offline.pack
-    ? offline.pack.expired
-      ? "Pack expired — re-download"
-      : !offline.pack.unlockable
-        ? "Pack locked (re-open this tab after download)"
-        : `${offline.pack.attendeeCount} attendees · ready`
-    : "No pack on this device";
+  const packMissingOffline = !offline.online && !offline.canScanOffline;
 
   return (
     <div className="space-y-4">
-      <Card className="!p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              {offline.online ? (
-                <Badge tone="success">
-                  <Wifi className="mr-1 size-3" aria-hidden />
-                  Online
-                </Badge>
-              ) : (
-                <Badge tone="warning">
-                  <WifiOff className="mr-1 size-3" aria-hidden />
-                  Offline
-                </Badge>
-              )}
-              {offline.canScanOffline ? (
-                <Badge tone="muted">
-                  <CloudOff className="mr-1 size-3" aria-hidden />
-                  Offline desk ready
-                </Badge>
-              ) : null}
-              {offline.pendingCount > 0 ? (
-                <Badge tone="warning">
-                  {offline.pendingCount} waiting to sync
-                </Badge>
-              ) : null}
-            </div>
-            <p className="mt-2 text-sm text-slate-600">
-              Download the encrypted attendee pack while online. If Wi‑Fi drops,
-              keep this tab open — scans continue locally, then sync when you
-              reconnect.
-            </p>
-            <p className="mt-1 text-xs text-slate-500">{packLabel}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={offline.busy || pending || !offline.online}
-              onClick={() => {
-                start(async () => {
-                  try {
-                    const result = await offline.downloadPack();
-                    toast.success(
-                      `Offline pack ready (${result.count} attendee${result.count === 1 ? "" : "s"}).`,
-                    );
-                  } catch (e) {
-                    showError(
-                      e instanceof Error
-                        ? e.message
-                        : "Could not download offline pack.",
-                    );
-                  }
-                });
-              }}
-            >
-              <Download className="mr-1.5 size-3.5" aria-hidden />
-              {offline.pack ? "Refresh pack" : "Download pack"}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={
-                offline.busy ||
-                pending ||
-                !offline.online ||
-                offline.pendingCount === 0
-              }
-              onClick={() => {
-                start(async () => {
-                  try {
-                    const result = await offline.syncPending();
-                    if (result.synced === 0) {
-                      toast.success("Nothing left to sync.");
-                    } else {
-                      toast.success(
-                        `Synced ${result.synced} check-in${result.synced === 1 ? "" : "s"}.`,
-                      );
-                    }
-                  } catch (e) {
-                    showError(
-                      e instanceof Error ? e.message : "Could not sync.",
-                    );
-                  }
-                });
-              }}
-            >
-              <RefreshCw className="mr-1.5 size-3.5" aria-hidden />
-              Sync now
-            </Button>
-          </div>
-        </div>
-        {!offline.online && !offline.canScanOffline ? (
-          <p
-            className={cn(
-              "mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900",
-            )}
-          >
-            You are offline and this device has no unlocked pack. Reconnect,
-            open Event Day, and download the pack before the doors open.
-          </p>
-        ) : null}
-      </Card>
+      {packMissingOffline ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm">
+          You are offline and this device has no unlocked pack. Reconnect, then
+          use <strong>Download pack</strong> in the top bar before doors open.
+        </p>
+      ) : null}
 
       <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <Card>

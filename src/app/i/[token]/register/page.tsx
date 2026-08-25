@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Card, DecisionCard } from "@/components/ui/card";
 import { RouteDrawer } from "@/components/ui/drawer";
 import { getPublicInvitation } from "@/modules/invitations/public";
-import { turnstileSiteKey, getAppUrl } from "@/lib/utils";
+import { turnstileSiteKey, attendeeSignUpUrl } from "@/lib/utils";
 import { ensureDefaultRegistrationForm } from "@/modules/registrations/form";
 import { getCurrentUser } from "@/lib/authz/require";
 import { prisma } from "@/lib/db/prisma";
@@ -99,8 +99,7 @@ export default async function RegisterPage({
     }
   }
 
-  const appUrl = getAppUrl();
-  const signUpHref = `${appUrl}/sign-up?email_address=${encodeURIComponent(invitation.email)}`;
+  const signUpHref = attendeeSignUpUrl(invitation.email, "/me");
   const eventDays = eventDayOptions(
     event?.startsAt ?? null,
     event?.endsAt ?? null,

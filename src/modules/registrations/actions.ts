@@ -17,7 +17,7 @@ import {
   scalar,
 } from "@/modules/registrations/form";
 import { sendRegistrationConfirmationEmail } from "@/modules/communications/email";
-import { getAppUrl } from "@/lib/utils";
+import { attendeeSignUpUrl, getAppUrl } from "@/lib/utils";
 import { matchmakingPath } from "@/modules/matchmaking/questionnaire";
 
 export type RegistrationResult =
@@ -198,9 +198,16 @@ export async function submitRegistration(
         toName: `${firstName} ${lastName}`,
         eventName: invitation.event.name,
         orgName: invitation.organisation.name,
-        signUpUrl: `${appUrl}/sign-up?email_address=${encodeURIComponent(email)}`,
+        signUpUrl: attendeeSignUpUrl(email, "/me"),
         appUrl,
         matchmakingUrl: `${appUrl}${matchmakingPath(invitation.eventId)}`,
+        attendanceToken: qr.raw,
+        company: result.attendee.company,
+        categoryName: invitation.category?.name ?? null,
+        venue: invitation.event.venue,
+        timezone: invitation.event.timezone,
+        startsAt: invitation.event.startsAt,
+        endsAt: invitation.event.endsAt,
       });
     } catch (error) {
       console.error("registration confirmation email failed", error);

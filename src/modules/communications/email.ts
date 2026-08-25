@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { prisma } from "@/lib/db/prisma";
+import { buildWelcomePackPdf } from "@/modules/communications/welcome-pack-pdf";
 
 /**
  * Transactional email chrome — Aurora v4.
@@ -21,6 +22,12 @@ const aurora = {
   shadowAccent: "0 4px 12px rgba(79,70,229,0.28)",
 } as const;
 
+type EmailAttachment = {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+};
+
 type OutboundEmail = {
   organisationId: string;
   eventId?: string;
@@ -28,6 +35,7 @@ type OutboundEmail = {
   toEmail: string;
   subject: string;
   html: string;
+  attachments?: EmailAttachment[];
 };
 
 async function deliver(input: OutboundEmail) {
@@ -43,7 +51,11 @@ async function deliver(input: OutboundEmail) {
   });
 
   if (!process.env.RESEND_API_KEY) {
-    console.info("[email:dev]", { to: input.toEmail, subject: input.subject });
+    console.info("[email:dev]", {
+      to: input.toEmail,
+      subject: input.subject,
+      attachments: input.attachments?.map((a) => a.filename) ?? [],
+    });
     await prisma.emailMessage.update({
       where: { id: message.id },
       data: { status: "SENT", sentAt: new Date() },
@@ -58,6 +70,11 @@ async function deliver(input: OutboundEmail) {
     to: input.toEmail,
     subject: input.subject,
     html: input.html,
+    attachments: input.attachments?.map((file) => ({
+      filename: file.filename,
+      content: file.content,
+      contentType: file.contentType ?? "application/pdf",
+    })),
   });
 
   await prisma.emailMessage.update({
@@ -159,6 +176,14 @@ export async function sendRegistrationConfirmationEmail(input: {
   signUpUrl: string;
   appUrl: string;
   matchmakingUrl: string;
+  /** Desk check-in token for the A4 welcome PDF attachment. */
+  attendanceToken: string;
+  company?: string | null;
+  categoryName?: string | null;
+  venue?: string | null;
+  timezone?: string;
+  startsAt?: Date | null;
+  endsAt?: Date | null;
 }) {
   const onlineSessions = await prisma.session.findMany({
     where: {
@@ -206,6 +231,19 @@ export async function sendRegistrationConfirmationEmail(input: {
     })
     .join("");
 
+  const welcomePack = await buildWelcomePackPdf({
+    eventName: input.eventName,
+    orgName: input.orgName,
+    attendeeName: input.toName,
+    company: input.company ?? null,
+    categoryName: input.categoryName ?? null,
+    venue: input.venue ?? null,
+    timezone: input.timezone ?? "UTC",
+    startsAt: input.startsAt ?? null,
+    endsAt: input.endsAt ?? null,
+    attendanceToken: input.attendanceToken,
+  });
+
   return deliver({
     organisationId: input.organisationId,
     eventId: input.eventId,
@@ -216,17 +254,25 @@ export async function sendRegistrationConfirmationEmail(input: {
       "Registration",
       `${p(`Hello ${escapeHtml(input.toName)}, ${escapeHtml(input.orgName)} has recorded your registration.`)}
        ${p(`Create an account with <strong style="color:${aurora.text}">${escapeHtml(input.toEmail)}</strong> to open the event app. There you can browse the agenda, request meetings, complete your matching profile, and access your check-in QR code on event day.`)}
+       ${p("<strong style=\"color:" + aurora.text + "\">Attached:</strong> an A4 welcome sheet with your personal check-in QR. Print it if you will not have a phone at registration.")}
        <ul style="margin:0 0 12px;padding-left:18px;color:${aurora.body};font-size:14px;line-height:1.6">
          <li>Meetings and connection requests</li>
          <li>Agenda and online sessions</li>
          <li>Matchmaking directory</li>
-         <li>Check-in QR code in the app</li>
+         <li>Check-in QR in the app or on the attached PDF</li>
        </ul>
        ${sessionBlocks}
        ${p("After signing up, complete your matching profile so the directory can introduce the right people.", true)}`,
       input.signUpUrl,
       "Create account",
     ),
+    attachments: [
+      {
+        filename: welcomePack.filename,
+        content: Buffer.from(welcomePack.bytes),
+        contentType: "application/pdf",
+      },
+    ],
   });
 }
 

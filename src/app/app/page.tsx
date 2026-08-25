@@ -28,15 +28,22 @@ export default async function AppIndexPage() {
     );
   }
 
-  const memberships = await prisma.organisationUser.findMany({
-    where: { userId: user.id },
-    include: { organisation: true },
-  });
+  const [memberships, attendeeCount] = await Promise.all([
+    prisma.organisationUser.findMany({
+      where: { userId: user.id },
+      include: { organisation: true },
+    }),
+    prisma.attendee.count({ where: { userId: user.id } }),
+  ]);
 
   if (memberships.length === 1) {
     redirect(`/app/${memberships[0].organisation.slug}`);
   }
   if (memberships.length === 0) {
+    // Registered delegates must not be forced into organiser onboarding.
+    if (attendeeCount > 0) {
+      redirect("/me");
+    }
     redirect("/app/onboarding");
   }
 
@@ -58,6 +65,14 @@ export default async function AppIndexPage() {
             </Link>
           ))}
         </div>
+        {attendeeCount > 0 ? (
+          <p className="mt-6 text-sm text-slate-600">
+            Looking for your delegate events?{" "}
+            <Link href="/me" className="font-medium text-indigo-600 hover:text-indigo-700">
+              Open attendee portal
+            </Link>
+          </p>
+        ) : null}
       </div>
     </div>
   );
