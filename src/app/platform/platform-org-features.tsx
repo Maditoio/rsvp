@@ -36,8 +36,8 @@ export function PlatformOrgFeatureControls({
       }
       toast.success(
         enabled
-          ? `AI floor plan enabled for ${org.name}.`
-          : `AI floor plan disabled for ${org.name}.`,
+          ? `Con·cierge floor mapping enabled for ${org.name}.`
+          : `Con·cierge floor mapping disabled for ${org.name}.`,
       );
       router.refresh();
     });
@@ -53,8 +53,8 @@ export function PlatformOrgFeatureControls({
       </h2>
       <p className="mt-1 max-w-2xl text-sm text-slate-600">
         Enable optional capabilities per tenant. Manual floor-plan editing stays
-        available for every organisation; AI assist is only shown when enabled
-        here.
+        available for every organisation; Con·cierge floor mapping only appears
+        when enabled here.
       </p>
 
       {organisations.length === 0 ? (
@@ -82,13 +82,13 @@ export function PlatformOrgFeatureControls({
                     checked={org.venueAiFloorPlanEnabled}
                     disabled={busy}
                     onChange={(event) => toggle(org, event.target.checked)}
-                    aria-label={`AI floor plan for ${org.name}`}
+                    aria-label={`Con·cierge floor mapping for ${org.name}`}
                   />
                   <Label
                     htmlFor={checkboxId}
                     className="cursor-pointer text-sm font-medium text-slate-700"
                   >
-                    {busy ? "Saving…" : "AI floor plan assist"}
+                    {busy ? "Saving…" : "Con·cierge floor mapping"}
                   </Label>
                 </div>
               </li>

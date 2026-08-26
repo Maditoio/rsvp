@@ -153,6 +153,7 @@ model User {
   hubSpotConnections      HubSpotConnection[]      @relation("HubSpotConnectedBy")
   salesforceConnections   SalesforceConnection[]   @relation("SalesforceConnectedBy")
   dataRequests      DataRequest[]
+  mapAnalyticsEvents MapAnalyticsEvent[]
 
   @@index([email])
 }
@@ -219,6 +220,7 @@ model Organisation {
   mapPois                 MapPoi[]
   mapCheckpoints          MapCheckpoint[]
   attendeeMapLocations    AttendeeMapLocation[]
+  mapAnalyticsEvents      MapAnalyticsEvent[]
 }
 
 model OrganisationUser {
@@ -295,6 +297,7 @@ model Event {
   mapPois                  MapPoi[]
   mapCheckpoints           MapCheckpoint[]
   attendeeMapLocations     AttendeeMapLocation[]
+  mapAnalyticsEvents       MapAnalyticsEvent[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -602,6 +605,7 @@ model Attendee {
   meetingParts MeetingParticipant[]
   pollResponses EventPollResponse[]
   mapLocation  AttendeeMapLocation?
+  mapAnalyticsEvents MapAnalyticsEvent[]
 
   @@unique([eventId, email])
   @@index([organisationId, eventId])
@@ -1273,6 +1277,7 @@ model VenueFloorPlan {
   pois         MapPoi[]
   checkpoints  MapCheckpoint[]
   attendeeLocations AttendeeMapLocation[]
+  analyticsEvents MapAnalyticsEvent[]
 
   @@index([organisationId, eventId])
   @@index([eventId, publishedAt])
@@ -1302,6 +1307,7 @@ model MapPoi {
   session      Session?       @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   checkpoints  MapCheckpoint[]
   attendeeLocations AttendeeMapLocation[]
+  analyticsEvents MapAnalyticsEvent[]
 
   @@index([organisationId, eventId])
   @@index([floorPlanId])
@@ -1318,6 +1324,8 @@ model MapCheckpoint {
   poiId          String?
   label          String
   tokenHash      String    @unique
+  /// AES-GCM ciphertext of raw token for reprint / ZIP export only.
+  tokenEncrypted String?
   active         Boolean   @default(true)
   createdAt      DateTime  @default(now())
   disabledAt     DateTime?
@@ -1327,6 +1335,7 @@ model MapCheckpoint {
   floorPlan    VenueFloorPlan @relation(fields: [floorPlanId], references: [id], onDelete: Cascade)
   poi          MapPoi?        @relation(fields: [poiId], references: [id], onDelete: SetNull)
   attendeeLocations AttendeeMapLocation[]
+  analyticsEvents MapAnalyticsEvent[]
 
   @@index([organisationId, eventId])
   @@index([floorPlanId])
@@ -1350,4 +1359,36 @@ model AttendeeMapLocation {
   checkpoint   MapCheckpoint? @relation(fields: [checkpointId], references: [id], onDelete: SetNull)
 
   @@index([organisationId, eventId])
+}
+
+/// Durable attendee map telemetry (search, navigate, presence, QR scans). No raw tokens.
+model MapAnalyticsEvent {
+  id             String   @id @default(cuid())
+  organisationId String
+  eventId        String
+  attendeeId     String?
+  userId         String?
+  /// map.search | map.navigate | map.here | checkpoint.scan
+  kind           String
+  floorPlanId    String?
+  poiId          String?
+  checkpointId   String?
+  /// Sanitized/truncated search query when kind = map.search
+  query          String?
+  /// Non-secret context (resultCount, floorName, source, …)
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  attendee     Attendee?       @relation(fields: [attendeeId], references: [id], onDelete: SetNull)
+  user         User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  floorPlan    VenueFloorPlan? @relation(fields: [floorPlanId], references: [id], onDelete: SetNull)
+  poi          MapPoi?         @relation(fields: [poiId], references: [id], onDelete: SetNull)
+  checkpoint   MapCheckpoint?  @relation(fields: [checkpointId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, eventId, kind, createdAt])
+  @@index([poiId])
+  @@index([floorPlanId])
+  @@index([eventId, createdAt])
 }

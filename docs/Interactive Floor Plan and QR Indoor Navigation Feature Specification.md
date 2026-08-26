@@ -69,7 +69,8 @@ Optional for large halls (e.g. 300 stands). Shown only when `Organisation.venueA
 - Bluetooth / Wi-Fi / UWB positioning
 - Real-time attendee tracking on the map
 - Full exhibitor CRM (free-text stand POIs are enough)
-- AI floor detect / OCR / stand auto-plot pipeline (Phase G; gate UI may ship first)
+
+Detection (when `venueAiFloorPlanEnabled`) uses OpenAI vision + optional CSV stand list; organiser review is required before pins are saved. Multiple floors per event are supported (`floorIndex`).
 
 ---
 
@@ -279,10 +280,19 @@ Attendee location (ephemeral or stored): last checkpoint / POI / node + `updated
 
 - `Organisation.venueAiFloorPlanEnabled` (default false); toggle on `/platform` by platform admin
 - Venue AI UI hidden unless flag is on; Manual Mode 1 always available
-- Image detect + OCR for stand numbers and facility labels
-- Optional details-document import (stand_code, name, hall — no x,y)
-- Propose → review UI; then same Manual editor + selective QR
+- OpenAI vision detect + optional CSV stand list (`stand_code`, `name`)
+- Propose → review (select/deselect) → bulk create POIs; then Manual editor + selective QR
+- Multiple floor plans per event (`floorIndex`); attendees switch published floors
 - No paid/Pro tiers required for this gate in MVP
+
+### Phase H — Map insights (telemetry)
+
+- Durable `MapAnalyticsEvent` log: `map.search`, `map.navigate`, `map.here`, `checkpoint.scan`
+- Server-side instrumentation on attendee search/Go, I’m here, and QR checkpoint resolve (no raw tokens)
+- Organiser Venue → **Insights** tab: top queries/destinations, presence & scan counts, hot/cold floors, UTC hourly peaks
+- **Movement heatmap** on the floor plan image: POI-weighted radial glow from aggregate navigate / I’m here / QR scan counts (not continuous path tracking; searches excluded from overlay)
+- Exhibitor stand / meeting room cards with aggregate demand (today + event); anonymous counts only
+- Additive — manual map + QR flows unchanged
 
 ---
 
@@ -293,6 +303,7 @@ Attendee location (ephemeral or stored): last checkpoint / POI / node + `updated
 - Attendee taps Navigate from a meeting/session and lands on the map with destination selected
 - No CAD required; no indoor GPS; tokens hashed; tenant-scoped
 - Platform admin can enable/disable AI floor assist per organisation; AI UI stays hidden when off
+- Organisers can open Venue Insights and see aggregate map demand; exhibitor stands show shareable counts
 
 ---
 

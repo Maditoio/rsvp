@@ -33,7 +33,7 @@ export default async function AttendeeMapPage({
     return null;
   }
 
-  const floorPlan = await prisma.venueFloorPlan.findFirst({
+  const floorPlans = await prisma.venueFloorPlan.findMany({
     where: {
       eventId,
       organisationId: attendee.organisationId,
@@ -45,7 +45,7 @@ export default async function AttendeeMapPage({
     },
   });
 
-  if (!floorPlan) {
+  if (floorPlans.length === 0) {
     return (
       <div className="space-y-4">
         <PageHeader
@@ -64,14 +64,18 @@ export default async function AttendeeMapPage({
     );
   }
 
+  const allPois = floorPlans.flatMap((f) =>
+    f.pois.map((p) => ({ ...p, floorPlanId: f.id })),
+  );
+
   let destinationId: string | null =
     typeof query.to === "string" ? query.to : null;
   if (!destinationId && typeof query.session === "string") {
-    const linked = floorPlan.pois.find((p) => p.sessionId === query.session);
+    const linked = allPois.find((p) => p.sessionId === query.session);
     destinationId = linked?.id ?? null;
   }
   if (!destinationId && typeof query.room === "string") {
-    const linked = floorPlan.pois.find((p) => p.meetingRoomId === query.room);
+    const linked = allPois.find((p) => p.meetingRoomId === query.room);
     destinationId = linked?.id ?? null;
   }
 
@@ -79,27 +83,46 @@ export default async function AttendeeMapPage({
     (typeof query.here === "string" ? query.here : null) ??
     attendee.mapLocation?.poiId ??
     null;
+  const herePoi = herePoiId
+    ? allPois.find((p) => p.id === herePoiId)
+    : null;
+  const destinationPoi = destinationId
+    ? allPois.find((p) => p.id === destinationId)
+    : null;
+
+  const initialFloorId =
+    (typeof query.floor === "string"
+      ? floorPlans.find((f) => f.id === query.floor)?.id
+      : null) ??
+    destinationPoi?.floorPlanId ??
+    herePoi?.floorPlanId ??
+    attendee.mapLocation?.floorPlanId ??
+    floorPlans[0]!.id;
+
   const hereLabel =
-    floorPlan.pois.find((p) => p.id === herePoiId)?.name ??
-    attendee.mapLocation?.poi?.name ??
-    null;
+    herePoi?.name ?? attendee.mapLocation?.poi?.name ?? null;
 
   return (
     <AttendeeVenueMap
       eventId={eventId}
       eventName={attendee.event.name}
-      imageUrl={floorPlan.imageUrl}
+      initialFloorId={initialFloorId}
       youAreHereId={herePoiId}
       youAreHereLabel={hereLabel}
       youAreHereAt={attendee.mapLocation?.updatedAt.toISOString() ?? null}
       initialDestinationId={destinationId}
-      pois={floorPlan.pois.map((p) => ({
-        id: p.id,
-        name: p.name,
-        category: p.category,
-        description: p.description,
-        x: p.x,
-        y: p.y,
+      floors={floorPlans.map((floorPlan) => ({
+        id: floorPlan.id,
+        name: floorPlan.name,
+        imageUrl: floorPlan.imageUrl,
+        pois: floorPlan.pois.map((p) => ({
+          id: p.id,
+          name: p.name,
+          category: p.category,
+          description: p.description,
+          x: p.x,
+          y: p.y,
+        })),
       }))}
     />
   );

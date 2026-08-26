@@ -1,12 +1,12 @@
 import "server-only";
 
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 
 /**
  * Use a versioned global key. Next.js HMR keeps `globalThis.prisma` across
  * `prisma generate`, so a renamed key forces a fresh client after schema changes.
  */
-const GLOBAL_KEY = "__bizcon_prisma_v6_org_venue_ai__" as const;
+const GLOBAL_KEY = "__bizcon_prisma_v9_map_analytics__" as const;
 
 type PrismaGlobal = typeof globalThis & {
   [GLOBAL_KEY]?: PrismaClient;
@@ -18,11 +18,18 @@ function createPrismaClient() {
   });
 }
 
-function clientHasVenueModels(client: PrismaClient) {
+function clientMatchesSchema(client: PrismaClient) {
   const venue = (
     client as unknown as { venueFloorPlan?: { findFirst?: unknown } }
   ).venueFloorPlan;
-  return typeof venue?.findFirst === "function";
+  if (typeof venue?.findFirst !== "function") return false;
+
+  // Guard against HMR reusing a client generated before org feature columns existed.
+  return (
+    "venueAiFloorPlanEnabled" in Prisma.OrganisationScalarFieldEnum &&
+    "tokenEncrypted" in Prisma.MapCheckpointScalarFieldEnum &&
+    "kind" in Prisma.MapAnalyticsEventScalarFieldEnum
+  );
 }
 
 function getPrismaClient(): PrismaClient {
@@ -30,7 +37,7 @@ function getPrismaClient(): PrismaClient {
   const existing = g[GLOBAL_KEY];
 
   if (existing) {
-    if (clientHasVenueModels(existing)) {
+    if (clientMatchesSchema(existing)) {
       return existing;
     }
     void existing.$disconnect();
@@ -39,9 +46,9 @@ function getPrismaClient(): PrismaClient {
 
   const client = createPrismaClient();
 
-  if (!clientHasVenueModels(client)) {
+  if (!clientMatchesSchema(client)) {
     throw new Error(
-      "Prisma client is missing VenueFloorPlan. Run `npx prisma generate`, delete the `.next` folder, and restart the dev server.",
+      "Prisma client is out of date (missing VenueFloorPlan, Organisation.venueAiFloorPlanEnabled, or MapAnalyticsEvent). Run `npx prisma generate`, delete the `.next` folder, and restart the dev server.",
     );
   }
 
@@ -49,11 +56,26 @@ function getPrismaClient(): PrismaClient {
     g[GLOBAL_KEY] = client;
   }
 
-  // Drop legacy singleton if present from older code.
-  const legacy = globalThis as unknown as { prisma?: PrismaClient };
-  if (legacy.prisma && legacy.prisma !== client) {
-    void legacy.prisma.$disconnect();
-    legacy.prisma = undefined;
+  // Drop legacy singletons if present from older code.
+  const legacy = globalThis as unknown as {
+    prisma?: PrismaClient;
+    __bizcon_prisma_v5_venue_maps__?: PrismaClient;
+    __bizcon_prisma_v6_org_venue_ai__?: PrismaClient;
+    __bizcon_prisma_v7_org_venue_ai__?: PrismaClient;
+    __bizcon_prisma_v8_checkpoint_cipher__?: PrismaClient;
+  };
+  for (const key of [
+    "prisma",
+    "__bizcon_prisma_v5_venue_maps__",
+    "__bizcon_prisma_v6_org_venue_ai__",
+    "__bizcon_prisma_v7_org_venue_ai__",
+    "__bizcon_prisma_v8_checkpoint_cipher__",
+  ] as const) {
+    const old = legacy[key];
+    if (old && old !== client) {
+      void old.$disconnect();
+      legacy[key] = undefined;
+    }
   }
 
   return client;

@@ -7,6 +7,7 @@ import { QrCode, X } from "lucide-react";
 import { mapPoiCategoryLabel } from "@/modules/venue/categories";
 import { VenueMapCanvas, type MapPoiView } from "@/components/venue/venue-map-canvas";
 import {
+  recordMapInteraction,
   resolveVenueCheckpoint,
   setAttendeeMapHere,
 } from "@/modules/venue/attendee-actions";
@@ -17,11 +18,18 @@ import {
 } from "@/lib/qr-camera";
 import { Button } from "@/components/ui/button";
 
+type FloorView = {
+  id: string;
+  name: string;
+  imageUrl: string;
+  pois: MapPoiView[];
+};
+
 type Props = {
   eventId: string;
   eventName: string;
-  imageUrl: string;
-  pois: MapPoiView[];
+  floors: FloorView[];
+  initialFloorId: string;
   youAreHereId: string | null;
   youAreHereLabel: string | null;
   youAreHereAt: string | null;
@@ -48,14 +56,18 @@ function extractVenueToken(raw: string): string | null {
 export function AttendeeVenueMap({
   eventId,
   eventName,
-  imageUrl,
-  pois,
+  floors,
+  initialFloorId,
   youAreHereId,
   youAreHereLabel,
   youAreHereAt,
   initialDestinationId,
 }: Props) {
   const router = useRouter();
+  const [floorId, setFloorId] = useState(initialFloorId);
+  const floor = floors.find((f) => f.id === floorId) ?? floors[0]!;
+  const imageUrl = floor.imageUrl;
+  const pois = floor.pois;
   const [query, setQuery] = useState("");
   const [destinationId, setDestinationId] = useState<string | null>(
     initialDestinationId,
@@ -70,18 +82,74 @@ export function AttendeeVenueMap({
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanning = useRef(false);
+  const mapSectionRef = useRef<HTMLDivElement>(null);
+
+  type SearchHit = MapPoiView & { floorId: string; floorName: string };
+
+  const allPois = useMemo<SearchHit[]>(
+    () =>
+      floors.flatMap((f) =>
+        f.pois.map((p) => ({
+          ...p,
+          floorId: f.id,
+          floorName: f.name,
+        })),
+      ),
+    [floors],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return pois;
-    return pois.filter(
+    if (!q) {
+      return allPois.filter((p) => p.floorId === floor.id);
+    }
+    return allPois.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
-        mapPoiCategoryLabel(p.category).toLowerCase().includes(q),
+        mapPoiCategoryLabel(p.category).toLowerCase().includes(q) ||
+        p.floorName.toLowerCase().includes(q),
     );
-  }, [pois, query]);
+  }, [allPois, query, floor.id]);
 
-  const destination = pois.find((p) => p.id === destinationId) ?? null;
+  const destinationMeta = useMemo(() => {
+    if (!destinationId) return null;
+    return allPois.find((p) => p.id === destinationId) ?? null;
+  }, [allPois, destinationId]);
+
+  function goToLocation(
+    hit: SearchHit,
+    source: "go" | "view_map" | "search_hit" | "deep_link" = "go",
+  ) {
+    setCameraOn(false);
+    setFloorId(hit.floorId);
+    setDestinationId(hit.id);
+    setMessage(null);
+    const q = query.trim();
+    void recordMapInteraction(eventId, {
+      poiId: hit.id,
+      query: q || null,
+      resultCount: q ? filtered.length : null,
+      source: q && source === "go" ? "search_hit" : source,
+    });
+    requestAnimationFrame(() => {
+      mapSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }
+
+  useEffect(() => {
+    if (!initialDestinationId) return;
+    const hit = allPois.find((p) => p.id === initialDestinationId);
+    if (!hit) return;
+    void recordMapInteraction(eventId, {
+      poiId: hit.id,
+      source: "deep_link",
+    });
+    // Once on mount for agenda / meeting deep links only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!cameraOn) {
@@ -160,13 +228,16 @@ export function AttendeeVenueMap({
       scanning.current = false;
       return;
     }
+    setFloorId(result.data.floorPlanId);
+    const allPois = floors.flatMap((f) => f.pois);
     const poi = result.data.poiId
-      ? pois.find((p) => p.id === result.data.poiId)
+      ? allPois.find((p) => p.id === result.data.poiId)
       : null;
     if (poi) {
       setHereId(poi.id);
       setHereLabel(poi.name);
     } else {
+      setHereId(null);
       setHereLabel("Venue checkpoint");
     }
     setHereAt(new Date().toISOString());
@@ -201,6 +272,27 @@ export function AttendeeVenueMap({
         ) : null}
       </div>
 
+      {floors.length > 1 ? (
+        <div className="flex flex-wrap gap-2">
+          {floors.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => {
+                setFloorId(f.id);
+              }}
+              className={
+                f.id === floor.id
+                  ? "rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white"
+                  : "rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm"
+              }
+            >
+              {f.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <div className="rounded-xl bg-white px-4 py-3 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0 text-sm text-slate-700">
@@ -221,11 +313,27 @@ export function AttendeeVenueMap({
                 <span className="font-medium text-slate-800">I&apos;m here</span>.
               </p>
             )}
-            {destination ? (
+            {destinationMeta ? (
               <p className="mt-0.5">
                 <span className="font-semibold text-teal-700">Going to:</span>{" "}
-                {destination.name}
+                {destinationMeta.name}
+                {floors.length > 1 ? (
+                  <span className="text-slate-500">
+                    {" "}
+                    · {destinationMeta.floorName}
+                    {destinationMeta.floorId !== floor.id ? " (switch floors)" : ""}
+                  </span>
+                ) : null}
               </p>
+            ) : null}
+            {destinationMeta && destinationMeta.floorId !== floor.id ? (
+              <button
+                type="button"
+                className="mt-2 text-sm font-semibold text-indigo-600"
+                onClick={() => goToLocation(destinationMeta, "view_map")}
+              >
+                View on {destinationMeta.floorName} map
+              </button>
             ) : null}
           </div>
           {!cameraSupported ? (
@@ -240,6 +348,7 @@ export function AttendeeVenueMap({
         ) : null}
       </div>
 
+      <div ref={mapSectionRef}>
       {cameraOn ? (
         <div className="overflow-hidden rounded-xl bg-slate-900 shadow-sm">
           <div className="flex items-center justify-between px-4 py-2">
@@ -270,6 +379,7 @@ export function AttendeeVenueMap({
           compactControls
         />
       )}
+      </div>
 
       <div className="rounded-xl bg-white p-4 shadow-sm">
         <label className="sr-only" htmlFor="map-search">
@@ -279,7 +389,11 @@ export function AttendeeVenueMap({
           id="map-search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search rooms, toilets, coffee…"
+          placeholder={
+            floors.length > 1
+              ? "Search all floors — rooms, toilets, VIP…"
+              : "Search rooms, toilets, coffee…"
+          }
           className="w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
         />
 
@@ -297,56 +411,81 @@ export function AttendeeVenueMap({
         </div>
 
         <ul className="mt-3 max-h-56 space-y-1 overflow-y-auto">
-          {filtered.map((poi) => (
-            <li key={poi.id}>
-              <div className="flex items-center justify-between gap-2 rounded-lg px-2 py-2 hover:bg-slate-50">
-                <button
-                  type="button"
-                  className="min-w-0 flex-1 text-left"
-                  onClick={() => setDestinationId(poi.id)}
-                >
-                  <p className="truncate text-sm font-medium text-slate-900">
-                    {poi.name}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {mapPoiCategoryLabel(poi.category)}
-                  </p>
-                </button>
-                <div className="flex shrink-0 gap-1">
-                  <Button
+          {filtered.map((poi) => {
+            const onOtherFloor = poi.floorId !== floor.id;
+            return (
+              <li key={`${poi.floorId}-${poi.id}`}>
+                <div className="flex items-center justify-between gap-2 rounded-lg px-2 py-2 hover:bg-slate-50">
+                  <button
                     type="button"
-                    size="sm"
-                    variant="secondary"
-                    disabled={pending}
-                    onClick={async () => {
-                      setPending(true);
-                      setMessage(null);
-                      const result = await setAttendeeMapHere(eventId, poi.id);
-                      setPending(false);
-                      if (!result.ok) {
-                        setMessage(result.error);
-                        return;
+                    className="min-w-0 flex-1 text-left"
+                    onClick={() => goToLocation(poi, "search_hit")}
+                  >
+                    <p className="truncate text-sm font-medium text-slate-900">
+                      {poi.name}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {mapPoiCategoryLabel(poi.category)}
+                      {floors.length > 1 ? (
+                        <>
+                          {" · "}
+                          <span
+                            className={
+                              onOtherFloor
+                                ? "font-semibold text-indigo-600"
+                                : undefined
+                            }
+                          >
+                            {onOtherFloor ? poi.floorName : "This floor"}
+                          </span>
+                        </>
+                      ) : null}
+                    </p>
+                  </button>
+                  <div className="flex shrink-0 gap-1">
+                    {!onOtherFloor ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={pending}
+                        onClick={async () => {
+                          setPending(true);
+                          setMessage(null);
+                          const result = await setAttendeeMapHere(eventId, poi.id);
+                          setPending(false);
+                          if (!result.ok) {
+                            setMessage(result.error);
+                            return;
+                          }
+                          setHereId(poi.id);
+                          setHereLabel(poi.name);
+                          setHereAt(new Date().toISOString());
+                        }}
+                      >
+                        I&apos;m here
+                      </Button>
+                    ) : null}
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() =>
+                        goToLocation(poi, onOtherFloor ? "view_map" : "go")
                       }
-                      setHereId(poi.id);
-                      setHereLabel(poi.name);
-                      setHereAt(new Date().toISOString());
-                    }}
-                  >
-                    I&apos;m here
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => setDestinationId(poi.id)}
-                  >
-                    Go
-                  </Button>
+                    >
+                      {onOtherFloor ? "View map" : "Go"}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
           {filtered.length === 0 ? (
-            <li className="px-2 py-3 text-sm text-slate-500">No matches.</li>
+            <li className="px-2 py-3 text-sm text-slate-500">
+              {query.trim()
+                ? "No matches on any floor."
+                : "No locations on this floor."}
+            </li>
           ) : null}
         </ul>
       </div>
