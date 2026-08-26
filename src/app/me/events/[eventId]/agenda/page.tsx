@@ -36,6 +36,11 @@ export default async function AttendeeAgendaPage({
         select: { joinUrl: true },
         take: 1,
       },
+      mapPois: {
+        where: { floorPlan: { publishedAt: { not: null } } },
+        select: { id: true },
+        take: 1,
+      },
     },
     orderBy: [{ startsAt: "asc" }, { title: "asc" }],
   });
@@ -79,6 +84,9 @@ export default async function AttendeeAgendaPage({
             timeLabel: schedule.timeLabel,
             picked: row.registrations.length > 0,
             teamsJoinUrl: row.onlineMeetings[0]?.joinUrl ?? null,
+            navigateHref: row.mapPois[0]
+              ? `/me/events/${eventId}/map?session=${row.id}`
+              : null,
           };
         })}
       />

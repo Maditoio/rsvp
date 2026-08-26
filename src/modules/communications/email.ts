@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 import { prisma } from "@/lib/db/prisma";
-import { formatEventWindow } from "@/lib/utils";
+import { formatEventWindow, getAppUrl } from "@/lib/utils";
 import { buildWelcomePackPdf } from "@/modules/communications/welcome-pack-pdf";
 
 /**
@@ -104,6 +104,9 @@ async function deliver(input: OutboundEmail) {
     replyTo: input.replyTo ?? replyToAddress(),
     subject: input.subject,
     html: input.html,
+    headers: {
+      "List-Unsubscribe": `<${getAppUrl()}/unsubscribe?email=${encodeURIComponent(input.toEmail.trim().toLowerCase())}>`,
+    },
     attachments: input.attachments?.map((file) => ({
       filename: file.filename,
       content: file.content,
@@ -217,11 +220,24 @@ function purposeParagraph(ctx: EventMailContext, fallback: string) {
   return p(escapeHtml(text));
 }
 
-function trustFooter(orgName: string) {
+function trustFooter(orgName: string, toEmail: string) {
   const support = supportEmail();
-  return `<div style="max-width:560px;margin:16px auto 0;font-family:${aurora.font};font-size:12px;line-height:1.55;color:${aurora.muted};text-align:center">
-    <p style="margin:0 0 6px">This message was sent via <strong style="color:${aurora.body}">Bizcon RSVP</strong> on behalf of <strong style="color:${aurora.body}">${escapeHtml(orgName)}</strong>.</p>
-    <p style="margin:0">Questions? Contact <a href="mailto:${escapeHtml(support)}" style="color:${aurora.indigo};text-decoration:none">${escapeHtml(support)}</a></p>
+  const appUrl = getAppUrl();
+  const privacyUrl = `${appUrl}/privacystatment`;
+  const termsUrl = `${appUrl}/termsofservice`;
+  const unsubscribeUrl = `${appUrl}/unsubscribe?email=${encodeURIComponent(toEmail.trim().toLowerCase())}`;
+  const email = escapeHtml(toEmail.trim().toLowerCase());
+
+  return `<div style="max-width:560px;margin:16px auto 0;font-family:${aurora.font};font-size:11px;line-height:1.55;color:${aurora.muted};text-align:center">
+    <p style="margin:0 0 8px">This message was sent via <strong style="color:${aurora.body}">Bizcon RSVP</strong> on behalf of <strong style="color:${aurora.body}">${escapeHtml(orgName)}</strong>. Questions? Contact <a href="mailto:${escapeHtml(support)}" style="color:${aurora.indigo};text-decoration:none">${escapeHtml(support)}</a></p>
+    <p style="margin:0 0 10px;font-size:10px;line-height:1.5;color:${aurora.muted}">We sent this email to ${email} because you signed up for or have recently used Bizcon RSVP. Our service and marketing emails are to provide important updates and reminders about your projects and subscription. You can unsubscribe at any time using the link below.</p>
+    <p style="margin:0;font-size:10px">
+      <a href="${privacyUrl}" style="color:${aurora.indigo};text-decoration:none">Privacy</a>
+      <span style="color:${aurora.border};padding:0 6px">·</span>
+      <a href="${termsUrl}" style="color:${aurora.indigo};text-decoration:none">Terms</a>
+      <span style="color:${aurora.border};padding:0 6px">·</span>
+      <a href="${unsubscribeUrl}" style="color:${aurora.indigo};text-decoration:none">Unsubscribe</a>
+    </p>
   </div>`;
 }
 
@@ -230,6 +246,7 @@ function letter(opts: {
   eyebrow: string;
   body: string;
   orgName: string;
+  toEmail: string;
   href?: string;
   cta?: string;
 }) {
@@ -256,7 +273,7 @@ function letter(opts: {
             ${cta}
           </div>
         </div>
-        ${trustFooter(opts.orgName)}
+        ${trustFooter(opts.orgName, opts.toEmail)}
       </div>
     </div>
   `;
@@ -267,6 +284,7 @@ function letterPair(opts: {
   eyebrow: string;
   body: string;
   orgName: string;
+  toEmail: string;
   primaryHref: string;
   primaryCta: string;
   secondaryHref?: string;
@@ -281,6 +299,7 @@ function letterPair(opts: {
     eyebrow: opts.eyebrow,
     body: `${opts.body}${secondary}`,
     orgName: opts.orgName,
+    toEmail: opts.toEmail,
     href: opts.primaryHref,
     cta: opts.primaryCta,
   });
@@ -312,6 +331,7 @@ export async function sendInvitationEmail(input: {
       title: ctx.eventName,
       eyebrow: "You're invited to attend",
       orgName: ctx.orgName,
+      toEmail: input.toEmail,
       href: input.acceptUrl,
       cta: "View your invitation",
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
@@ -418,6 +438,7 @@ export async function sendRegistrationConfirmationEmail(input: {
       title: `Your place at ${ctx.eventName} is confirmed`,
       eyebrow: "Registration",
       orgName: ctx.orgName,
+      toEmail: input.toEmail,
       href: input.signUpUrl,
       cta: "Create your account",
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
@@ -463,6 +484,7 @@ export async function sendOrganizerWelcomeEmail(input: {
       title: "Your organiser workspace is ready",
       eyebrow: "Welcome",
       orgName: input.orgName,
+      toEmail: input.toEmail,
       href: input.loginUrl,
       cta: "Open organiser console",
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
@@ -515,6 +537,7 @@ export async function sendMeetingRequestEmail(input: {
       title: `${input.requesterName} sent a connection request`,
       eyebrow: "Connection request",
       orgName: ctx.orgName,
+      toEmail: input.toEmail,
       primaryHref: input.acceptUrl,
       primaryCta: "Accept request",
       secondaryHref: input.declineUrl,
@@ -583,6 +606,7 @@ export async function sendReminderEmail(input: {
       title: copy.title,
       eyebrow: copy.eyebrow,
       orgName: ctx.orgName,
+      toEmail: input.toEmail,
       href: input.href,
       cta: copy.cta,
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
@@ -632,6 +656,7 @@ export async function sendEventStaffRoleEmail(input: {
       title: changed ? "Your staff role has been updated" : "You have a new staff role",
       eyebrow: "Staff access",
       orgName: ctx.orgName,
+      toEmail: input.toEmail,
       href: input.workspaceUrl,
       cta: "Open workspace",
       body,
@@ -672,6 +697,7 @@ export async function sendMeetingReminderEmail(input: {
       title: subject,
       eyebrow: "Meeting reminder",
       orgName: ctx.orgName,
+      toEmail: input.toEmail,
       href: input.href,
       cta: "View meeting",
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
@@ -706,6 +732,7 @@ export async function sendUnscheduledMeetingNudgeEmail(input: {
       title: "Your meeting needs a time slot",
       eyebrow: "Scheduling",
       orgName: ctx.orgName,
+      toEmail: input.toEmail,
       href: input.href,
       cta: "View meetings",
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
@@ -739,6 +766,7 @@ export async function sendPostMeetingFollowUpEmail(input: {
       title: "Share quick feedback",
       eyebrow: "Follow-up",
       orgName: ctx.orgName,
+      toEmail: input.toEmail,
       href: input.href,
       cta: "Open poll",
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
@@ -777,6 +805,7 @@ export async function sendApplicationDecisionEmail(input: {
         : `Update on your application to ${ctx.eventName}`,
       eyebrow: "Application",
       orgName: ctx.orgName,
+      toEmail: input.toEmail,
       href: input.approved ? input.href : undefined,
       cta: input.approved ? "View invitation" : undefined,
       body: input.approved

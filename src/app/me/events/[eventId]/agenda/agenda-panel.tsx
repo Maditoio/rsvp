@@ -24,6 +24,8 @@ export type AttendeeSessionRow = {
   timeLabel: string | null;
   picked: boolean;
   teamsJoinUrl: string | null;
+  /** Opens attendee venue map with this session as destination when linked. */
+  navigateHref: string | null;
 };
 
 function formatLabel(format: AttendeeSessionRow["format"]) {
@@ -143,6 +145,15 @@ function SessionCard({
         </div>
 
         <div className="flex shrink-0 flex-row flex-wrap gap-2 sm:flex-col sm:items-stretch">
+          {row.navigateHref ? (
+            <a
+              href={row.navigateHref}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-slate-100 px-3 text-[0.8125rem] font-semibold text-slate-800 hover:bg-slate-200"
+            >
+              <MapPin className="size-3.5" aria-hidden />
+              Navigate
+            </a>
+          ) : null}
           {row.teamsJoinUrl ? (
             <a
               href={row.teamsJoinUrl}

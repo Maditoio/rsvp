@@ -10,6 +10,7 @@ import {
   Handshake,
   LayoutDashboard,
   ListChecks,
+  MapPinned,
   QrCode,
   User,
 } from "lucide-react";
@@ -22,6 +23,7 @@ function attendeeEventPrimaryItems(eventId: string) {
   return [
     { href: base, label: "Overview", icon: LayoutDashboard, exact: true },
     { href: `${base}/agenda`, label: "Agenda", icon: CalendarDays },
+    { href: `${base}/map`, label: "Map", icon: MapPinned },
     { href: `${base}/directory`, label: "Directory", icon: BookUser },
     { href: `${base}/matchmaking`, label: "Matching", icon: GitMerge },
     { href: `${base}/meetings`, label: "Meetings", icon: Handshake },

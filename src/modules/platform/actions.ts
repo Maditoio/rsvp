@@ -1,11 +1,23 @@
 "use server";
 
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requirePlatformAdmin } from "@/lib/authz/require";
+import {
+  actionFail,
+  actionOk,
+  publicActionError,
+  type ActionResult,
+} from "@/lib/action-result";
 import { writeAudit } from "@/modules/audit/log";
 import { buildPlatformSurfaceCatalog } from "./surfaces";
 import type { PlatformSurfaceGroup } from "./surfaces";
+
+async function requestIp() {
+  return (await headers()).get("x-forwarded-for");
+}
 
 export async function getPlatformOverview() {
   const user = await requirePlatformAdmin();
@@ -86,11 +98,11 @@ export async function getPlatformOverview() {
         id: true,
         name: true,
         slug: true,
+        venueAiFloorPlanEnabled: true,
         createdAt: true,
         _count: { select: { events: true, users: true } },
       },
-      orderBy: { createdAt: "desc" },
-      take: 20,
+      orderBy: { name: "asc" },
     }),
   ]);
 
@@ -108,6 +120,52 @@ export async function getPlatformOverview() {
     recentMemberships,
     organisations,
   };
+}
+
+export async function setOrganisationVenueAiFloorPlan(
+  organisationId: string,
+  enabled: boolean,
+): Promise<ActionResult<{ enabled: boolean }>> {
+  try {
+    const actor = await requirePlatformAdmin();
+    const id = z.string().cuid().parse(organisationId);
+    const next = z.boolean().parse(enabled);
+
+    const organisation = await prisma.organisation.update({
+      where: { id },
+      data: { venueAiFloorPlanEnabled: next },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        venueAiFloorPlanEnabled: true,
+      },
+    });
+
+    await writeAudit({
+      userId: actor.id,
+      organisationId: organisation.id,
+      action: next
+        ? "organisation.venue_ai_floor_plan.enable"
+        : "organisation.venue_ai_floor_plan.disable",
+      resource: "organisation",
+      resourceId: organisation.id,
+      ip: await requestIp(),
+      metadata: {
+        slug: organisation.slug,
+        name: organisation.name,
+        venueAiFloorPlanEnabled: organisation.venueAiFloorPlanEnabled,
+      },
+    });
+
+    revalidatePath("/platform");
+    revalidatePath(`/app/${organisation.slug}`);
+    return actionOk({ enabled: organisation.venueAiFloorPlanEnabled });
+  } catch (error) {
+    return actionFail(
+      publicActionError(error, "Could not update organisation feature."),
+    );
+  }
 }
 
 export async function listPlatformOrganisations() {

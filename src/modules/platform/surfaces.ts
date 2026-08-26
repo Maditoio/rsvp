@@ -37,6 +37,7 @@ const ATTENDEE_EVENT_ROUTES = [
   { suffix: "/calendar", label: "Calendar", description: "Calendar connections" },
   { suffix: "/profile", label: "Profile", description: "Public delegate profile" },
   { suffix: "/privacy", label: "Privacy", description: "Visibility and AI opt-in" },
+  { suffix: "/map", label: "Venue map", description: "Floor plan and wayfinding" },
   { suffix: "/qr", label: "Check-in QR", description: "Personal check-in code" },
 ] as const;
 

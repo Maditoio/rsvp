@@ -258,6 +258,7 @@ export function AttendeeMeetingsPanel({
               <>
                 {todayMeetings.length > 0 ? (
                   <MeetingGroup
+                    eventId={eventId}
                     label="Today"
                     meetings={todayMeetings}
                     onView={openMeetingDetail}
@@ -265,6 +266,7 @@ export function AttendeeMeetingsPanel({
                 ) : null}
                 {laterMeetings.length > 0 ? (
                   <MeetingGroup
+                    eventId={eventId}
                     label="Upcoming"
                     meetings={laterMeetings}
                     onView={openMeetingDetail}
@@ -328,6 +330,7 @@ export function AttendeeMeetingsPanel({
               />
             ) : (
               <MeetingGroup
+                eventId={eventId}
                 label="Past"
                 meetings={past}
                 onView={openMeetingDetail}
@@ -741,10 +744,12 @@ function SummaryCard({
 }
 
 function MeetingGroup({
+  eventId,
   label,
   meetings,
   onView,
 }: {
+  eventId: string;
   label: string;
   meetings: MeetingRow[];
   onView: (m: MeetingRow) => void;
@@ -757,7 +762,11 @@ function MeetingGroup({
       <ul className="mt-3 space-y-3">
         {meetings.map((meeting) => (
           <li key={meeting.id}>
-            <MeetingCard meeting={meeting} onView={() => onView(meeting)} />
+            <MeetingCard
+              eventId={eventId}
+              meeting={meeting}
+              onView={() => onView(meeting)}
+            />
           </li>
         ))}
       </ul>
@@ -766,9 +775,11 @@ function MeetingGroup({
 }
 
 function MeetingCard({
+  eventId,
   meeting,
   onView,
 }: {
+  eventId: string;
   meeting: MeetingRow;
   onView: () => void;
 }) {
@@ -816,7 +827,16 @@ function MeetingCard({
               {meeting.durationMins} min meeting
             </p>
           ) : null}
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
+            {meeting.roomId ? (
+              <Link
+                href={`/me/events/${eventId}/map?room=${meeting.roomId}`}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700 hover:text-slate-900"
+              >
+                <MapPin className="size-3.5" aria-hidden />
+                Navigate
+              </Link>
+            ) : null}
             <button
               type="button"
               onClick={onView}

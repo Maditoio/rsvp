@@ -6,7 +6,7 @@ import { PrismaClient } from "@prisma/client";
  * Use a versioned global key. Next.js HMR keeps `globalThis.prisma` across
  * `prisma generate`, so a renamed key forces a fresh client after schema changes.
  */
-const GLOBAL_KEY = "__bizcon_prisma_v4_organiser_roadmap__" as const;
+const GLOBAL_KEY = "__bizcon_prisma_v6_org_venue_ai__" as const;
 
 type PrismaGlobal = typeof globalThis & {
   [GLOBAL_KEY]?: PrismaClient;
@@ -18,15 +18,19 @@ function createPrismaClient() {
   });
 }
 
+function clientHasVenueModels(client: PrismaClient) {
+  const venue = (
+    client as unknown as { venueFloorPlan?: { findFirst?: unknown } }
+  ).venueFloorPlan;
+  return typeof venue?.findFirst === "function";
+}
+
 function getPrismaClient(): PrismaClient {
   const g = globalThis as PrismaGlobal;
   const existing = g[GLOBAL_KEY];
 
   if (existing) {
-    const pollDelegate = (
-      existing as unknown as { eventPoll?: { findMany?: unknown } }
-    ).eventPoll;
-    if (typeof pollDelegate?.findMany === "function") {
+    if (clientHasVenueModels(existing)) {
       return existing;
     }
     void existing.$disconnect();
@@ -34,13 +38,10 @@ function getPrismaClient(): PrismaClient {
   }
 
   const client = createPrismaClient();
-  const pollDelegate = (
-    client as unknown as { eventPoll?: { findMany?: unknown } }
-  ).eventPoll;
 
-  if (typeof pollDelegate?.findMany !== "function") {
+  if (!clientHasVenueModels(client)) {
     throw new Error(
-      "Prisma client is missing EventPoll. Run `npx prisma generate`, delete the `.next` folder, and restart the dev server.",
+      "Prisma client is missing VenueFloorPlan. Run `npx prisma generate`, delete the `.next` folder, and restart the dev server.",
     );
   }
 

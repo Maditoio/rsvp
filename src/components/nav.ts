@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Mail,
+  MapPinned,
   Megaphone,
   QrCode,
   ScrollText,
@@ -152,6 +153,7 @@ export function eventNavGroups(
         },
         { href: `${base}/agenda`, label: "Agenda", permission: "event.read", icon: CalendarDays },
         { href: `${base}/meetings`, label: "Meetings", permission: "event.read", icon: Handshake },
+        { href: `${base}/venue`, label: "Venue map", permission: "event.update", icon: MapPinned },
       ],
     },
     {

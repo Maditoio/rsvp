@@ -161,6 +161,8 @@ model Organisation {
   id        String   @id @default(cuid())
   name      String
   slug      String   @unique
+  /// Platform-admin gate: AI floor-plan assist (detect/plot). Manual map flow always available.
+  venueAiFloorPlanEnabled Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -213,6 +215,10 @@ model Organisation {
   eventPollResponses      EventPollResponse[]
   eventPollAnswers        EventPollAnswer[]
   communicationAutomations CommunicationAutomation[]
+  venueFloorPlans         VenueFloorPlan[]
+  mapPois                 MapPoi[]
+  mapCheckpoints          MapCheckpoint[]
+  attendeeMapLocations    AttendeeMapLocation[]
 }
 
 model OrganisationUser {
@@ -285,6 +291,10 @@ model Event {
   pollResponses         EventPollResponse[]
   pollAnswers           EventPollAnswer[]
   communicationAutomations CommunicationAutomation[]
+  venueFloorPlans          VenueFloorPlan[]
+  mapPois                  MapPoi[]
+  mapCheckpoints           MapCheckpoint[]
+  attendeeMapLocations     AttendeeMapLocation[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -591,6 +601,7 @@ model Attendee {
   meetingReqsTo   MeetingRequest[]   @relation("MeetingTarget")
   meetingParts MeetingParticipant[]
   pollResponses EventPollResponse[]
+  mapLocation  AttendeeMapLocation?
 
   @@unique([eventId, email])
   @@index([organisationId, eventId])
@@ -645,6 +656,7 @@ model Session {
   event          Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
   registrations  SessionRegistration[]
   onlineMeetings OnlineMeeting[]
+  mapPois        MapPoi[]
 
   @@index([organisationId, eventId])
 }
@@ -784,6 +796,7 @@ model MeetingRoom {
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   meetings     Meeting[]
+  mapPois      MapPoi[]
 
   @@index([organisationId, eventId])
 }
@@ -1239,4 +1252,102 @@ model EventPollAnswer {
   @@unique([responseId, questionId])
   @@index([organisationId, eventId])
   @@index([questionId])
+}
+
+/// Published venue map for indoor wayfinding (image + POIs + QR checkpoints).
+model VenueFloorPlan {
+  id             String    @id @default(cuid())
+  organisationId String
+  eventId        String
+  name           String    @default("Main floor")
+  floorIndex     Int       @default(0)
+  imageUrl       String
+  /// { pointA, pointB, realDistance, unit } when calibrated
+  calibration    Json?
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organisation Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  pois         MapPoi[]
+  checkpoints  MapCheckpoint[]
+  attendeeLocations AttendeeMapLocation[]
+
+  @@index([organisationId, eventId])
+  @@index([eventId, publishedAt])
+}
+
+model MapPoi {
+  id             String  @id @default(cuid())
+  organisationId String
+  eventId        String
+  floorPlanId    String
+  name           String
+  description    String?
+  category       String
+  /// Normalized 0–1 relative to floor image
+  x              Float
+  y              Float
+  meetingRoomId  String?
+  sessionId      String?
+  sortOrder      Int     @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  floorPlan    VenueFloorPlan @relation(fields: [floorPlanId], references: [id], onDelete: Cascade)
+  meetingRoom  MeetingRoom?   @relation(fields: [meetingRoomId], references: [id], onDelete: SetNull)
+  session      Session?       @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  checkpoints  MapCheckpoint[]
+  attendeeLocations AttendeeMapLocation[]
+
+  @@index([organisationId, eventId])
+  @@index([floorPlanId])
+  @@index([meetingRoomId])
+  @@index([sessionId])
+}
+
+/// Venue QR checkpoint — opaque token hashed at rest (not desk/badge QR).
+model MapCheckpoint {
+  id             String    @id @default(cuid())
+  organisationId String
+  eventId        String
+  floorPlanId    String
+  poiId          String?
+  label          String
+  tokenHash      String    @unique
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  disabledAt     DateTime?
+
+  organisation Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  floorPlan    VenueFloorPlan @relation(fields: [floorPlanId], references: [id], onDelete: Cascade)
+  poi          MapPoi?        @relation(fields: [poiId], references: [id], onDelete: SetNull)
+  attendeeLocations AttendeeMapLocation[]
+
+  @@index([organisationId, eventId])
+  @@index([floorPlanId])
+}
+
+model AttendeeMapLocation {
+  id             String   @id @default(cuid())
+  organisationId String
+  eventId        String
+  attendeeId     String   @unique
+  floorPlanId    String
+  poiId          String?
+  checkpointId   String?
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  attendee     Attendee       @relation(fields: [attendeeId], references: [id], onDelete: Cascade)
+  floorPlan    VenueFloorPlan @relation(fields: [floorPlanId], references: [id], onDelete: Cascade)
+  poi          MapPoi?        @relation(fields: [poiId], references: [id], onDelete: SetNull)
+  checkpoint   MapCheckpoint? @relation(fields: [checkpointId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, eventId])
 }

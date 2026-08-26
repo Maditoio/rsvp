@@ -5,6 +5,7 @@ import { safe } from "@/lib/authz/safe";
 import { displayName } from "@/lib/utils";
 import { getPlatformOverview } from "@/modules/platform/actions";
 import { PlatformAdminControls } from "./platform-admin-controls";
+import { PlatformOrgFeatureControls } from "./platform-org-features";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,10 @@ export default async function PlatformPage() {
 
       <Card>
         <PlatformAdminControls />
+      </Card>
+
+      <Card>
+        <PlatformOrgFeatureControls organisations={overview.organisations} />
       </Card>
 
       <Card>
@@ -139,10 +144,10 @@ export default async function PlatformPage() {
         </p>
         <h2 className="mt-1 font-display text-2xl text-slate-900">Recent organisations</h2>
         <div className="mt-5 grid gap-3 lg:grid-cols-2">
-          {overview.organisations.length === 0 ? (
+          {overview.recentOrganisations.length === 0 ? (
             <p className="text-sm text-slate-700">No organisations yet.</p>
           ) : (
-            overview.organisations.map((org) => (
+            overview.recentOrganisations.map((org) => (
               <div key={org.id} className="rounded-md border border-slate-200 px-4 py-3">
                 <p className="text-lg font-medium text-slate-900">{org.name}</p>
                 <p className="mt-1 text-sm text-slate-500">
