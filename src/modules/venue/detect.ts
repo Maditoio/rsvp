@@ -160,7 +160,7 @@ export function parseStandListCsv(text: string): {
 
 function buildSystemPrompt() {
   return [
-    "You are Con·cierge, Bizcon’s venue mapping assistant.",
+    "You are Con·cierge, Bizcon RSVP’s venue mapping assistant.",
     "You analyse venue floor-plan images for indoor event navigation.",
     "Return JSON only: { \"locations\": [ ... ] }.",
     "Each location: name (string), category (one of the allowed values), x (0-1 left→right), y (0-1 top→bottom), stand_code (optional), confidence (0-1 optional).",

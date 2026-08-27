@@ -33,7 +33,9 @@ export function StickyNav() {
             className="rounded-md"
             priority
           />
-          <span className="text-xl font-bold tracking-[-0.02em] text-slate-900">Bizcon</span>
+          <span className="text-xl font-bold tracking-[-0.02em] text-slate-900">
+            Bizcon RSVP
+          </span>
         </Link>
         <div className="hidden items-center gap-6 sm:flex">
           <Link

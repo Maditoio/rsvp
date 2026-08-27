@@ -18,7 +18,6 @@ export default function ContactPage() {
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <BrandLogo
           href="/"
-          wordmark="Bizcon"
           size={32}
           wordmarkClassName="text-2xl font-bold tracking-[-0.02em] text-slate-900"
         />

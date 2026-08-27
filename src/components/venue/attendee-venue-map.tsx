@@ -210,7 +210,9 @@ export function AttendeeVenueMap({
     const token = extractVenueToken(raw);
     setCameraOn(false);
     if (!token) {
-      setMessage("That QR is not a venue checkpoint. Look for a Bizcon floor QR.");
+      setMessage(
+        "That QR is not a venue checkpoint. Look for a Bizcon RSVP floor QR.",
+      );
       scanning.current = false;
       return;
     }

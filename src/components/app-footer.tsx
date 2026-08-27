@@ -18,7 +18,7 @@ export function AppFooter({ className }: { className?: string }) {
       )}
     >
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 sm:flex-row">
-        <p className="text-sm text-slate-400">© {year} Bizcon</p>
+        <p className="text-sm text-slate-400">© {year} Bizcon RSVP</p>
         <nav
           aria-label="Legal"
           className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1"

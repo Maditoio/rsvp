@@ -3,8 +3,7 @@ import {
   Users,
   Send,
   ClipboardCheck,
-  Brain,
-  CalendarCheck,
+  Bell,
   ScanLine,
   BarChart3,
   Shield,
@@ -19,47 +18,84 @@ import {
   TrendingUp,
   Building2,
   Handshake,
+  Vote,
+  Map,
+  IdCard,
+  UserPlus,
 } from "lucide-react";
 import { StickyNav } from "@/components/landing/sticky-nav";
 
 const journeySteps = [
-  { icon: Users, label: "Import contacts" },
+  { icon: UserPlus, label: "Manage invitees" },
   { icon: Send, label: "Send invitations" },
   { icon: ClipboardCheck, label: "Registration" },
-  { icon: Brain, label: "AI Matchmaking" },
-  { icon: CalendarCheck, label: "Meetings" },
+  { icon: Bell, label: "Automated reminders" },
+  { icon: IdCard, label: "Badge creation" },
   { icon: ScanLine, label: "Check-in" },
   { icon: BarChart3, label: "Analytics" },
 ];
 
+const featureHighlights = [
+  {
+    icon: Users,
+    title: "Invitee management",
+    description:
+      "Import contacts, organise by category, and track each guest from invited through registered.",
+  },
+  {
+    icon: Bell,
+    title: "Automated reminders",
+    description:
+      "Schedule invitation, registration, and event-day reminders so follow-ups happen without spreadsheets.",
+  },
+  {
+    icon: Vote,
+    title: "Live polls",
+    description:
+      "Create session polls, publish them to attendees, and review results as the room responds.",
+  },
+  {
+    icon: Map,
+    title: "Floor plan assistant",
+    description:
+      "Upload venue maps, place locations, print floor QRs, and let Con·cierge help map stands from the plan.",
+  },
+  {
+    icon: IdCard,
+    title: "Badge creation",
+    description:
+      "Design event badges by category and print credentials ready for entrance and desk check-in.",
+  },
+  {
+    icon: ScanLine,
+    title: "Secure check-in",
+    description:
+      "QR check-in with real-time attendance visibility for staff on the day.",
+  },
+];
+
 const pillar1Bullets = [
   "Personalised invitation links with tracking",
-  "Import contacts from CSV, HubSpot, Salesforce, and CRM tools",
+  "CSV contact import and category-based guest lists",
   "Configurable registration forms",
   "Public application with organiser approval",
-  "Category-based guest management",
+  "Automated invitation and registration reminders",
 ];
 
 const pillar2Bullets = [
-  "Structured matchmaking questionnaire",
-  "AI-generated connection insights",
-  "Meeting request flow with anti-spam",
-  "Automatic scheduling with room assignment",
-  "Google Calendar sync",
+  "Upload floor plans and place venues, stands, and amenities",
+  "Con·cierge AI assists mapping from labeled floor images",
+  "Printed floor QR checkpoints for attendee navigation",
+  "Live polls for sessions and feedback",
+  "Venue insights and movement heatmaps",
 ];
 
 const pillar3Bullets = [
+  "Category-based badge design and printing",
   "Secure QR code check-in",
   "Real-time attendance dashboard",
   "Session agenda with capacity management",
-  "Communications centre",
-  "Export reports for any segment",
-];
-
-const events = [
-  { name: "Africa Mining Summit 2026", delegates: "4,800", city: "Johannesburg" },
-  { name: "Africa Energy Summit 2026", delegates: "3,200", city: "Cape Town" },
-  { name: "Africa Telecom Summit 2026", delegates: "2,100", city: "Nairobi" },
+  "Communications centre and exportable reports",
 ];
 
 const audiences = [
@@ -89,14 +125,14 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-6 pb-20 pt-16 md:pb-28 md:pt-24">
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
-              Event Intelligence Platform
+              Bizcon RSVP · Event Intelligence
             </p>
             <h1 className="mt-6 text-4xl font-semibold leading-tight text-slate-900 sm:text-5xl lg:text-7xl lg:leading-[1.1]">
               Run professional summits that attendees actually remember.
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-700">
-              From curated invitations to AI-powered networking — manage
-              10,000-person events without the spreadsheet chaos.
+              Invitees, reminders, live polls, floor plans, badges, and check-in
+              — one platform for curated events, without the spreadsheet chaos.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
@@ -112,13 +148,6 @@ export default function HomePage() {
               >
                 Book a demo
               </Link>
-            </div>
-            <div className="mt-12 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-500">
-              <span>12,000+ delegates managed</span>
-              <span className="hidden sm:inline text-slate-300">·</span>
-              <span>3 international summits</span>
-              <span className="hidden sm:inline text-slate-300">·</span>
-              <span>40+ countries</span>
             </div>
           </div>
         </div>
@@ -161,15 +190,45 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Pillar 1 */}
+      {/* Feature highlights */}
       <section className="border-y border-slate-200 bg-white py-20 md:py-28">
+        <div className="mx-auto max-w-6xl px-6">
+          <h2 className="text-center text-3xl font-semibold text-slate-900 md:text-4xl">
+            Built for how summits actually run
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-center text-base text-slate-500">
+            Shipped capabilities for organisers — from guest lists to venue day.
+          </p>
+          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {featureHighlights.map((feature) => (
+              <div
+                key={feature.title}
+                className="rounded-xl bg-slate-50 p-6 shadow-sm"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm">
+                  <feature.icon className="h-5 w-5 text-indigo-600" />
+                </div>
+                <h3 className="mt-4 text-lg font-semibold text-slate-900">
+                  {feature.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pillar 1 */}
+      <section className="bg-slate-50 py-20 md:py-28">
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 md:grid-cols-2 md:gap-16">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
               Curated Guest Management
             </p>
             <h3 className="mt-3 text-3xl font-semibold leading-snug text-slate-900 md:text-4xl">
-              Invite the right people. Register them seamlessly.
+              Invite the right people. Follow up automatically.
             </h3>
             <ul className="mt-6 space-y-3">
               {pillar1Bullets.map((b) => (
@@ -185,17 +244,17 @@ export default function HomePage() {
       </section>
 
       {/* Pillar 2 */}
-      <section className="bg-slate-50 py-20 md:py-28">
+      <section className="border-y border-slate-200 bg-white py-20 md:py-28">
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 md:grid-cols-2 md:gap-16">
           <div className="order-2 md:order-1">
-            <FeatureCardNetwork />
+            <FeatureCardVenue />
           </div>
           <div className="order-1 md:order-2">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
-              AI-Powered Networking
+              Venue &amp; Engagement
             </p>
             <h3 className="mt-3 text-3xl font-semibold leading-snug text-slate-900 md:text-4xl">
-              Connect attendees who should actually meet.
+              Floor plans and live polls that keep the day moving.
             </h3>
             <ul className="mt-6 space-y-3">
               {pillar2Bullets.map((b) => (
@@ -210,14 +269,14 @@ export default function HomePage() {
       </section>
 
       {/* Pillar 3 */}
-      <section className="border-y border-slate-200 bg-white py-20 md:py-28">
+      <section className="bg-slate-50 py-20 md:py-28">
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 md:grid-cols-2 md:gap-16">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
               Event-Day Operations
             </p>
             <h3 className="mt-3 text-3xl font-semibold leading-snug text-slate-900 md:text-4xl">
-              From registration to check-in, zero gaps.
+              Badges, check-in, and ops — zero gaps.
             </h3>
             <ul className="mt-6 space-y-3">
               {pillar3Bullets.map((b) => (
@@ -229,28 +288,6 @@ export default function HomePage() {
             </ul>
           </div>
           <FeatureCardOps />
-        </div>
-      </section>
-
-      {/* Built for events like these */}
-      <section className="bg-slate-50 py-20 md:py-28">
-        <div className="mx-auto max-w-6xl px-6">
-          <h2 className="text-center text-3xl font-semibold text-slate-900 md:text-4xl">
-            Built for events like these
-          </h2>
-          <div className="mt-14 grid gap-6 md:grid-cols-3">
-            {events.map((e) => (
-              <div
-                key={e.name}
-                className="rounded-xl bg-white p-8 shadow-sm"
-              >
-                <p className="text-xl font-semibold text-slate-900">{e.name}</p>
-                <p className="mt-3 text-sm text-slate-500">
-                  {e.delegates} delegates · {e.city}
-                </p>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -267,14 +304,6 @@ export default function HomePage() {
                 <span className="text-sm font-medium text-slate-900">{a.label}</span>
               </div>
             ))}
-          </div>
-          <div className="mx-auto mt-16 max-w-2xl rounded-xl bg-slate-50 p-8 shadow-sm md:p-10">
-            <p className="text-lg leading-relaxed italic text-slate-900">
-              &ldquo;We moved from spreadsheets and manual emails to a single platform. Registration day went from chaos to twenty minutes.&rdquo;
-            </p>
-            <p className="mt-6 text-sm font-medium text-slate-500">
-              — Summit Director, Africa Summit Group
-            </p>
           </div>
         </div>
       </section>
@@ -309,7 +338,7 @@ export default function HomePage() {
             Early access
           </p>
           <h2 className="mt-3 text-3xl font-semibold text-slate-900 md:text-4xl">
-            Join the first wave of summit organisers using AI-powered delegate intelligence.
+            Join organisers running professional events on Bizcon RSVP.
           </h2>
           <div className="mt-10">
             <Link
@@ -338,7 +367,7 @@ export default function HomePage() {
                 height={28}
                 className="rounded-md"
               />
-              <p className="text-lg font-semibold text-slate-900">Bizcon</p>
+              <p className="text-lg font-semibold text-slate-900">Bizcon RSVP</p>
             </div>
             <p className="mt-3 text-sm text-slate-500">
               Event Intelligence for professional summits.
@@ -347,12 +376,12 @@ export default function HomePage() {
           <div>
             <p className="text-sm font-semibold text-slate-900">Product</p>
             <ul className="mt-4 space-y-2.5 text-sm text-slate-500">
-              <li>Guest Management</li>
-              <li>Registration</li>
-              <li>AI Matchmaking</li>
-              <li>Meetings</li>
+              <li>Invitee management</li>
+              <li>Automated reminders</li>
+              <li>Live polls</li>
+              <li>Floor plans</li>
+              <li>Badge creation</li>
               <li>Check-in</li>
-              <li>Analytics</li>
             </ul>
           </div>
           <div>
@@ -420,29 +449,36 @@ function FeatureCard() {
           </div>
         ))}
       </div>
+      <div className="mt-5 rounded-full border border-slate-200 bg-slate-50 px-4 py-3">
+        <p className="text-xs font-medium text-slate-500">Next automation</p>
+        <p className="mt-0.5 text-sm text-slate-900">
+          Invitation reminder · day 5
+        </p>
+      </div>
     </div>
   );
 }
 
-function FeatureCardNetwork() {
+function FeatureCardVenue() {
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm md:p-8">
-      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">Match Score</p>
-      <div className="mt-5 space-y-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
+        Venue &amp; Polls
+      </p>
+      <div className="mt-5 space-y-3">
         {[
-          { names: "Mitchell ↔ Okafor", score: "94%", reason: "Mining × Energy synergy" },
-          { names: "Diop ↔ van der Berg", score: "87%", reason: "Infrastructure investment" },
-          { names: "Nakamura ↔ Silva", score: "82%", reason: "Renewable energy policy" },
-        ].map((m) => (
+          { label: "Floor plan", detail: "Hall A · Con·cierge mapped" },
+          { label: "Live poll", detail: "Session feedback · open" },
+          { label: "Floor QR", detail: "Stand 42 · navigate" },
+        ].map((row) => (
           <div
-            key={m.names}
+            key={row.label}
             className="rounded-full border border-slate-200 bg-slate-50 px-4 py-3"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-900">{m.names}</span>
-              <span className="font-mono text-sm font-semibold text-slate-900">{m.score}</span>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium text-slate-900">{row.label}</span>
+              <span className="text-xs text-slate-500">{row.detail}</span>
             </div>
-            <p className="mt-1 text-xs text-slate-500">{m.reason}</p>
           </div>
         ))}
       </div>
@@ -456,10 +492,10 @@ function FeatureCardOps() {
       <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">Event Day</p>
       <div className="mt-5 grid grid-cols-2 gap-3">
         {[
-          { label: "Checked in", value: "1,247", highlight: true },
-          { label: "Pending", value: "342", highlight: false },
-          { label: "Sessions live", value: "8", highlight: false },
-          { label: "Meetings", value: "156", highlight: false },
+          { label: "Badges printed", value: "Ready", highlight: true },
+          { label: "Check-in", value: "Live", highlight: false },
+          { label: "Sessions", value: "Agenda", highlight: false },
+          { label: "Reports", value: "Export", highlight: false },
         ].map((s) => (
           <div
             key={s.label}
@@ -472,10 +508,6 @@ function FeatureCardOps() {
           </div>
         ))}
       </div>
-      <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-200">
-        <div className="h-full w-[78%] rounded-full bg-indigo-600" />
-      </div>
-      <p className="mt-2 text-xs text-slate-500">78% attendance rate</p>
     </div>
   );
 }

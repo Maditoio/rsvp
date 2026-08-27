@@ -266,7 +266,6 @@ export function OrgRail({
           <>
             <BrandLogo
               href={`/app/${orgSlug}`}
-              wordmark="Bizcon"
               size={28}
               wordmarkClassName="text-[21px] font-bold tracking-[-0.02em] text-slate-900"
             />
