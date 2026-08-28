@@ -29,10 +29,14 @@ import {
 } from "./layout";
 import {
   TEXT_FILLS,
+  BADGE_BG_FILLS,
   parseGradientAngle,
   parseHexColor,
   parseTextFill,
+  parseBadgeBgFill,
+  parseBadgeBgImageUrl,
   type BadgeTextFill,
+  type BadgeBgFill,
 } from "./colors";
 import { BADGE_FONT_IDS, parseBadgeFont } from "./fonts";
 
@@ -69,15 +73,18 @@ export {
   BADGE_COLOR_SWATCHES,
   BADGE_GRADIENT_PRESETS,
   TEXT_FILLS,
+  BADGE_BG_FILLS,
   contrastRatio,
   gradientTextStyle,
   parseHexColor,
   parseTextFill,
+  parseBadgeBgFill,
+  parseBadgeBgImageUrl,
   qrColorsAreScannable,
   solidTextStyle,
   badgeBackgroundStyle,
 } from "./colors";
-export type { BadgeTextFill } from "./colors";
+export type { BadgeTextFill, BadgeBgFill } from "./colors";
 export { BADGE_FONT_CSS, BADGE_FONT_IDS, BADGE_FONT_LABELS, parseBadgeFont } from "./fonts";
 export type { BadgeFontId } from "./fonts";
 
@@ -182,11 +189,13 @@ export const badgeConfigSchema = z.object({
   eventNameGradientAngle: z.coerce.number().int().min(0).max(360).default(120),
   qrDarkColor: hexSchema.default("#1B1E2A"),
   qrLightColor: hexSchema.default("#FFFFFF"),
-  badgeBgFill: z.enum(TEXT_FILLS).default("solid"),
+  badgeBgFill: z.enum(BADGE_BG_FILLS).default("solid"),
   badgeBgColor: hexSchema.default("#FFFFFF"),
   badgeBgGradientFrom: hexSchema.default("#FFFFFF"),
   badgeBgGradientTo: hexSchema.default("#EEF2FF"),
   badgeBgGradientAngle: z.coerce.number().int().min(0).max(360).default(160),
+  /** Public blob URL for badge background image (when badgeBgFill is `image`). */
+  badgeBgImageUrl: z.string().max(2000).default(""),
   selectedSponsorIds: z.array(z.string()).max(8).default([]),
   sponsors: z.array(badgeSponsorSchema).max(20).default([]),
 });
@@ -289,7 +298,7 @@ function migrateSizeFields(
   );
   next.qrDarkColor = parseHexColor(next.qrDarkColor, "#1B1E2A");
   next.qrLightColor = parseHexColor(next.qrLightColor, "#FFFFFF");
-  next.badgeBgFill = parseTextFill(next.badgeBgFill);
+  next.badgeBgFill = parseBadgeBgFill(next.badgeBgFill);
   next.badgeBgColor = parseHexColor(next.badgeBgColor, "#FFFFFF");
   next.badgeBgGradientFrom = parseHexColor(next.badgeBgGradientFrom, "#FFFFFF");
   next.badgeBgGradientTo = parseHexColor(next.badgeBgGradientTo, "#EEF2FF");
@@ -297,6 +306,7 @@ function migrateSizeFields(
     next.badgeBgGradientAngle,
     160,
   );
+  next.badgeBgImageUrl = parseBadgeBgImageUrl(next.badgeBgImageUrl);
 
   return next;
 }
@@ -325,9 +335,13 @@ export function parseBadgeConfig(value: unknown): BadgeConfig {
   return DEFAULT_BADGE_CONFIG;
 }
 
-export function selectedSponsors(config: BadgeConfig): BadgeSponsor[] {
+export function selectedSponsors(
+  config: BadgeConfig,
+  eventSponsors?: BadgeSponsor[],
+): BadgeSponsor[] {
   if (config.showSponsors === false) return [];
-  const byId = new Map(config.sponsors.map((s) => [s.id, s]));
+  const source = eventSponsors ?? config.sponsors;
+  const byId = new Map(source.map((s) => [s.id, s]));
   return config.selectedSponsorIds
     .map((id) => byId.get(id))
     .filter((s): s is BadgeSponsor => Boolean(s));

@@ -132,6 +132,14 @@ enum CommunicationAutomationAction {
   SEND_EVENT_REMINDER
 }
 
+enum EventSponsorTier {
+  PLATINUM
+  GOLD
+  SILVER
+  BRONZE
+  STRATEGIC_PARTNER
+}
+
 model User {
   id            String   @id @default(cuid())
   clerkUserId   String   @unique
@@ -221,6 +229,7 @@ model Organisation {
   mapCheckpoints          MapCheckpoint[]
   attendeeMapLocations    AttendeeMapLocation[]
   mapAnalyticsEvents      MapAnalyticsEvent[]
+  eventSponsors           EventSponsor[]
 }
 
 model OrganisationUser {
@@ -298,9 +307,29 @@ model Event {
   mapCheckpoints           MapCheckpoint[]
   attendeeMapLocations     AttendeeMapLocation[]
   mapAnalyticsEvents       MapAnalyticsEvent[]
+  sponsors                 EventSponsor[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
+}
+
+model EventSponsor {
+  id             String           @id @default(cuid())
+  organisationId String
+  eventId        String
+  name           String
+  websiteUrl     String?
+  tier           EventSponsorTier @default(GOLD)
+  logoUrl        String?
+  sortOrder      Int              @default(0)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, eventId])
+  @@index([eventId, tier, sortOrder])
 }
 
 model EventSettings {
@@ -320,6 +349,10 @@ model EventSettings {
   operationsConfig       Json?
   /// Badge template id, field toggles (JSON).
   badgeConfig            Json?
+  /// Event marketing microsite content, theme, and section toggles (JSON).
+  websiteConfig          Json?
+  /// When set, the public event site at /e/{org}/{event} is live.
+  websitePublishedAt     DateTime?
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)

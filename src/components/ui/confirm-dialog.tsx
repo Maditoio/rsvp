@@ -10,6 +10,7 @@ export function ConfirmDialog({
   description,
   confirmLabel,
   cancelLabel = "Keep",
+  hideCancel = false,
   pending = false,
   destructive = false,
   onConfirm,
@@ -20,6 +21,8 @@ export function ConfirmDialog({
   description: string;
   confirmLabel: string;
   cancelLabel?: string;
+  /** Single-button alert style (e.g. oversized upload messaging). */
+  hideCancel?: boolean;
   pending?: boolean;
   destructive?: boolean;
   onConfirm: () => void;
@@ -63,14 +66,16 @@ export function ConfirmDialog({
         </h2>
         <p className="mt-2 text-sm text-slate-600">{description}</p>
         <div className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-4">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={pending}
-            onClick={onClose}
-          >
-            {cancelLabel}
-          </Button>
+          {hideCancel ? null : (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={pending}
+              onClick={onClose}
+            >
+              {cancelLabel}
+            </Button>
+          )}
           <Button
             type="button"
             variant={destructive ? "destructive" : "primary"}

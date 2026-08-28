@@ -69,6 +69,23 @@ describe("parseBadgeConfig", () => {
     expect(selectedSponsors(parsed)).toHaveLength(1);
     expect(selectedSponsors(parsed)[0]?.name).toBe("Acme");
   });
+  it("parses background image fill", () => {
+    const parsed = parseBadgeConfig({
+      badgeBgFill: "image",
+      badgeBgImageUrl: "https://example.com/bg.png",
+      badgeBgColor: "#0F172A",
+    });
+    expect(parsed.badgeBgFill).toBe("image");
+    expect(parsed.badgeBgImageUrl).toBe("https://example.com/bg.png");
+  });
+
+  it("rejects non-http background image urls", () => {
+    const parsed = parseBadgeConfig({
+      badgeBgFill: "image",
+      badgeBgImageUrl: "javascript:alert(1)",
+    });
+    expect(parsed.badgeBgImageUrl).toBe("");
+  });
 });
 
 describe("applyDesignPreset", () => {

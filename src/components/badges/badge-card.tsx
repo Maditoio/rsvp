@@ -288,12 +288,15 @@ export function BadgeCard({
       style={{
         borderRadius: config.borderRadius,
         padding: 0,
+        WebkitPrintColorAdjust: "exact",
+        printColorAdjust: "exact",
         ...badgeBackgroundStyle({
           fill: config.badgeBgFill,
           color: config.badgeBgColor,
           from: config.badgeBgGradientFrom,
           to: config.badgeBgGradientTo,
           angle: config.badgeBgGradientAngle,
+          imageUrl: config.badgeBgImageUrl,
         }),
       }}
       onClick={() => onSelectElement?.(null)}

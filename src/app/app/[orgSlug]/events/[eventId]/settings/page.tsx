@@ -6,6 +6,8 @@ import { getAppUrl } from "@/lib/utils";
 import { urlQrDataUrl } from "@/lib/qr";
 import { parseOperationsConfig } from "@/modules/events/operations-config";
 import { parseBadgeConfig } from "@/modules/badges/config";
+import { loadEventSponsorsForEvent } from "@/modules/sponsors/service";
+import { sponsorsToBadgeLogos } from "@/modules/sponsors/config";
 import { EventSettingsForm } from "./event-settings-form";
 import { EventOperationsSettingsForm } from "./event-settings-operations";
 import { BadgeSettingsForm } from "./event-settings-badges";
@@ -110,6 +112,11 @@ export default async function EventSettingsPage({
   const badgeConfig = parseBadgeConfig(
     (eventRow.settings as { badgeConfig?: unknown } | null)?.badgeConfig,
   );
+  const eventSponsors = await loadEventSponsorsForEvent(
+    ctx.organisation.id,
+    eventId,
+  );
+  const badgeSponsorOptions = sponsorsToBadgeLogos(eventSponsors);
   const applyUrl = `${getAppUrl()}/a/${orgSlug}/${eventRow.slug}`;
   const badgePreviewQrDataUrl = await urlQrDataUrl("https://preview/badge");
   const applyQr = settings.allowPublicApplication
@@ -169,6 +176,7 @@ export default async function EventSettingsPage({
           logoUrl={eventRow.logoUrl}
           previewQrDataUrl={badgePreviewQrDataUrl}
           config={badgeConfig}
+          sponsorOptions={badgeSponsorOptions}
         />
       ) : null}
     </div>

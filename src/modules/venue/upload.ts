@@ -1,6 +1,10 @@
 import "server-only";
 
 import { put } from "@vercel/blob";
+import {
+  blobStorageNotConfiguredMessage,
+  isBlobStorageConfigured,
+} from "@/modules/files/blob-config";
 import { prisma } from "@/lib/db/prisma";
 
 const MAX_BYTES = 8 * 1024 * 1024;
@@ -11,10 +15,8 @@ export async function uploadFloorPlanImage(input: {
   eventId: string;
   file: File;
 }): Promise<{ url: string }> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error(
-      "File storage is not configured. Set BLOB_READ_WRITE_TOKEN to upload floor plans.",
-    );
+  if (!isBlobStorageConfigured()) {
+    throw new Error(blobStorageNotConfiguredMessage());
   }
   if (!ALLOWED.has(input.file.type)) {
     throw new Error("Floor plan must be PNG, JPEG, or WebP.");

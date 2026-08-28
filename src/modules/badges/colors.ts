@@ -57,6 +57,10 @@ export const BADGE_GRADIENT_PRESETS = [
 export const TEXT_FILLS = ["solid", "gradient"] as const;
 export type BadgeTextFill = (typeof TEXT_FILLS)[number];
 
+/** Badge surface fill — solid, gradient, or uploaded background image. */
+export const BADGE_BG_FILLS = ["solid", "gradient", "image"] as const;
+export type BadgeBgFill = (typeof BADGE_BG_FILLS)[number];
+
 const HEX_RE = /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/;
 
 export function parseHexColor(value: unknown, fallback: string): string {
@@ -78,6 +82,27 @@ export function parseTextFill(
 ): BadgeTextFill {
   if (value === "solid" || value === "gradient") return value;
   return fallback;
+}
+
+export function parseBadgeBgFill(
+  value: unknown,
+  fallback: BadgeBgFill = "solid",
+): BadgeBgFill {
+  if (value === "solid" || value === "gradient" || value === "image") {
+    return value;
+  }
+  return fallback;
+}
+
+/** Persistable background image URL (empty string = none). */
+export function parseBadgeBgImageUrl(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > 2000) return "";
+  if (trimmed.startsWith("https://") || trimmed.startsWith("http://")) {
+    return trimmed;
+  }
+  return "";
 }
 
 export function parseGradientAngle(value: unknown, fallback = 135): number {
@@ -131,12 +156,23 @@ export function solidTextStyle(color: string): CSSProperties {
 }
 
 export function badgeBackgroundStyle(input: {
-  fill: BadgeTextFill;
+  fill: BadgeBgFill | BadgeTextFill;
   color: string;
   from: string;
   to: string;
   angle: number;
+  /** When fill is `image` and URL is set, covers the badge surface. */
+  imageUrl?: string | null;
 }): CSSProperties {
+  if (input.fill === "image" && input.imageUrl) {
+    return {
+      backgroundColor: input.color || "#FFFFFF",
+      backgroundImage: `url(${JSON.stringify(input.imageUrl)})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+    };
+  }
   if (input.fill === "gradient") {
     return {
       backgroundImage: `linear-gradient(${input.angle}deg, ${input.from}, ${input.to})`,

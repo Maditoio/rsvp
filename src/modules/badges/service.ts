@@ -9,6 +9,10 @@ import {
   resolveBadgeCredentialForPrint,
   type BadgeCredentialIssueMode,
 } from "./credentials";
+import {
+  loadEventSponsorsForEvent,
+} from "@/modules/sponsors/service";
+import { sponsorsToBadgeLogos } from "@/modules/sponsors/config";
 
 export type { BadgePrintPayload } from "./print-payload";
 
@@ -135,6 +139,8 @@ export async function loadBadgePrintPayload(
   });
 
   const config = parseBadgeConfig(event.settings?.badgeConfig);
+  const eventSponsors = await loadEventSponsorsForEvent(organisationId, eventId);
+  const badgeSponsorLogos = sponsorsToBadgeLogos(eventSponsors);
   const qrDataUrl = await opaqueQrDataUrl(credential.rawToken, {
     dark: config.qrDarkColor,
     light: config.qrLightColor,
@@ -151,7 +157,7 @@ export async function loadBadgePrintPayload(
     country: attendee.country,
     eventName: event.name,
     logoUrl: event.logoUrl,
-    sponsorLogos: selectedSponsors(config),
+    sponsorLogos: selectedSponsors(config, badgeSponsorLogos),
     qrDataUrl,
     config,
     template: getBadgeTemplate(config.templateId),

@@ -1,6 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import type { EventRole, Organisation, User } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { withDbRetry } from "@/lib/db/retry";
 import { AuthzError } from "@/lib/db/tenant";
 import {
   ORG_PERMISSIONS,
@@ -48,29 +49,33 @@ export async function getCurrentUser(): Promise<User | null> {
   const normalizedEmail = email.trim().toLowerCase();
   const shouldBePlatformAdmin = platformAdminEmails().has(normalizedEmail);
 
-  const user = await prisma.user.upsert({
-    where: { clerkUserId: userId },
-    create: {
-      clerkUserId: userId,
-      email: normalizedEmail,
-      firstName: clerk.firstName,
-      lastName: clerk.lastName,
-      imageUrl: clerk.imageUrl,
-      platformAdmin: shouldBePlatformAdmin,
-    },
-    update: {
-      email: normalizedEmail,
-      firstName: clerk.firstName,
-      lastName: clerk.lastName,
-      imageUrl: clerk.imageUrl,
-      platformAdmin: shouldBePlatformAdmin || undefined,
-    },
-  });
+  const user = await withDbRetry(() =>
+    prisma.user.upsert({
+      where: { clerkUserId: userId },
+      create: {
+        clerkUserId: userId,
+        email: normalizedEmail,
+        firstName: clerk.firstName,
+        lastName: clerk.lastName,
+        imageUrl: clerk.imageUrl,
+        platformAdmin: shouldBePlatformAdmin,
+      },
+      update: {
+        email: normalizedEmail,
+        firstName: clerk.firstName,
+        lastName: clerk.lastName,
+        imageUrl: clerk.imageUrl,
+        platformAdmin: shouldBePlatformAdmin || undefined,
+      },
+    }),
+  );
 
-  await prisma.attendee.updateMany({
-    where: { email: normalizedEmail, userId: null },
-    data: { userId: user.id },
-  });
+  await withDbRetry(() =>
+    prisma.attendee.updateMany({
+      where: { email: normalizedEmail, userId: null },
+      data: { userId: user.id },
+    }),
+  );
 
   return user;
 }

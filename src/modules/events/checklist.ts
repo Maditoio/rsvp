@@ -38,7 +38,11 @@ export async function getEventChecklist(
         startsAt: true,
         description: true,
         settings: {
-          select: { allowPublicApplication: true, aiInsightsEnabled: true },
+          select: {
+            allowPublicApplication: true,
+            aiInsightsEnabled: true,
+            websitePublishedAt: true,
+          },
         },
       },
     }),
@@ -86,6 +90,15 @@ export async function getEventChecklist(
       href: `${base}/invitees`,
       optional: true,
       complete: contactCount > 0,
+    },
+    {
+      id: "event_website",
+      phase: "customize",
+      title: "Event website",
+      description: "Publish a marketing page with agenda, speakers, and registration CTA.",
+      href: `${base}/website`,
+      optional: true,
+      complete: Boolean(event?.settings?.websitePublishedAt),
     },
     {
       id: "public_apply",

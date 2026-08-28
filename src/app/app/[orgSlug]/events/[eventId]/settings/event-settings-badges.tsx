@@ -9,7 +9,8 @@ import {
   uploadEventLogoAction,
   removeEventLogoAction,
   uploadSponsorLogoAction,
-  removeSponsorLogoAction,
+  uploadBadgeBackgroundAction,
+  removeBadgeBackgroundAction,
 } from "@/modules/badges/actions";
 import { listBadgeTemplates, getBadgeTemplate } from "@/modules/badges/templates";
 import {
@@ -26,6 +27,7 @@ import {
   qrColorsAreScannable,
   selectedSponsors as resolveSelectedSponsorLogos,
   serializeLayout,
+  type BadgeBgFill,
   type BadgeCategoryStyle,
   type BadgeConfig,
   type BadgeElementId,
@@ -34,6 +36,7 @@ import {
   type BadgeNameWeight,
   type BadgeTextAlign,
   type BadgeTextFill,
+  type BadgeSponsor,
 } from "@/modules/badges/config";
 import { snapElementPose } from "@/modules/badges/layout";
 import {
@@ -48,15 +51,22 @@ import {
   BadgeSettingsSection,
   BadgeSizeSlider,
 } from "./badge-settings-controls";
-import { BadgeColorField, BadgeFillControls } from "./badge-color-controls";
+import {
+  BadgeColorField,
+  BadgeFillControls,
+  BadgeBackgroundControls,
+} from "./badge-color-controls";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+import { friendlyUploadFailure } from "@/modules/files/image-upload";
+import { prepareImageForUpload } from "@/modules/files/prepare-image-upload";
 
 export function BadgeSettingsForm({
   orgSlug,
@@ -65,6 +75,7 @@ export function BadgeSettingsForm({
   logoUrl,
   previewQrDataUrl: initialPreviewQr,
   config,
+  sponsorOptions,
 }: {
   orgSlug: string;
   eventId: string;
@@ -72,15 +83,19 @@ export function BadgeSettingsForm({
   logoUrl: string | null;
   previewQrDataUrl: string;
   config: BadgeConfig;
+  sponsorOptions: BadgeSponsor[];
 }) {
   const router = useRouter();
   const toast = useToast();
   const eventLogoRef = useRef<HTMLInputElement>(null);
   const sponsorLogoRef = useRef<HTMLInputElement>(null);
+  const badgeBgRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [uploadAlert, setUploadAlert] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [sponsorName, setSponsorName] = useState("");
   const [draftLogoUrl, setDraftLogoUrl] = useState<string | null>(null);
+  const [draftBgUrl, setDraftBgUrl] = useState<string | null>(null);
   const [liveQr, setLiveQr] = useState(initialPreviewQr);
   const [selectedElement, setSelectedElement] = useState<BadgeElementId | null>(
     null,
@@ -156,7 +171,7 @@ export function BadgeSettingsForm({
   );
   const [qrDarkColor, setQrDarkColor] = useState(config.qrDarkColor);
   const [qrLightColor, setQrLightColor] = useState(config.qrLightColor);
-  const [badgeBgFill, setBadgeBgFill] = useState<BadgeTextFill>(
+  const [badgeBgFill, setBadgeBgFill] = useState<BadgeBgFill>(
     config.badgeBgFill,
   );
   const [badgeBgColor, setBadgeBgColor] = useState(config.badgeBgColor);
@@ -176,6 +191,7 @@ export function BadgeSettingsForm({
   const templates = listBadgeTemplates();
   const designs = listBadgeDesigns();
   const effectiveLogoUrl = draftLogoUrl ?? logoUrl;
+  const effectiveBgUrl = draftBgUrl ?? (config.badgeBgImageUrl || null);
   const qrScannable = qrColorsAreScannable(qrDarkColor, qrLightColor);
 
   useEffect(() => {
@@ -183,6 +199,12 @@ export function BadgeSettingsForm({
       if (draftLogoUrl) URL.revokeObjectURL(draftLogoUrl);
     };
   }, [draftLogoUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (draftBgUrl) URL.revokeObjectURL(draftBgUrl);
+    };
+  }, [draftBgUrl]);
 
   useEffect(() => {
     let cancelled = false;
@@ -257,6 +279,7 @@ export function BadgeSettingsForm({
       badgeBgGradientFrom,
       badgeBgGradientTo,
       badgeBgGradientAngle,
+      badgeBgImageUrl: effectiveBgUrl ?? "",
       selectedSponsorIds: [...selectedSponsors],
     };
   }, [
@@ -317,6 +340,7 @@ export function BadgeSettingsForm({
     badgeBgGradientFrom,
     badgeBgGradientTo,
     badgeBgGradientAngle,
+    effectiveBgUrl,
     selectedSponsors,
   ]);
 
@@ -325,12 +349,12 @@ export function BadgeSettingsForm({
       ...BADGE_PREVIEW_SAMPLE,
       eventName,
       logoUrl: effectiveLogoUrl,
-      sponsorLogos: resolveSelectedSponsorLogos(draftConfig),
+      sponsorLogos: resolveSelectedSponsorLogos(draftConfig, sponsorOptions),
       qrDataUrl: liveQr,
       config: draftConfig,
       template: getBadgeTemplate(templateId),
     };
-  }, [draftConfig, eventName, effectiveLogoUrl, liveQr, templateId]);
+  }, [draftConfig, eventName, effectiveLogoUrl, liveQr, templateId, sponsorOptions]);
 
   function selectDesign(id: BadgeDesignId) {
     setDesignId(id);
@@ -435,8 +459,9 @@ export function BadgeSettingsForm({
             Badge design
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            Drag elements on the live preview. Use Aurora colour swatches,
-            gradients, and 0–500 px sliders — save to apply at the badge desk.
+            Drag elements on the live preview. Set a solid colour, gradient, or
+            background image, then overlay text and logos — save to apply at the
+            badge desk.
           </p>
         </div>
 
@@ -572,14 +597,13 @@ export function BadgeSettingsForm({
 
         <BadgeSettingsSection
           title="Colours & gradients"
-          description="Aurora palette swatches, solid fills, and gradients"
+          description="Background image, solid fill, or gradient — plus text colours"
         >
-          <BadgeFillControls
+          <BadgeBackgroundControls
             fillId="badgeBgFill"
             fill={badgeBgFill}
             onFillChange={setBadgeBgFill}
             solidId="badgeBgColor"
-            solidLabel="Badge background"
             solidColor={badgeBgColor}
             onSolidChange={setBadgeBgColor}
             fromId="badgeBgGradientFrom"
@@ -591,6 +615,114 @@ export function BadgeSettingsForm({
             angleId="badgeBgGradientAngle"
             angle={badgeBgGradientAngle}
             onAngleChange={setBadgeBgGradientAngle}
+            imageUrl={effectiveBgUrl}
+            imageSlot={
+              <div className="flex flex-wrap gap-2">
+                <input
+                  ref={badgeBgRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  className="hidden"
+                  onChange={() => {
+                    const file = badgeBgRef.current?.files?.[0];
+                    if (!file) return;
+                    setError(null);
+                    const objectUrl = URL.createObjectURL(file);
+                    setDraftBgUrl((prev) => {
+                      if (prev) URL.revokeObjectURL(prev);
+                      return objectUrl;
+                    });
+                    setBadgeBgFill("image");
+                    start(async () => {
+                      const clearDraft = () => {
+                        setDraftBgUrl((prev) => {
+                          if (prev) URL.revokeObjectURL(prev);
+                          return null;
+                        });
+                        if (badgeBgRef.current) badgeBgRef.current.value = "";
+                      };
+                      try {
+                        const prepared = await prepareImageForUpload(
+                          file,
+                          "background",
+                        );
+                        if (!prepared.ok) {
+                          setUploadAlert(prepared.error);
+                          clearDraft();
+                          return;
+                        }
+                        const fd = new FormData();
+                        fd.set("background", prepared.file);
+                        const result = await uploadBadgeBackgroundAction(
+                          orgSlug,
+                          eventId,
+                          fd,
+                        );
+                        if (!result.ok) {
+                          setError(result.error);
+                          setUploadAlert(result.error);
+                          clearDraft();
+                          return;
+                        }
+                        setBadgeBgFill("image");
+                        clearDraft();
+                        toast.success("Background image uploaded.");
+                        router.refresh();
+                      } catch (err) {
+                        const message = friendlyUploadFailure(
+                          err,
+                          "background",
+                          "Could not upload badge background.",
+                        );
+                        setError(message);
+                        setUploadAlert(message);
+                        clearDraft();
+                      }
+                    });
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  leadingIcon={<Upload className="size-4" strokeWidth={1.75} />}
+                  disabled={pending}
+                  onClick={() => badgeBgRef.current?.click()}
+                >
+                  Upload background
+                </Button>
+                {effectiveBgUrl ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={pending}
+                    onClick={() => {
+                      start(async () => {
+                        const result = await removeBadgeBackgroundAction(
+                          orgSlug,
+                          eventId,
+                        );
+                        if (!result.ok) {
+                          toast.error(result.error);
+                          return;
+                        }
+                        setBadgeBgFill("solid");
+                        setDraftBgUrl((prev) => {
+                          if (prev) URL.revokeObjectURL(prev);
+                          return null;
+                        });
+                        toast.success("Background image removed.");
+                        router.refresh();
+                      });
+                    }}
+                  >
+                    <Trash2 className="size-4" strokeWidth={1.75} aria-hidden />
+                    Remove
+                  </Button>
+                ) : null}
+              </div>
+            }
           />
 
           <div>
@@ -731,22 +863,48 @@ export function BadgeSettingsForm({
                       if (prev) URL.revokeObjectURL(prev);
                       return objectUrl;
                     });
-                    const fd = new FormData();
-                    fd.set("logo", file);
                     start(async () => {
-                      const result = await uploadEventLogoAction(
-                        orgSlug,
-                        eventId,
-                        fd,
-                      );
-                      if (!result.ok) {
-                        setError(result.error);
-                        toast.error(result.error);
-                        return;
+                      const clearDraft = () => {
+                        setDraftLogoUrl((prev) => {
+                          if (prev) URL.revokeObjectURL(prev);
+                          return null;
+                        });
+                        if (eventLogoRef.current) eventLogoRef.current.value = "";
+                      };
+                      try {
+                        const prepared = await prepareImageForUpload(file, "logo");
+                        if (!prepared.ok) {
+                          setUploadAlert(prepared.error);
+                          clearDraft();
+                          return;
+                        }
+                        const fd = new FormData();
+                        fd.set("logo", prepared.file);
+                        const result = await uploadEventLogoAction(
+                          orgSlug,
+                          eventId,
+                          fd,
+                        );
+                        if (!result.ok) {
+                          setError(result.error);
+                          setUploadAlert(result.error);
+                          clearDraft();
+                          return;
+                        }
+                        setDraftLogoUrl(null);
+                        if (eventLogoRef.current) eventLogoRef.current.value = "";
+                        toast.success("Event logo uploaded.");
+                        router.refresh();
+                      } catch (err) {
+                        const message = friendlyUploadFailure(
+                          err,
+                          "logo",
+                          "Could not upload logo.",
+                        );
+                        setError(message);
+                        setUploadAlert(message);
+                        clearDraft();
                       }
-                      setDraftLogoUrl(null);
-                      toast.success("Event logo uploaded.");
-                      router.refresh();
                     });
                   }}
                 />
@@ -806,12 +964,19 @@ export function BadgeSettingsForm({
           <div>
             <Label>Sponsor logos</Label>
             <p className="mt-1 text-xs text-slate-500">
-              Upload logos, then tick which ones appear (up to 8). Drag the
-              sponsor strip on the preview.
+              Select up to 8 sponsors with logos for the badge strip. Manage
+              tiers and logos on the{" "}
+              <Link
+                href={`/app/${orgSlug}/events/${eventId}/sponsors`}
+                className="font-medium text-indigo-600 hover:text-indigo-700"
+              >
+                Sponsors
+              </Link>{" "}
+              tab.
             </p>
-            {config.sponsors.length > 0 ? (
+            {sponsorOptions.length > 0 ? (
               <ul className="mt-3 space-y-2">
-                {config.sponsors.map((sponsor) => (
+                {sponsorOptions.map((sponsor) => (
                   <li
                     key={sponsor.id}
                     className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2"
@@ -831,44 +996,18 @@ export function BadgeSettingsForm({
                         {sponsor.name}
                       </span>
                     </label>
-                    <button
-                      type="button"
-                      className="rounded-full p-1.5 text-slate-400 hover:bg-white hover:text-slate-700"
-                      aria-label={`Remove ${sponsor.name}`}
-                      disabled={pending}
-                      onClick={() => {
-                        start(async () => {
-                          const result = await removeSponsorLogoAction(
-                            orgSlug,
-                            eventId,
-                            sponsor.id,
-                          );
-                          if (!result.ok) {
-                            toast.error(result.error);
-                            return;
-                          }
-                          setSelectedSponsors((prev) => {
-                            const next = new Set(prev);
-                            next.delete(sponsor.id);
-                            return next;
-                          });
-                          toast.success("Sponsor removed.");
-                          router.refresh();
-                        });
-                      }}
-                    >
-                      <Trash2 className="size-3.5" strokeWidth={1.75} />
-                    </button>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mt-2 text-sm text-slate-500">No sponsor logos yet.</p>
+              <p className="mt-2 text-sm text-slate-500">
+                No sponsor logos yet. Add sponsors below or on the Sponsors tab.
+              </p>
             )}
 
             <div className="mt-3 flex flex-wrap items-end gap-2">
               <div className="min-w-[140px] flex-1">
-                <Label htmlFor="sponsor-name">Name</Label>
+                <Label htmlFor="sponsor-name">Quick add</Label>
                 <Input
                   id="sponsor-name"
                   value={sponsorName}
@@ -884,23 +1023,44 @@ export function BadgeSettingsForm({
                 onChange={() => {
                   const file = sponsorLogoRef.current?.files?.[0];
                   if (!file) return;
-                  const fd = new FormData();
-                  fd.set("logo", file);
-                  fd.set("name", sponsorName.trim() || "Sponsor");
                   start(async () => {
-                    const result = await uploadSponsorLogoAction(
-                      orgSlug,
-                      eventId,
-                      fd,
-                    );
-                    if (!result.ok) {
-                      toast.error(result.error);
-                      return;
+                    try {
+                      const prepared = await prepareImageForUpload(file, "logo");
+                      if (!prepared.ok) {
+                        setUploadAlert(prepared.error);
+                        if (sponsorLogoRef.current) {
+                          sponsorLogoRef.current.value = "";
+                        }
+                        return;
+                      }
+                      const fd = new FormData();
+                      fd.set("logo", prepared.file);
+                      fd.set("name", sponsorName.trim() || "Sponsor");
+                      const result = await uploadSponsorLogoAction(
+                        orgSlug,
+                        eventId,
+                        fd,
+                      );
+                      if (!result.ok) {
+                        setUploadAlert(result.error);
+                        return;
+                      }
+                      setSponsorName("");
+                      if (sponsorLogoRef.current) sponsorLogoRef.current.value = "";
+                      toast.success("Sponsor added to event.");
+                      router.refresh();
+                    } catch (err) {
+                      setUploadAlert(
+                        friendlyUploadFailure(
+                          err,
+                          "logo",
+                          "Could not upload sponsor logo.",
+                        ),
+                      );
+                      if (sponsorLogoRef.current) {
+                        sponsorLogoRef.current.value = "";
+                      }
                     }
-                    setSponsorName("");
-                    if (sponsorLogoRef.current) sponsorLogoRef.current.value = "";
-                    toast.success("Sponsor logo added.");
-                    router.refresh();
                   });
                 }}
               />
@@ -909,10 +1069,10 @@ export function BadgeSettingsForm({
                 variant="secondary"
                 size="sm"
                 leadingIcon={<Upload className="size-4" strokeWidth={1.75} />}
-                disabled={pending || config.sponsors.length >= 20}
+                disabled={pending || sponsorOptions.length >= 50}
                 onClick={() => sponsorLogoRef.current?.click()}
               >
-                Add sponsor logo
+                Upload sponsor logo
               </Button>
             </div>
           </div>
@@ -1224,6 +1384,23 @@ export function BadgeSettingsForm({
 
         {error ? <p className="text-sm text-danger">{error}</p> : null}
       </Card>
+
+      <ConfirmDialog
+        open={Boolean(uploadAlert)}
+        onClose={() => setUploadAlert(null)}
+        title={
+          uploadAlert && /too large/i.test(uploadAlert)
+            ? "Image too large"
+            : "Couldn't use this image"
+        }
+        description={
+          uploadAlert ??
+          "This image can't be uploaded. Please try a smaller PNG, JPEG, or WebP."
+        }
+        confirmLabel="Got it"
+        hideCancel
+        onConfirm={() => setUploadAlert(null)}
+      />
 
       <aside className="order-1 lg:order-2 lg:sticky lg:top-6">
         <Card className="space-y-4 p-5">

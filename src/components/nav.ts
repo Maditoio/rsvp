@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Award,
   BadgeCheck,
   Calendar,
   CalendarDays,
@@ -7,6 +8,7 @@ import {
   ClipboardList,
   DoorOpen,
   Handshake,
+  Globe,
   IdCard,
   LayoutDashboard,
   ListChecks,
@@ -103,6 +105,8 @@ export function eventNavGroups(
       items: [
         { href: base, label: "Overview", permission: "event.read", icon: LayoutDashboard, exact: true },
         { href: `${base}/registration-form`, label: "Form builder", permission: "event.read", icon: ClipboardList },
+        { href: `${base}/website`, label: "Event website", permission: "event.update", icon: Globe },
+        { href: `${base}/sponsors`, label: "Sponsors", permission: "event.update", icon: Award },
         { href: `${base}/categories`, label: "Categories", permission: "invitations.read", icon: Tags },
         { href: `${base}/staff`, label: "Staff", permission: "event.update", icon: Shield },
       ],

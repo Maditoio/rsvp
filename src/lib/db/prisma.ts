@@ -6,7 +6,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
  * Use a versioned global key. Next.js HMR keeps `globalThis.prisma` across
  * `prisma generate`, so a renamed key forces a fresh client after schema changes.
  */
-const GLOBAL_KEY = "__bizcon_prisma_v9_map_analytics__" as const;
+const GLOBAL_KEY = "__bizcon_prisma_v11_event_sponsors__" as const;
 
 type PrismaGlobal = typeof globalThis & {
   [GLOBAL_KEY]?: PrismaClient;
@@ -28,7 +28,8 @@ function clientMatchesSchema(client: PrismaClient) {
   return (
     "venueAiFloorPlanEnabled" in Prisma.OrganisationScalarFieldEnum &&
     "tokenEncrypted" in Prisma.MapCheckpointScalarFieldEnum &&
-    "kind" in Prisma.MapAnalyticsEventScalarFieldEnum
+    "kind" in Prisma.MapAnalyticsEventScalarFieldEnum &&
+    "tier" in Prisma.EventSponsorScalarFieldEnum
   );
 }
 
@@ -48,7 +49,7 @@ function getPrismaClient(): PrismaClient {
 
   if (!clientMatchesSchema(client)) {
     throw new Error(
-      "Prisma client is out of date (missing VenueFloorPlan, Organisation.venueAiFloorPlanEnabled, or MapAnalyticsEvent). Run `npx prisma generate`, delete the `.next` folder, and restart the dev server.",
+      "Prisma client is out of date (missing VenueFloorPlan, Organisation.venueAiFloorPlanEnabled, MapAnalyticsEvent, or EventSponsor). Run `npx prisma generate`, delete the `.next` folder, and restart the dev server.",
     );
   }
 
@@ -63,6 +64,8 @@ function getPrismaClient(): PrismaClient {
     __bizcon_prisma_v6_org_venue_ai__?: PrismaClient;
     __bizcon_prisma_v7_org_venue_ai__?: PrismaClient;
     __bizcon_prisma_v8_checkpoint_cipher__?: PrismaClient;
+    __bizcon_prisma_v9_map_analytics__?: PrismaClient;
+    __bizcon_prisma_v10_event_website__?: PrismaClient;
   };
   for (const key of [
     "prisma",
@@ -70,6 +73,8 @@ function getPrismaClient(): PrismaClient {
     "__bizcon_prisma_v6_org_venue_ai__",
     "__bizcon_prisma_v7_org_venue_ai__",
     "__bizcon_prisma_v8_checkpoint_cipher__",
+    "__bizcon_prisma_v9_map_analytics__",
+    "__bizcon_prisma_v10_event_website__",
   ] as const) {
     const old = legacy[key];
     if (old && old !== client) {

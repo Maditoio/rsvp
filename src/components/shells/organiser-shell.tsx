@@ -1,4 +1,7 @@
+"use client";
+
 import { Suspense } from "react";
+import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { AppFooter } from "@/components/app-footer";
 import { EventNavProvider } from "@/components/shells/event-nav-scope";
@@ -7,6 +10,14 @@ import { OrgRail } from "@/components/shells/org-rail";
 import type { UserWorkspace } from "@/modules/workspaces/types";
 import { hasClerk } from "@/lib/utils";
 import type { Permission } from "@/lib/authz/permissions";
+
+function isBadgePrintPath(pathname: string) {
+  return /\/events\/[^/]+\/badges\/print(?:\/|$|\?)/.test(pathname);
+}
+
+function isEventWebsiteBuilderPath(pathname: string) {
+  return /\/events\/[^/]+\/website(?:\/|$|\?)/.test(pathname);
+}
 
 export function OrganiserShell({
   orgName,
@@ -23,6 +34,30 @@ export function OrganiserShell({
   workspaces?: UserWorkspace[];
   children: React.ReactNode;
 }) {
+  const pathname = usePathname() ?? "";
+  const badgePrintOnly = isBadgePrintPath(pathname);
+  const websiteBuilderOnly = isEventWebsiteBuilderPath(pathname);
+
+  // Print window: badge only — no rail, header, or footer.
+  if (badgePrintOnly) {
+    return (
+      <EventNavProvider>
+        <div className="badge-print-document min-h-screen bg-slate-100">
+          {children}
+        </div>
+      </EventNavProvider>
+    );
+  }
+
+  // Website builder: full viewport — no rail, header, or footer.
+  if (websiteBuilderOnly) {
+    return (
+      <EventNavProvider>
+        <div className="min-h-screen bg-slate-50">{children}</div>
+      </EventNavProvider>
+    );
+  }
+
   return (
     <EventNavProvider>
       <div className="flex h-screen overflow-hidden bg-slate-50">

@@ -21,10 +21,11 @@ import {
   parseBadgeLayout,
   parseHexColor,
   parseTextFill,
+  parseBadgeBgFill,
+  parseBadgeBgImageUrl,
   BADGE_SIZE_DEFAULTS,
   getLayoutPreset,
   type BadgeConfig,
-  type BadgeSponsor,
 } from "./config";
 import { parseGradientAngle } from "./colors";
 import { BADGE_TEMPLATE_IDS } from "./templates";
@@ -32,13 +33,10 @@ import { BADGE_DESIGN_IDS } from "./designs";
 import { ensureBadgeRecord, loadBadgePrintPayload } from "./service";
 import { prisma } from "@/lib/db/prisma";
 import type { Prisma } from "@prisma/client";
-
-function newSponsorId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `sp_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-}
+import {
+  createEventSponsorWithLogoAction,
+  deleteEventSponsorAction,
+} from "@/modules/sponsors/actions";
 
 function badgePaths(orgSlug: string, eventId: string) {
   return [
@@ -277,8 +275,9 @@ function parseSettingsForm(formData: FormData, existing: BadgeConfig): BadgeConf
       formData.get("qrLightColor"),
       existing.qrLightColor,
     ),
-    badgeBgFill: parseTextFill(
+    badgeBgFill: parseBadgeBgFill(
       formData.get("badgeBgFill") ?? existing.badgeBgFill,
+      existing.badgeBgFill,
     ),
     badgeBgColor: parseHexColor(
       formData.get("badgeBgColor"),
@@ -296,8 +295,9 @@ function parseSettingsForm(formData: FormData, existing: BadgeConfig): BadgeConf
       formData.get("badgeBgGradientAngle") ?? existing.badgeBgGradientAngle,
       existing.badgeBgGradientAngle,
     ),
+    badgeBgImageUrl: existing.badgeBgImageUrl,
     selectedSponsorIds,
-    sponsors: existing.sponsors,
+    sponsors: [],
   };
 
   return badgeConfigSchema.parse(next);
@@ -407,19 +407,35 @@ export async function uploadSponsorLogoAction(
   eventId: string,
   formData: FormData,
 ) {
+  return createEventSponsorWithLogoAction(orgSlug, eventId, formData);
+}
+
+export async function removeSponsorLogoAction(
+  orgSlug: string,
+  eventId: string,
+  sponsorId: string,
+) {
+  return deleteEventSponsorAction(orgSlug, eventId, sponsorId);
+}
+
+export async function uploadBadgeBackgroundAction(
+  orgSlug: string,
+  eventId: string,
+  formData: FormData,
+) {
   return runAction(async () => {
     const ctx = await requireEvent(orgSlug, eventId, "event.update");
-    const file = formData.get("logo");
+    const file = formData.get("background");
     if (!(file instanceof File) || file.size === 0) {
-      throw new Error("Choose a sponsor logo to upload.");
+      throw new Error("Choose a background image to upload.");
     }
-    const name = String(formData.get("name") ?? "").trim() || "Sponsor";
 
     const { url } = await uploadEventAssetImage({
       organisationId: ctx.organisation.id,
       eventId,
       file,
-      pathnameSuffix: "sponsors/logo",
+      pathnameSuffix: "badges/background",
+      kind: "background",
     });
 
     const event = await prisma.event.findFirst({
@@ -427,23 +443,10 @@ export async function uploadSponsorLogoAction(
       select: { settings: { select: { badgeConfig: true } } },
     });
     const existing = parseBadgeConfig(event?.settings?.badgeConfig);
-    if (existing.sponsors.length >= 20) {
-      throw new Error("You can upload up to 20 sponsor logos.");
-    }
-
-    const sponsor: BadgeSponsor = {
-      id: newSponsorId(),
-      name: name.slice(0, 80),
-      url,
-    };
-
     const config: BadgeConfig = {
       ...existing,
-      sponsors: [...existing.sponsors, sponsor],
-      selectedSponsorIds: [...existing.selectedSponsorIds, sponsor.id].slice(
-        0,
-        8,
-      ),
+      badgeBgFill: "image",
+      badgeBgImageUrl: parseBadgeBgImageUrl(url) || url,
     };
 
     await saveBadgeConfig(ctx.organisation.id, eventId, config);
@@ -452,24 +455,22 @@ export async function uploadSponsorLogoAction(
       organisationId: ctx.organisation.id,
       eventId,
       userId: ctx.user.id,
-      action: "badge.sponsor_upload",
+      action: "badge.background_upload",
       resource: "event",
       resourceId: eventId,
-      metadata: { sponsorId: sponsor.id },
     });
 
     for (const path of badgePaths(orgSlug, eventId)) {
       revalidatePath(path);
     }
 
-    return { sponsor };
-  }, "Could not upload sponsor logo.");
+    return { url };
+  }, "Could not upload badge background.");
 }
 
-export async function removeSponsorLogoAction(
+export async function removeBadgeBackgroundAction(
   orgSlug: string,
   eventId: string,
-  sponsorId: string,
 ) {
   return runAction(async () => {
     const ctx = await requireEvent(orgSlug, eventId, "event.update");
@@ -480,10 +481,9 @@ export async function removeSponsorLogoAction(
     const existing = parseBadgeConfig(event?.settings?.badgeConfig);
     const config: BadgeConfig = {
       ...existing,
-      sponsors: existing.sponsors.filter((s) => s.id !== sponsorId),
-      selectedSponsorIds: existing.selectedSponsorIds.filter(
-        (id) => id !== sponsorId,
-      ),
+      badgeBgImageUrl: "",
+      badgeBgFill:
+        existing.badgeBgFill === "image" ? "solid" : existing.badgeBgFill,
     };
 
     await saveBadgeConfig(ctx.organisation.id, eventId, config);
@@ -492,10 +492,9 @@ export async function removeSponsorLogoAction(
       organisationId: ctx.organisation.id,
       eventId,
       userId: ctx.user.id,
-      action: "badge.sponsor_remove",
+      action: "badge.background_remove",
       resource: "event",
       resourceId: eventId,
-      metadata: { sponsorId },
     });
 
     for (const path of badgePaths(orgSlug, eventId)) {
@@ -503,7 +502,7 @@ export async function removeSponsorLogoAction(
     }
 
     return { ok: true };
-  }, "Could not remove sponsor logo.");
+  }, "Could not remove badge background.");
 }
 
 export async function markBadgePrinted(

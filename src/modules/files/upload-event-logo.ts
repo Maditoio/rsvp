@@ -2,32 +2,32 @@ import "server-only";
 
 import { put } from "@vercel/blob";
 import { prisma } from "@/lib/db/prisma";
-
-const MAX_LOGO_BYTES = 2 * 1024 * 1024;
-const ALLOWED_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "image/svg+xml",
-]);
+import {
+  blobStorageNotConfiguredMessage,
+  isBlobStorageConfigured,
+} from "@/modules/files/blob-config";
+import {
+  ALLOWED_EVENT_IMAGE_TYPES,
+  MAX_EVENT_IMAGE_BYTES,
+  eventImageTooLargeMessage,
+  eventImageTypeError,
+} from "@/modules/files/image-upload";
 
 export async function uploadEventLogo(input: {
   organisationId: string;
   eventId: string;
   file: File;
 }): Promise<{ url: string }> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error(
-      "File storage is not configured. Set BLOB_READ_WRITE_TOKEN to upload logos.",
-    );
+  if (!isBlobStorageConfigured()) {
+    throw new Error(blobStorageNotConfiguredMessage());
   }
 
-  if (!ALLOWED_TYPES.has(input.file.type)) {
-    throw new Error("Logo must be PNG, JPEG, WebP, or SVG.");
+  if (!ALLOWED_EVENT_IMAGE_TYPES.has(input.file.type)) {
+    throw new Error(eventImageTypeError());
   }
 
-  if (input.file.size > MAX_LOGO_BYTES) {
-    throw new Error("Logo must be 2 MB or smaller.");
+  if (input.file.size > MAX_EVENT_IMAGE_BYTES) {
+    throw new Error(eventImageTooLargeMessage("logo"));
   }
 
   const ext =
@@ -83,19 +83,20 @@ export async function uploadEventAssetImage(input: {
   file: File;
   /** Path segment under the event folder, e.g. `sponsors/abc` */
   pathnameSuffix: string;
+  kind?: "background" | "logo";
 }): Promise<{ url: string }> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error(
-      "File storage is not configured. Set BLOB_READ_WRITE_TOKEN to upload logos.",
-    );
+  if (!isBlobStorageConfigured()) {
+    throw new Error(blobStorageNotConfiguredMessage());
   }
 
-  if (!ALLOWED_TYPES.has(input.file.type)) {
-    throw new Error("Logo must be PNG, JPEG, WebP, or SVG.");
+  const imageKind = input.kind ?? "logo";
+
+  if (!ALLOWED_EVENT_IMAGE_TYPES.has(input.file.type)) {
+    throw new Error(eventImageTypeError());
   }
 
-  if (input.file.size > MAX_LOGO_BYTES) {
-    throw new Error("Logo must be 2 MB or smaller.");
+  if (input.file.size > MAX_EVENT_IMAGE_BYTES) {
+    throw new Error(eventImageTooLargeMessage(imageKind));
   }
 
   const ext =
