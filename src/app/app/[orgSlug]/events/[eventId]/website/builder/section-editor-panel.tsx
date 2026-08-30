@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,12 @@ import {
   type EventSiteConfig,
   type EventSiteSpeaker,
 } from "@/modules/event-sites/config";
+import {
+  HERO_SPLIT_IMAGE_WIDTH,
+  HERO_SPLIT_MIN_HEIGHTS,
+} from "@/modules/event-sites/hero-image";
+import { ImageDisplayControls } from "./image-display-controls";
+import { SectionAppearanceControls } from "./appearance-controls";
 import {
   SECTION_TYPE_LABELS,
   updateSection,
@@ -26,8 +33,18 @@ import {
   type EventSponsorTierId,
 } from "@/modules/sponsors/config";
 import { useToast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
 import { LayoutVariantPicker } from "./layout-variant-picker";
 import type { EventSiteSectionType } from "@/modules/event-sites/sections";
+
+type GalleryImageItem = {
+  id: string;
+  url: string;
+  caption: string;
+  imageFit?: string;
+  imagePosition?: string;
+  imageRadius?: string;
+};
 
 type Props = {
   orgSlug: string;
@@ -48,8 +65,13 @@ export function SectionEditorPanel({
 }: Props) {
   const toast = useToast();
   const heroInputRef = useRef<HTMLInputElement>(null);
+  const headerLogoInputRef = useRef<HTMLInputElement>(null);
+  const aboutImageInputRef = useRef<HTMLInputElement>(null);
+  const venueInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const speakerInputRef = useRef<HTMLInputElement>(null);
   const editingSpeakerIdRef = useRef<string | null>(null);
+  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
 
   const section = config.sections.find((s) => s.id === selectedSectionId) ?? null;
 
@@ -64,28 +86,36 @@ export function SectionEditorPanel({
     patchSection(id, { content });
   }
 
-  async function uploadImage(
+  async function runUpload(
+    uploadKey: string,
     file: File,
-    purpose: "hero" | "speaker" | "gallery" | "venue" | "og",
+    purpose: "hero" | "speaker" | "gallery" | "venue" | "og" | "logo" | "about",
     onUrl: (url: string) => void,
   ) {
-    const prepared = await prepareImageForUpload(
-      file,
-      purpose === "hero" || purpose === "venue" ? "background" : "logo",
-    );
-    if (!prepared.ok) {
-      toast.error(prepared.error);
-      return;
+    setUploadingKey(uploadKey);
+    try {
+      const prepared = await prepareImageForUpload(
+        file,
+        purpose === "hero" || purpose === "venue" || purpose === "about"
+          ? "background"
+          : "logo",
+      );
+      if (!prepared.ok) {
+        toast.error(prepared.error);
+        return;
+      }
+      const formData = new FormData();
+      formData.set("file", prepared.file);
+      const result = await uploadEventSiteImage(orgSlug, eventId, formData, purpose);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      if (result.data?.url) onUrl(result.data.url);
+      toast.success("Image uploaded.");
+    } finally {
+      setUploadingKey(null);
     }
-    const formData = new FormData();
-    formData.set("file", prepared.file);
-    const result = await uploadEventSiteImage(orgSlug, eventId, formData, purpose);
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
-    }
-    if (result.data?.url) onUrl(result.data.url);
-    toast.success("Image uploaded.");
   }
 
   if (!section) {
@@ -115,6 +145,63 @@ export function SectionEditorPanel({
           onChange={(variant) => patchSection(section.id, { variant })}
         />
 
+        {section.type !== "header" && section.type !== "footer" ? (
+          <SectionAppearanceControls
+            orgSlug={orgSlug}
+            eventId={eventId}
+            content={section.content}
+            onChange={(patch) => patchContent(section.id, patch)}
+            showBackground={
+              section.type === "hero"
+                ? section.variant === "compact" || section.variant === "editorial"
+                : section.type === "venue"
+                  ? section.variant !== "overlay"
+                  : true
+            }
+            showTextAlign={section.type !== "registration-cta"}
+            defaultAlign={
+              section.type === "hero"
+                ? section.variant === "compact" || section.variant === "editorial"
+                  ? "center"
+                  : "left"
+                : section.type === "venue"
+                  ? section.variant === "minimal" || section.variant === "stacked"
+                    ? "center"
+                    : "left"
+                  : section.type === "statistics" || section.type === "registration-cta"
+                    ? "center"
+                    : "left"
+            }
+          />
+        ) : null}
+
+        {section.type === "header" ? (
+          <>
+            <Toggle
+              label="Show logo"
+              checked={section.content.showLogo !== false}
+              onChange={(showLogo) => patchContent(section.id, { showLogo })}
+            />
+            <ImageUploadField
+              label="Site logo"
+              hint="Upload your event or organisation logo. This is separate from sponsor logos."
+              imageUrl={section.content.logoUrl as string | null}
+              inputRef={headerLogoInputRef}
+              uploading={uploadingKey === `${section.id}:logo`}
+              onUpload={(file) =>
+                void runUpload(`${section.id}:logo`, file, "logo", (url) =>
+                  patchContent(section.id, { logoUrl: url }),
+                )
+              }
+              onRemove={() => patchContent(section.id, { logoUrl: null })}
+            />
+            <ImageDisplayControls
+              content={section.content}
+              onChange={(patch) => patchContent(section.id, patch)}
+            />
+          </>
+        ) : null}
+
         {section.type === "hero" ? (
           <>
             <Field label="Eyebrow" value={String(section.content.eyebrow ?? "")} onChange={(v) => patchContent(section.id, { eyebrow: v })} />
@@ -122,18 +209,88 @@ export function SectionEditorPanel({
             <TextArea label="Subheadline" value={String(section.content.subheadline ?? "")} onChange={(v) => patchContent(section.id, { subheadline: v })} />
             <Toggle label="Show dates" checked={section.content.showDates !== false} onChange={(v) => patchContent(section.id, { showDates: v })} />
             <Toggle label="Show venue" checked={section.content.showVenue !== false} onChange={(v) => patchContent(section.id, { showVenue: v })} />
+            <Toggle
+              label="Show logo on hero"
+              checked={section.content.showLogo !== false}
+              onChange={(showLogo) => patchContent(section.id, { showLogo })}
+            />
             <Field label="Primary CTA label" value={String(section.content.primaryCtaLabel ?? "")} onChange={(v) => patchContent(section.id, { primaryCtaLabel: v })} />
-            <div>
-              <Label>Hero image</Label>
-              <input ref={heroInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void uploadImage(file, "hero", (url) => patchContent(section.id, { imageUrl: url }));
-                e.target.value = "";
-              }} />
-              <Button type="button" variant="secondary" size="sm" className="mt-1.5" onClick={() => heroInputRef.current?.click()}>
-                Upload hero image
-              </Button>
-            </div>
+            <ImageUploadField
+              label="Hero image"
+              imageUrl={section.content.imageUrl as string | null}
+              inputRef={heroInputRef}
+              uploading={uploadingKey === `${section.id}:hero`}
+              onUpload={(file) =>
+                void runUpload(`${section.id}:hero`, file, "hero", (url) =>
+                  patchContent(section.id, { imageUrl: url }),
+                )
+              }
+              onRemove={() => patchContent(section.id, { imageUrl: null })}
+            />
+            <ImageDisplayControls
+              content={section.content}
+              onChange={(patch) => patchContent(section.id, patch)}
+              hideRadius={section.variant === "full"}
+            />
+            <SelectField
+              label="Overlay"
+              value={String(section.content.overlay ?? "gradient")}
+              options={[
+                { value: "gradient", label: "Gradient" },
+                { value: "dark", label: "Dark" },
+                { value: "none", label: "Light" },
+              ]}
+              onChange={(v) => patchContent(section.id, { overlay: v })}
+            />
+            <RangeField
+              label="Overlay strength"
+              value={typeof section.content.overlayStrength === "number" ? section.content.overlayStrength : 100}
+              min={0}
+              max={100}
+              onChange={(v) => patchContent(section.id, { overlayStrength: v })}
+            />
+            {section.variant === "full" ? (
+              <Field
+                label="Hero min height"
+                value={String(section.content.heroMinHeight ?? "min(72vh, 800px)")}
+                onChange={(v) => patchContent(section.id, { heroMinHeight: v })}
+                hint="CSS value, e.g. min(72vh, 800px) or 600px"
+              />
+            ) : null}
+            {section.variant === "split" ? (
+              <>
+                <SelectField
+                  label="Image width"
+                  value={String(section.content.imageWidthMode ?? "full")}
+                  options={HERO_SPLIT_IMAGE_WIDTH.map((mode) => ({
+                    value: mode,
+                    label: mode === "full" ? "Full column" : "Inset",
+                  }))}
+                  onChange={(v) => patchContent(section.id, { imageWidthMode: v })}
+                />
+                <SelectField
+                  label="Image min height"
+                  value={String(section.content.imageMinHeight ?? "360px")}
+                  options={HERO_SPLIT_MIN_HEIGHTS.map((opt) => ({
+                    value: opt.value,
+                    label: opt.label,
+                  }))}
+                  onChange={(v) => patchContent(section.id, { imageMinHeight: v })}
+                />
+              </>
+            ) : null}
+          </>
+        ) : null}
+
+        {section.type === "event-details" ? (
+          <>
+            <Field label="Title" value={String(section.content.title ?? "")} onChange={(v) => patchContent(section.id, { title: v })} />
+            <Toggle label="Show dates" checked={section.content.showDates !== false} onChange={(v) => patchContent(section.id, { showDates: v })} />
+            <Toggle label="Show venue" checked={section.content.showVenue !== false} onChange={(v) => patchContent(section.id, { showVenue: v })} />
+            <Toggle label="Show timezone" checked={section.content.showTimezone !== false} onChange={(v) => patchContent(section.id, { showTimezone: v })} />
+            <p className="text-xs text-slate-500">
+              Dates, venue, and timezone are pulled from your event settings automatically.
+            </p>
           </>
         ) : null}
 
@@ -141,6 +298,27 @@ export function SectionEditorPanel({
           <>
             <Field label="Title" value={String(section.content.title ?? "")} onChange={(v) => patchContent(section.id, { title: v })} />
             <TextArea label="Body" value={String(section.content.body ?? "")} onChange={(v) => patchContent(section.id, { body: v })} rows={6} />
+            {section.variant === "split" ? (
+              <ImageUploadField
+                label="Side image"
+                hint="Shown beside the text when using the split layout."
+                imageUrl={section.content.imageUrl as string | null}
+                inputRef={aboutImageInputRef}
+                uploading={uploadingKey === `${section.id}:about`}
+                onUpload={(file) =>
+                  void runUpload(`${section.id}:about`, file, "about", (url) =>
+                    patchContent(section.id, { imageUrl: url }),
+                  )
+                }
+                onRemove={() => patchContent(section.id, { imageUrl: null })}
+              />
+            ) : null}
+            {section.variant === "split" ? (
+              <ImageDisplayControls
+                content={section.content}
+                onChange={(patch) => patchContent(section.id, patch)}
+              />
+            ) : null}
           </>
         ) : null}
 
@@ -149,9 +327,15 @@ export function SectionEditorPanel({
             section={section}
             onTitleChange={(title) => patchContent(section.id, { title })}
             onChange={(items) => patchContent(section.id, { items })}
+            onPatchContent={(patch) => patchContent(section.id, patch)}
+            uploadingSpeakerId={
+              uploadingKey?.startsWith(`${section.id}:speaker:`)
+                ? uploadingKey.split(":").pop() ?? null
+                : null
+            }
             onUploadPhoto={(speakerId, file) => {
               editingSpeakerIdRef.current = speakerId;
-              void uploadImage(file, "speaker", (url) => {
+              void runUpload(`${section.id}:speaker:${speakerId}`, file, "speaker", (url) => {
                 const items = ((section.content.items as EventSiteSpeaker[]) ?? []).map((s) =>
                   s.id === speakerId ? { ...s, photoUrl: url } : s,
                 );
@@ -177,6 +361,11 @@ export function SectionEditorPanel({
               value={section.content.showTiers}
               onChange={(showTiers) => patchContent(section.id, { showTiers })}
             />
+            <Toggle
+              label="Show tier labels"
+              checked={section.content.showTierLabels !== false}
+              onChange={(showTierLabels) => patchContent(section.id, { showTierLabels })}
+            />
             <p className="text-xs text-slate-500">
               Sponsor logos and tiers are managed on the{" "}
               <a
@@ -185,7 +374,7 @@ export function SectionEditorPanel({
               >
                 Sponsors
               </a>{" "}
-              tab. This section shows them grouped by tier on the public site.
+              tab. Logos are always ordered by tier; turn off labels if you prefer a cleaner look.
             </p>
           </>
         ) : null}
@@ -239,9 +428,277 @@ export function SectionEditorPanel({
             <Field label="Title" value={String(section.content.title ?? "")} onChange={(v) => patchContent(section.id, { title: v })} />
             <Field label="Address" value={String(section.content.address ?? "")} onChange={(v) => patchContent(section.id, { address: v })} />
             <TextArea label="Description" value={String(section.content.description ?? "")} onChange={(v) => patchContent(section.id, { description: v })} />
+            <ImageUploadField
+              label="Venue image"
+              hint="Used in split, stacked, and overlay layouts."
+              imageUrl={section.content.imageUrl as string | null}
+              inputRef={venueInputRef}
+              uploading={uploadingKey === `${section.id}:venue`}
+              onUpload={(file) =>
+                void runUpload(`${section.id}:venue`, file, "venue", (url) =>
+                  patchContent(section.id, { imageUrl: url }),
+                )
+              }
+              onRemove={() => patchContent(section.id, { imageUrl: null })}
+            />
+            <ImageDisplayControls
+              content={section.content}
+              onChange={(patch) => patchContent(section.id, patch)}
+            />
           </>
         ) : null}
+
+        {section.type === "gallery" ? (
+          <GalleryEditor
+            section={section}
+            onPatch={(content) => patchContent(section.id, content)}
+            galleryInputRef={galleryInputRef}
+            uploadingIndex={
+              uploadingKey?.startsWith(`${section.id}:gallery:`)
+                ? Number(uploadingKey.split(":").pop())
+                : null
+            }
+            onUploadFile={(file, imageIndex) => {
+              void runUpload(`${section.id}:gallery:${imageIndex}`, file, "gallery", (url) => {
+                const images =
+                  (section.content.images as GalleryImageItem[]) ?? [];
+                if (imageIndex < 0 || imageIndex >= images.length) return;
+                const next = [...images];
+                next[imageIndex] = { ...next[imageIndex], url };
+                patchContent(section.id, { images: next });
+              });
+            }}
+          />
+        ) : null}
       </div>
+    </div>
+  );
+}
+
+function ImageUploadField({
+  label,
+  hint,
+  imageUrl,
+  inputRef,
+  uploading,
+  onUpload,
+  onRemove,
+}: {
+  label: string;
+  hint?: string;
+  imageUrl: string | null | undefined;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  uploading?: boolean;
+  onUpload: (file: File) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      {hint ? <p className="mt-0.5 text-xs text-slate-500">{hint}</p> : null}
+      <div className="relative mt-2">
+        {imageUrl ? (
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imageUrl}
+              alt=""
+              className="h-16 w-24 border border-slate-200 object-cover"
+              style={{ borderRadius: 0 }}
+            />
+            <Button type="button" variant="ghost" size="sm" onClick={onRemove} disabled={uploading}>
+              Remove
+            </Button>
+          </div>
+        ) : null}
+        {uploading ? (
+          <div
+            className={cn(
+              "flex items-center gap-2 text-sm text-indigo-600",
+              imageUrl ? "mt-2" : "py-3",
+            )}
+          >
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            <span>Uploading image…</span>
+          </div>
+        ) : null}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        disabled={uploading}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onUpload(file);
+          e.target.value = "";
+        }}
+      />
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        className="mt-1.5"
+        disabled={uploading}
+        onClick={() => inputRef.current?.click()}
+      >
+        {uploading ? (
+          <span className="inline-flex items-center gap-2">
+            <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            Uploading…
+          </span>
+        ) : imageUrl ? (
+          "Replace image"
+        ) : (
+          "Upload image"
+        )}
+      </Button>
+    </div>
+  );
+}
+
+function GalleryEditor({
+  section,
+  onPatch,
+  galleryInputRef,
+  uploadingIndex,
+  onUploadFile,
+}: {
+  section: EventSiteSection;
+  onPatch: (content: Record<string, unknown>) => void;
+  galleryInputRef: React.RefObject<HTMLInputElement | null>;
+  uploadingIndex: number | null;
+  onUploadFile: (file: File, imageIndex: number) => void;
+}) {
+  const images = (section.content.images as GalleryImageItem[]) ?? [];
+  const [uploadIndex, setUploadIndex] = useState<number | null>(null);
+
+  function patchImages(next: GalleryImageItem[]) {
+    onPatch({ ...section.content, images: next });
+  }
+
+  return (
+    <div className="space-y-3">
+      <Field
+        label="Title"
+        value={String(section.content.title ?? "")}
+        onChange={(title) => onPatch({ ...section.content, title })}
+      />
+      <ImageDisplayControls
+        content={section.content}
+        onChange={(patch) => onPatch({ ...section.content, ...patch })}
+      />
+      <p className="text-xs text-slate-500">
+        Default fit, position, and corners apply to all gallery images unless overridden per image.
+      </p>
+      {images.map((img, i) => (
+        <div key={img.id} className="space-y-2 rounded-lg border border-slate-200 p-3">
+          <div className="relative">
+            {img.url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={img.url}
+                alt={img.caption}
+                className="aspect-[4/3] w-full object-cover"
+                style={{ borderRadius: 0 }}
+              />
+            ) : (
+              <div className="flex aspect-[4/3] items-center justify-center bg-slate-100 text-xs text-slate-500">
+                No image yet
+              </div>
+            )}
+            {uploadingIndex === i ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/85">
+                <Loader2 className="size-5 animate-spin text-indigo-600" aria-hidden />
+                <span className="ml-2 text-xs font-medium text-slate-600">Uploading…</span>
+              </div>
+            ) : null}
+          </div>
+          <Input
+            placeholder="Caption"
+            value={img.caption}
+            onChange={(e) => {
+              const next = [...images];
+              next[i] = { ...img, caption: e.target.value };
+              patchImages(next);
+            }}
+          />
+          <ImageDisplayControls
+            content={{
+              imageFit: img.imageFit ?? section.content.imageFit,
+              imagePosition: img.imagePosition ?? section.content.imagePosition,
+              imageRadius: img.imageRadius ?? section.content.imageRadius,
+            }}
+            onChange={(patch) => {
+              const next = [...images];
+              next[i] = { ...img, ...patch };
+              patchImages(next);
+            }}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={uploadingIndex === i}
+              onClick={() => {
+                setUploadIndex(i);
+                galleryInputRef.current?.click();
+              }}
+            >
+              {uploadingIndex === i ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                  Uploading…
+                </span>
+              ) : img.url ? (
+                "Replace"
+              ) : (
+                "Upload"
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={uploadingIndex === i}
+              onClick={() => patchImages(images.filter((_, idx) => idx !== i))}
+            >
+              Remove
+            </Button>
+          </div>
+        </div>
+      ))}
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file && uploadIndex !== null) onUploadFile(file, uploadIndex);
+          e.target.value = "";
+          setUploadIndex(null);
+        }}
+      />
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={() =>
+          patchImages([
+            ...images,
+            {
+              id: `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+              url: "",
+              caption: "",
+            },
+          ])
+        }
+      >
+        Add image
+      </Button>
     </div>
   );
 }
@@ -250,15 +707,18 @@ function Field({
   label,
   value,
   onChange,
+  hint,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  hint?: string;
 }) {
   return (
     <div>
       <Label>{label}</Label>
       <Input className="mt-1.5" value={value} onChange={(e) => onChange(e.target.value)} />
+      {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}
     </div>
   );
 }
@@ -309,16 +769,80 @@ function Toggle({
   );
 }
 
+function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <select
+        className="mt-1.5 h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-sm"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function RangeField({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2">
+        <Label>{label}</Label>
+        <span className="text-xs text-slate-500">{value}%</span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="mt-2 w-full accent-indigo-600"
+      />
+    </div>
+  );
+}
+
 function SpeakersEditor({
   section,
   onTitleChange,
   onChange,
+  onPatchContent,
+  uploadingSpeakerId,
   onUploadPhoto,
   speakerInputRef,
 }: {
   section: EventSiteSection;
   onTitleChange: (title: string) => void;
   onChange: (items: EventSiteSpeaker[]) => void;
+  onPatchContent: (patch: Record<string, unknown>) => void;
+  uploadingSpeakerId: string | null;
   onUploadPhoto: (speakerId: string, file: File) => void;
   speakerInputRef: React.RefObject<HTMLInputElement | null>;
 }) {
@@ -336,6 +860,14 @@ function SpeakersEditor({
         value={String(section.content.title ?? "")}
         onChange={onTitleChange}
       />
+      <ImageDisplayControls
+        content={section.content}
+        onChange={onPatchContent}
+        hideRadius
+      />
+      <p className="text-xs text-slate-500">
+        Photo fit and position apply to all speakers. Corners stay square so layouts stay clean on mobile.
+      </p>
       <div className="space-y-2">
         {items.map((speaker) => (
           <div key={speaker.id} className="rounded-lg border border-slate-200 p-3">
@@ -350,8 +882,19 @@ function SpeakersEditor({
               )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{speakerDisplayName(speaker)}</p>
-                <p className="truncate text-xs text-slate-500">{speaker.jobTitle ?? "Speaker"}</p>
+                <p className="truncate text-xs text-slate-500">
+                  {speaker.hidden ? "Hidden on site" : (speaker.jobTitle ?? "Speaker")}
+                </p>
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-label={speaker.hidden ? "Show speaker on site" : "Hide speaker from site"}
+                onClick={() => updateSpeaker(speaker.id, { hidden: !speaker.hidden })}
+              >
+                {speaker.hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </Button>
               <Button type="button" variant="ghost" size="sm" onClick={() => setDrawerSpeaker(speaker)}>
                 Edit
               </Button>
@@ -400,6 +943,14 @@ function SpeakersEditor({
               updateSpeaker(drawerSpeaker.id, { bio: v });
               setDrawerSpeaker({ ...drawerSpeaker, bio: v });
             }} />
+            <Toggle
+              label="Show on published site"
+              checked={!drawerSpeaker.hidden}
+              onChange={(visible) => {
+                updateSpeaker(drawerSpeaker.id, { hidden: !visible });
+                setDrawerSpeaker({ ...drawerSpeaker, hidden: !visible });
+              }}
+            />
             <div>
               <Label>Photo</Label>
               <input
@@ -413,8 +964,15 @@ function SpeakersEditor({
                   e.target.value = "";
                 }}
               />
-              <Button type="button" variant="secondary" size="sm" className="mt-1.5" onClick={() => speakerInputRef.current?.click()}>
-                Upload photo
+              <Button type="button" variant="secondary" size="sm" className="mt-1.5" disabled={uploadingSpeakerId === drawerSpeaker.id} onClick={() => speakerInputRef.current?.click()}>
+                {uploadingSpeakerId === drawerSpeaker.id ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                    Uploading…
+                  </span>
+                ) : (
+                  "Upload photo"
+                )}
               </Button>
             </div>
             <Button

@@ -65,7 +65,14 @@ export function defaultSectionContent(
 ): Record<string, unknown> {
   switch (type) {
     case "header":
-      return { showLogo: true, sticky: true };
+      return {
+        showLogo: true,
+        sticky: true,
+        logoUrl: null,
+        imageFit: "contain",
+        imagePosition: "center",
+        imageRadius: "none",
+      };
     case "hero":
       return {
         headline: "",
@@ -73,6 +80,13 @@ export function defaultSectionContent(
         eyebrow: "",
         imageUrl: null,
         overlay: "gradient",
+        overlayStrength: 100,
+        imageFit: "cover",
+        imagePosition: "center",
+        imageRadius: "none",
+        imageWidthMode: "full",
+        imageMinHeight: "360px",
+        heroMinHeight: "min(72vh, 800px)",
         showDates: true,
         showVenue: true,
         showLogo: true,
@@ -86,6 +100,9 @@ export function defaultSectionContent(
         body: "",
         imageUrl: null,
         layout: "text",
+        imageFit: "cover",
+        imagePosition: "center",
+        imageRadius: "none",
       };
     case "event-details":
       return {
@@ -100,6 +117,9 @@ export function defaultSectionContent(
         title: "Speakers",
         layout: "grid",
         items: [],
+        imageFit: "cover",
+        imagePosition: "center",
+        imageRadius: "none",
       };
     case "agenda":
       return {
@@ -112,6 +132,7 @@ export function defaultSectionContent(
       return {
         title: "Our sponsors",
         showTiers: ["PLATINUM", "GOLD", "SILVER", "BRONZE"],
+        showTierLabels: true,
       };
     case "venue":
       return {
@@ -120,9 +141,19 @@ export function defaultSectionContent(
         mapUrl: null,
         description: "",
         imageUrl: null,
+        imageFit: "cover",
+        imagePosition: "center",
+        imageRadius: "none",
       };
     case "gallery":
-      return { title: "Gallery", layout: "grid", images: [] };
+      return {
+        title: "Gallery",
+        layout: "grid",
+        images: [],
+        imageFit: "cover",
+        imagePosition: "center",
+        imageRadius: "none",
+      };
     case "registration-cta":
       return {
         title: "Join us",
@@ -208,15 +239,84 @@ export const SECTION_VARIANT_OPTIONS: Partial<
   speakers: [
     {
       value: "grid",
-      label: "Grid",
-      description: "Photo cards in a responsive grid.",
+      label: "Responsive grid",
+      description: "List rows on mobile; photo grid from tablet up.",
+    },
+    {
+      value: "list",
+      label: "Speaker list",
+      description: "Compact horizontal rows with thumbnail and details.",
+    },
+    {
+      value: "spotlight",
+      label: "Spotlight",
+      description: "Featured speakers large up top, others in a smaller grid.",
+    },
+  ],
+  sponsors: [
+    {
+      value: "grouped",
+      label: "Grouped by tier",
+      description: "Logos arranged in tier blocks with optional category labels.",
+    },
+    {
+      value: "logo-wall",
+      label: "Logo wall",
+      description: "Flowing logo grid ordered by tier without category headings.",
+    },
+    {
+      value: "cards",
+      label: "Logo cards",
+      description: "Each logo in a padded card, still ordered by tier.",
+    },
+    {
+      value: "compact",
+      label: "Compact strip",
+      description: "Smaller logos in tight rows, ideal for many sponsors.",
+    },
+  ],
+  venue: [
+    {
+      value: "split",
+      label: "Split",
+      description: "Venue details beside a featured image.",
+    },
+    {
+      value: "stacked",
+      label: "Stacked",
+      description: "Centered copy with a full-width image below.",
+    },
+    {
+      value: "overlay",
+      label: "Image overlay",
+      description: "Full-width venue photo with text over a gradient.",
+    },
+    {
+      value: "minimal",
+      label: "Minimal",
+      description: "Typography-focused layout without a large image.",
     },
   ],
   agenda: [
     {
       value: "list",
-      label: "List",
+      label: "Cards",
       description: "Stacked session cards with time and details.",
+    },
+    {
+      value: "timeline",
+      label: "Timeline",
+      description: "Vertical timeline with a connector line and time markers.",
+    },
+    {
+      value: "grouped",
+      label: "Grouped by day",
+      description: "Sessions grouped under day headings, ideal for multi-day agendas.",
+    },
+    {
+      value: "compact",
+      label: "Compact schedule",
+      description: "Dense rows without cards, best for long session lists.",
     },
   ],
   gallery: [
@@ -257,6 +357,10 @@ export function defaultSectionVariant(type: EventSiteSectionType): string {
       return "text";
     case "speakers":
       return "grid";
+    case "sponsors":
+      return "grouped";
+    case "venue":
+      return "split";
     case "agenda":
       return "list";
     case "gallery":

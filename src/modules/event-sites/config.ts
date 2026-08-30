@@ -350,7 +350,7 @@ export function eventSiteConfigFromEvent(input: {
         subheadline: String(
           content.subheadline || (input.description?.slice(0, 400) ?? ""),
         ),
-        imageUrl: content.imageUrl ?? input.logoUrl,
+        imageUrl: content.imageUrl ?? null,
       },
     };
   });
@@ -379,7 +379,21 @@ export function eventSiteConfigFromEvent(input: {
     };
   });
 
-  return { ...base, sections: venuePatched };
+  const detailsPatched = venuePatched.map((section) => {
+    if (section.type !== "event-details") return section;
+    const content = section.content as Record<string, unknown>;
+    return {
+      ...section,
+      content: {
+        ...content,
+        showDates: content.showDates !== false,
+        showVenue: content.showVenue !== false && Boolean(input.venue),
+        showTimezone: content.showTimezone !== false,
+      },
+    };
+  });
+
+  return { ...base, sections: detailsPatched };
 }
 
 export { newSpeakerId } from "./sections";

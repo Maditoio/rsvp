@@ -5,7 +5,27 @@ import {
   speakerDisplayName,
   type EventSiteSpeaker,
 } from "@/modules/event-sites/config";
-import { parseSponsorSectionTiers, sponsorAltText } from "@/modules/sponsors/config";
+import {
+  heroFullMinHeight,
+  heroImageObjectStyles,
+  heroOverlayOpacity,
+  heroSplitImageRadius,
+  heroSplitMinHeight,
+} from "@/modules/event-sites/hero-image";
+import {
+  resolveImageDisplay,
+  speakerPhotoStyles,
+  siteImageStyles,
+} from "@/modules/event-sites/site-image";
+import type { CSSProperties } from "react";
+import {
+  alignBoxClass,
+  alignJustifyClass,
+  getSectionBackgroundValue,
+  resolveSectionBackground,
+  textAlignClass,
+} from "@/modules/event-sites/section-style";
+import { parseSponsorSectionTiers, sponsorAltText, type EventSponsorRecord, type EventSponsorTierGroup } from "@/modules/sponsors/config";
 import {
   SiteButton,
   SiteContainer,
@@ -15,42 +35,111 @@ import {
 import type { EventSiteSectionType } from "@/modules/event-sites/sections";
 import type { EventSiteRenderData, SectionRenderProps } from "./types";
 
-function eventDates(data: EventSiteRenderData): string | null {
-  if (!data.startsAt) return null;
-  return formatEventWindow(
-    data.startsAt instanceof Date ? data.startsAt : new Date(data.startsAt),
-    data.endsAt
-      ? data.endsAt instanceof Date
-        ? data.endsAt
-        : new Date(data.endsAt)
-      : null,
-    data.timezone,
+function siteLogoUrl(data: EventSiteRenderData): string | null {
+  const header = data.config.sections.find((s) => s.type === "header");
+  const url = header?.content.logoUrl;
+  return typeof url === "string" && url.length > 0 ? url : null;
+}
+
+function headerImageDisplay(data: EventSiteRenderData): Record<string, unknown> {
+  const header = data.config.sections.find((s) => s.type === "header");
+  return (header?.content as Record<string, unknown>) ?? {};
+}
+
+type GalleryImageItem = {
+  id: string;
+  url: string;
+  caption: string;
+  imageFit?: string;
+  imagePosition?: string;
+  imageRadius?: string;
+};
+
+function SiteImage({
+  src,
+  alt = "",
+  className,
+  display,
+}: {
+  src: string;
+  alt?: string;
+  className?: string;
+  display: Record<string, unknown>;
+}) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      className={cn("w-full", className)}
+      style={siteImageStyles(display)}
+    />
   );
+}
+
+function eventDates(
+  data: EventSiteRenderData,
+  options?: { fallback?: boolean },
+): string | null {
+  if (!data.startsAt) {
+    return options?.fallback ? "Dates TBC" : null;
+  }
+  const startsAt =
+    data.startsAt instanceof Date ? data.startsAt : new Date(data.startsAt);
+  const endsAt = data.endsAt
+    ? data.endsAt instanceof Date
+      ? data.endsAt
+      : new Date(data.endsAt)
+    : null;
+  return formatEventWindow(startsAt, endsAt, data.timezone);
 }
 
 function sectionShell(
   props: SectionRenderProps,
   children: React.ReactNode,
-  className?: string,
+  options?: { background?: string; extraClassName?: string },
 ) {
-  if (!props.content && props.sectionId) return null;
+  const hiddenFromSite = props.editorMode && props.sectionEnabled === false;
+  const bg = resolveSectionBackground(props.content, options?.background);
   return (
     <SiteSection
       id={props.sectionId}
       selected={props.selected}
       onSelect={props.onSelect}
       editorMode={props.editorMode}
-      className={className}
+      className={cn(hiddenFromSite && "opacity-60", bg.className, options?.extraClassName)}
+      style={bg.style}
     >
+      {hiddenFromSite ? (
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-slate-900/5 px-4 py-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          Hidden from published site
+        </div>
+      ) : null}
       {children}
     </SiteSection>
   );
+}
+
+function heroOverlayStyle(
+  overlay: string,
+  strength: number,
+): { className?: string; style?: React.CSSProperties } {
+  return {
+    className: cn(
+      overlay === "dark" && "bg-black/60",
+      overlay === "gradient" &&
+        "bg-gradient-to-r from-[var(--site-primary)]/95 via-[var(--site-primary)]/80 to-[var(--site-primary)]/40",
+      overlay === "none" && "bg-black/20",
+    ),
+    style: { opacity: strength },
+  };
 }
 
 export function HeaderSection(props: SectionRenderProps & { data: EventSiteRenderData }) {
   const { data, content, globalStyles } = props;
   const showLogo = content.showLogo !== false;
   const sticky = content.sticky !== false;
+  const logoUrl = siteLogoUrl(data);
   const navStyle = globalStyles.navStyle;
   const isDarkNav = navStyle === "sticky-dark";
   const isTransparentHero =
@@ -81,12 +170,13 @@ export function HeaderSection(props: SectionRenderProps & { data: EventSiteRende
     >
       <SiteContainer className="flex h-16 items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
-          {showLogo && data.logoUrl ? (
+          {showLogo && logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={data.logoUrl}
+              src={logoUrl}
               alt=""
-              className="h-9 w-auto max-w-[140px] object-contain"
+              className="h-9 w-auto max-w-[140px]"
+              style={siteImageStyles(headerImageDisplay(data))}
             />
           ) : (
             <span
@@ -140,21 +230,29 @@ export function HeroSection(props: SectionRenderProps & { data: EventSiteRenderD
   const headline = String(content.headline || data.eventName);
   const subheadline = String(content.subheadline ?? "");
   const eyebrow = String(content.eyebrow ?? data.orgName);
-  const imageUrl = (content.imageUrl as string | null) ?? data.logoUrl;
+  const imageUrl = (content.imageUrl as string | null) || null;
+  const headerLogo = siteLogoUrl(data);
   const showDates = content.showDates !== false;
   const showVenue = content.showVenue !== false;
   const dates = showDates ? eventDates(data) : null;
   const overlay = String(content.overlay ?? "gradient");
+  const overlayStrength = heroOverlayOpacity(content);
+  const overlayLayer = heroOverlayStyle(overlay, overlayStrength);
+  const imageStyles = heroImageObjectStyles(content);
   const primaryLabel = String(content.primaryCtaLabel ?? data.ctaLabel);
   const secondaryLabel = String(content.secondaryCtaLabel ?? "");
   const secondaryUrl = content.secondaryCtaUrl as string | null;
 
   if (variant === "split") {
+    const splitRadius = heroSplitImageRadius(content);
+    const splitMinHeight = heroSplitMinHeight(content);
+    const widthMode = content.imageWidthMode === "inset" ? "inset" : "full";
+
     return sectionShell(
       props,
       <SiteContainer>
         <div className="grid items-center gap-10 md:grid-cols-2 md:gap-12">
-          <div>
+          <div className={textAlignClass(content, "left")}>
             <p
               className="text-xs font-semibold uppercase tracking-[0.18em]"
               style={{ color: "var(--site-accent)" }}
@@ -173,7 +271,7 @@ export function HeroSection(props: SectionRenderProps & { data: EventSiteRenderD
                 <span>{dates ? " · " : ""}{data.venue}</span>
               ) : null}
             </div>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className={cn("mt-8 flex flex-wrap gap-3", alignJustifyClass(content, "left"))}>
               {data.ctaVisible && data.ctaHref ? (
                 <SiteButton
                   label={primaryLabel}
@@ -195,24 +293,44 @@ export function HeroSection(props: SectionRenderProps & { data: EventSiteRenderD
             </div>
           </div>
           <div
-            className="overflow-hidden shadow-lg"
-            style={{ borderRadius: "var(--site-radius)" }}
-          >
-            {imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={imageUrl}
-                alt=""
-                className="aspect-[4/3] w-full object-cover"
-              />
-            ) : (
-              <div
-                className="flex aspect-[4/3] items-center justify-center text-white/70"
-                style={{ backgroundColor: "var(--site-primary)" }}
-              >
-                {props.editorMode ? "Add hero image" : null}
-              </div>
+            className={cn(
+              "overflow-hidden",
+              widthMode === "inset" && "p-4 md:p-6",
             )}
+          >
+            <div
+              className={cn(
+                "overflow-hidden",
+                widthMode === "full" && "shadow-lg",
+              )}
+              style={{ borderRadius: splitRadius }}
+            >
+              {imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imageUrl}
+                  alt=""
+                  className="w-full"
+                  style={{
+                    ...imageStyles,
+                    minHeight: splitMinHeight,
+                    height: splitMinHeight ? splitMinHeight : undefined,
+                    aspectRatio: splitMinHeight ? undefined : "4 / 3",
+                  }}
+                />
+              ) : (
+                <div
+                  className="flex items-center justify-center text-white/70"
+                  style={{
+                    backgroundColor: "var(--site-primary)",
+                    minHeight: splitMinHeight ?? "16rem",
+                    aspectRatio: splitMinHeight ? undefined : "4 / 3",
+                  }}
+                >
+                  {props.editorMode ? "Add hero image" : null}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </SiteContainer>,
@@ -222,7 +340,7 @@ export function HeroSection(props: SectionRenderProps & { data: EventSiteRenderD
   if (variant === "compact") {
     return sectionShell(
       props,
-      <SiteContainer className="text-center">
+      <SiteContainer className={textAlignClass(content, "center")}>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-60">
           {eyebrow}
         </p>
@@ -232,7 +350,7 @@ export function HeroSection(props: SectionRenderProps & { data: EventSiteRenderD
         {dates ? <p className="mt-3 text-sm opacity-70">{dates}</p> : null}
         {subheadline ? <p className="mx-auto mt-4 max-w-xl">{subheadline}</p> : null}
         {data.ctaVisible && data.ctaHref ? (
-          <div className="mt-8 flex justify-center">
+          <div className={cn("mt-8 flex", alignJustifyClass(content, "center"))}>
             <SiteButton
               label={primaryLabel}
               href={data.ctaHref}
@@ -243,7 +361,7 @@ export function HeroSection(props: SectionRenderProps & { data: EventSiteRenderD
           </div>
         ) : null}
       </SiteContainer>,
-      "border-b border-slate-100",
+      { extraClassName: "border-b border-slate-100" },
     );
   }
 
@@ -251,7 +369,7 @@ export function HeroSection(props: SectionRenderProps & { data: EventSiteRenderD
     return sectionShell(
       props,
       <SiteContainer>
-        <div className="mx-auto max-w-3xl text-center">
+        <div className={cn("mx-auto max-w-3xl", textAlignClass(content, "center"))}>
           <p className="text-sm font-medium tracking-wide opacity-70">{eyebrow}</p>
           <SiteHeading as="h1" className="mt-4">
             {headline}
@@ -269,88 +387,94 @@ export function HeroSection(props: SectionRenderProps & { data: EventSiteRenderD
           </div>
         </div>
       </SiteContainer>,
-      "border-b border-amber-100/60 bg-gradient-to-b from-amber-50/50 to-transparent",
+      {
+        background: "bg-gradient-to-b from-amber-50/50 to-transparent",
+        extraClassName: "border-b border-amber-100/60",
+      },
     );
   }
 
   return sectionShell(
     props,
-    <>
-      <div
-        className="relative overflow-hidden px-6 py-20 text-white md:px-10 md:py-28"
-        style={{ backgroundColor: "var(--site-primary)" }}
-      >
-        {imageUrl ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={imageUrl}
-              alt=""
-              className="absolute inset-0 size-full object-cover"
-            />
-            <div
-              className={cn(
-                "absolute inset-0",
-                overlay === "dark" && "bg-black/60",
-                overlay === "gradient" &&
-                  "bg-gradient-to-r from-[var(--site-primary)]/95 via-[var(--site-primary)]/80 to-[var(--site-primary)]/40",
-                overlay === "none" && "bg-black/20",
-              )}
-              aria-hidden
-            />
-          </>
+    <div
+      className="relative overflow-hidden text-white"
+      style={{
+        backgroundColor: "var(--site-primary)",
+        minHeight: heroFullMinHeight(content),
+      }}
+    >
+      {imageUrl ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageUrl}
+            alt=""
+            className="absolute inset-0 size-full"
+            style={imageStyles}
+          />
+          <div
+            className={cn("absolute inset-0", overlayLayer.className)}
+            style={overlayLayer.style}
+            aria-hidden
+          />
+        </>
+      ) : null}
+      <SiteContainer className={cn("relative py-20 md:py-28", textAlignClass(content, "left"))}>
+        {content.showLogo !== false && headerLogo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={headerLogo}
+            alt=""
+            className="mb-6 h-12 w-auto object-contain"
+          />
         ) : null}
-        <SiteContainer className="relative">
-          {content.showLogo !== false && data.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={data.logoUrl}
-              alt=""
-              className="mb-6 h-12 w-auto object-contain"
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
+          {eyebrow}
+        </p>
+        <h1
+          className={cn(
+            "mt-3 max-w-4xl text-4xl font-semibold tracking-tight text-white md:text-5xl lg:text-6xl",
+            alignBoxClass(content, "left"),
+          )}
+          style={{ fontFamily: "var(--site-heading-font)" }}
+        >
+          {headline}
+        </h1>
+        {subheadline ? (
+          <p className={cn("mt-4 max-w-2xl text-lg text-white/85", alignBoxClass(content, "left"))}>
+            {subheadline}
+          </p>
+        ) : null}
+        <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-white/80">
+          {dates ? <span>{dates}</span> : null}
+          {showVenue && data.venue ? (
+            <span>{dates ? "· " : ""}{data.venue}</span>
+          ) : null}
+        </div>
+        <div className={cn("mt-8 flex flex-wrap gap-3", alignJustifyClass(content, "left"))}>
+          {data.ctaVisible && data.ctaHref ? (
+            <SiteButton
+              label={primaryLabel}
+              href={data.ctaHref}
+              accent={data.config.theme.accentColor}
+              style={globalStyles.buttonStyle}
+              radius={globalStyles.borderRadius}
             />
           ) : null}
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
-            {eyebrow}
-          </p>
-          <h1
-            className="mt-3 max-w-4xl text-4xl font-semibold tracking-tight text-white md:text-5xl lg:text-6xl"
-            style={{ fontFamily: "var(--site-heading-font)" }}
-          >
-            {headline}
-          </h1>
-          {subheadline ? (
-            <p className="mt-4 max-w-2xl text-lg text-white/85">{subheadline}</p>
+          {secondaryLabel && secondaryUrl ? (
+            <SiteButton
+              label={secondaryLabel}
+              href={secondaryUrl}
+              accent={data.config.theme.accentColor}
+              style="outline"
+              radius={globalStyles.borderRadius}
+              inverted
+            />
           ) : null}
-          <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-white/80">
-            {dates ? <span>{dates}</span> : null}
-            {showVenue && data.venue ? (
-              <span>{dates ? "· " : ""}{data.venue}</span>
-            ) : null}
-          </div>
-          <div className="mt-8 flex flex-wrap gap-3">
-            {data.ctaVisible && data.ctaHref ? (
-              <SiteButton
-                label={primaryLabel}
-                href={data.ctaHref}
-                accent={data.config.theme.accentColor}
-                style={globalStyles.buttonStyle}
-                radius={globalStyles.borderRadius}
-              />
-            ) : null}
-            {secondaryLabel && secondaryUrl ? (
-              <SiteButton
-                label={secondaryLabel}
-                href={secondaryUrl}
-                accent={data.config.theme.accentColor}
-                style="outline"
-                radius={globalStyles.borderRadius}
-                inverted
-              />
-            ) : null}
-          </div>
-        </SiteContainer>
-      </div>
-    </>,
+        </div>
+      </SiteContainer>
+    </div>,
+    { extraClassName: "!py-0" },
   );
 }
 
@@ -360,22 +484,29 @@ export function AboutSection(props: SectionRenderProps & { data: EventSiteRender
   const body = String(content.body ?? "");
   if (!body.trim()) return props.editorMode ? sectionShell(props, <SiteContainer><SiteHeading>{title}</SiteHeading><p className="mt-4 opacity-50">Add about content in the editor.</p></SiteContainer>) : null;
 
-  if (variant === "split" && content.imageUrl) {
+  if (variant === "split") {
+    const imageUrl = content.imageUrl ? String(content.imageUrl) : null;
     return sectionShell(
       props,
       <SiteContainer id="about">
         <div className="grid items-center gap-10 md:grid-cols-2">
-          <div>
+          <div className={textAlignClass(content, "left")}>
             <SiteHeading>{title}</SiteHeading>
             <p className="mt-4 whitespace-pre-wrap leading-relaxed">{body}</p>
           </div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={String(content.imageUrl)}
-            alt=""
-            className="aspect-[4/3] w-full object-cover shadow-sm"
-            style={{ borderRadius: "var(--site-radius)" }}
-          />
+          {imageUrl ? (
+            <SiteImage
+              src={imageUrl}
+              display={content}
+              className="aspect-[4/3]"
+            />
+          ) : props.editorMode ? (
+            <div
+              className="flex aspect-[4/3] items-center justify-center bg-slate-100 text-sm text-slate-500"
+            >
+              Upload an image in the section editor
+            </div>
+          ) : null}
         </div>
       </SiteContainer>,
     );
@@ -384,264 +515,823 @@ export function AboutSection(props: SectionRenderProps & { data: EventSiteRender
   return sectionShell(
     props,
     <SiteContainer id="about">
-      <SiteHeading>{title}</SiteHeading>
-      <p className="mt-4 max-w-3xl whitespace-pre-wrap leading-relaxed">{body}</p>
+      <div className={textAlignClass(content, "left")}>
+        <SiteHeading>{title}</SiteHeading>
+        <p className="mt-4 max-w-3xl whitespace-pre-wrap leading-relaxed">{body}</p>
+      </div>
     </SiteContainer>,
   );
 }
 
 export function EventDetailsSection(props: SectionRenderProps & { data: EventSiteRenderData }) {
-  const { data, content } = props;
+  const { data, content, editorMode } = props;
   const title = String(content.title ?? "Event details");
-  const dates = content.showDates !== false ? eventDates(data) : null;
+  const dates =
+    content.showDates !== false
+      ? eventDates(data, { fallback: editorMode })
+      : null;
+  const showVenue = content.showVenue !== false;
+  const showTimezone = content.showTimezone !== false;
+  const hasCards =
+    Boolean(dates) ||
+    (showVenue && Boolean(data.venue)) ||
+    (showTimezone && Boolean(data.timezone));
 
   return sectionShell(
     props,
     <SiteContainer>
-      <SiteHeading>{title}</SiteHeading>
-      <dl className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {dates ? (
-          <div
-            className="rounded-xl bg-white p-5 shadow-sm"
-            style={{ borderRadius: "var(--site-radius)" }}
-          >
-            <dt className="text-xs font-semibold uppercase tracking-wide opacity-60">Dates</dt>
-            <dd className="mt-1 font-medium text-[var(--site-primary)]">{dates}</dd>
-          </div>
-        ) : null}
-        {content.showVenue !== false && data.venue ? (
-          <div
-            className="rounded-xl bg-white p-5 shadow-sm"
-            style={{ borderRadius: "var(--site-radius)" }}
-          >
-            <dt className="text-xs font-semibold uppercase tracking-wide opacity-60">Venue</dt>
-            <dd className="mt-1 font-medium text-[var(--site-primary)]">{data.venue}</dd>
-          </div>
-        ) : null}
-        {content.showTimezone !== false && data.timezone ? (
-          <div
-            className="rounded-xl bg-white p-5 shadow-sm"
-            style={{ borderRadius: "var(--site-radius)" }}
-          >
-            <dt className="text-xs font-semibold uppercase tracking-wide opacity-60">Timezone</dt>
-            <dd className="mt-1 font-medium text-[var(--site-primary)]">{data.timezone}</dd>
-          </div>
-        ) : null}
-      </dl>
+      <SiteHeading className={textAlignClass(content, "left")}>{title}</SiteHeading>
+      {hasCards ? (
+        <dl className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {dates ? (
+            <div
+              className="rounded-xl bg-white p-5 shadow-sm"
+              style={{ borderRadius: "var(--site-radius)" }}
+            >
+              <dt className="text-xs font-semibold uppercase tracking-wide opacity-60">Dates</dt>
+              <dd className="mt-1 font-medium text-[var(--site-primary)]">{dates}</dd>
+            </div>
+          ) : null}
+          {showVenue && data.venue ? (
+            <div
+              className="rounded-xl bg-white p-5 shadow-sm"
+              style={{ borderRadius: "var(--site-radius)" }}
+            >
+              <dt className="text-xs font-semibold uppercase tracking-wide opacity-60">Venue</dt>
+              <dd className="mt-1 font-medium text-[var(--site-primary)]">{data.venue}</dd>
+            </div>
+          ) : null}
+          {showTimezone && data.timezone ? (
+            <div
+              className="rounded-xl bg-white p-5 shadow-sm"
+              style={{ borderRadius: "var(--site-radius)" }}
+            >
+              <dt className="text-xs font-semibold uppercase tracking-wide opacity-60">Timezone</dt>
+              <dd className="mt-1 font-medium text-[var(--site-primary)]">{data.timezone}</dd>
+            </div>
+          ) : null}
+        </dl>
+      ) : editorMode ? (
+        <p className="mt-4 text-sm opacity-50">
+          Event dates, venue, and timezone appear here from your event settings.
+        </p>
+      ) : null}
     </SiteContainer>,
-    "bg-slate-50/80",
+    { background: "bg-slate-50/80" },
+  );
+}
+
+function speakerPlaceholder(): EventSiteSpeaker {
+  return {
+    id: "placeholder",
+    firstName: "Add",
+    lastName: "speaker",
+    order: 0,
+    featured: false,
+    hidden: false,
+  };
+}
+
+function resolveSpeakers(
+  content: Record<string, unknown>,
+  editorMode?: boolean,
+): EventSiteSpeaker[] {
+  const allItems = (content.items as EventSiteSpeaker[]) ?? [];
+  const visibleItems = allItems.filter((s) => !s.hidden);
+  const displayItems = editorMode ? allItems : visibleItems;
+  if (displayItems.length) return displayItems;
+  return editorMode ? [speakerPlaceholder()] : [];
+}
+
+function sortSpeakers(speakers: EventSiteSpeaker[]): EventSiteSpeaker[] {
+  return [...speakers].sort((a, b) => a.order - b.order);
+}
+
+function speakerSubtitle(speaker: EventSiteSpeaker): string | null {
+  const line = [speaker.jobTitle, speaker.organization].filter(Boolean).join(" · ");
+  return line || null;
+}
+
+function SpeakerPhoto({
+  speaker,
+  editorMode,
+  className,
+  display,
+}: {
+  speaker: EventSiteSpeaker;
+  editorMode?: boolean;
+  className?: string;
+  display: Record<string, unknown>;
+}) {
+  const imageStyles = speakerPhotoStyles(display);
+  const alt = speakerDisplayName(speaker);
+
+  if (speaker.photoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={speaker.photoUrl}
+        alt={alt}
+        className={cn("w-full", className)}
+        style={imageStyles}
+      />
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "flex w-full items-center justify-center text-sm font-medium text-white",
+        className,
+      )}
+      style={{ ...imageStyles, backgroundColor: "var(--site-accent)" }}
+      aria-label={alt}
+    >
+      {editorMode ? "Photo" : alt.slice(0, 1).toUpperCase()}
+    </div>
+  );
+}
+
+function SpeakerName({ speaker }: { speaker: EventSiteSpeaker }) {
+  return (
+    <p
+      className="font-semibold text-[var(--site-primary)]"
+      style={{ fontFamily: "var(--site-heading-font)" }}
+    >
+      {speakerDisplayName(speaker)}
+    </p>
+  );
+}
+
+function SpeakerDetails({
+  speaker,
+  bioLines = 3,
+  compact = false,
+}: {
+  speaker: EventSiteSpeaker;
+  bioLines?: 2 | 3 | "none";
+  compact?: boolean;
+}) {
+  return (
+    <>
+      <SpeakerName speaker={speaker} />
+      {speakerSubtitle(speaker) ? (
+        <p className={cn("mt-1 text-sm opacity-70", compact && "text-xs")}>
+          {speakerSubtitle(speaker)}
+        </p>
+      ) : null}
+      {speaker.bio && bioLines !== "none" ? (
+        <p
+          className={cn(
+            "mt-2 text-sm leading-relaxed",
+            bioLines === 2 && "line-clamp-2",
+            bioLines === 3 && "line-clamp-3",
+          )}
+        >
+          {speaker.bio}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+function SpeakerRow({
+  speaker,
+  editorMode,
+  imageDisplay,
+  bioLines = 2,
+}: {
+  speaker: EventSiteSpeaker;
+  editorMode?: boolean;
+  imageDisplay: Record<string, unknown>;
+  bioLines?: 2 | 3;
+}) {
+  return (
+    <li
+      className={cn(
+        "flex gap-4 py-5 sm:gap-5 sm:items-start",
+        editorMode && speaker.hidden && "opacity-50",
+      )}
+    >
+      <SpeakerPhoto
+        speaker={speaker}
+        editorMode={editorMode}
+        display={imageDisplay}
+        className="size-20 shrink-0 sm:size-24"
+      />
+      <div className="min-w-0 flex-1">
+        <SpeakerDetails speaker={speaker} bioLines={bioLines} />
+      </div>
+    </li>
+  );
+}
+
+function SpeakersListLayout({
+  speakers,
+  editorMode,
+  imageDisplay,
+}: {
+  speakers: EventSiteSpeaker[];
+  editorMode?: boolean;
+  imageDisplay: Record<string, unknown>;
+}) {
+  return (
+    <ul className="mt-10 divide-y divide-slate-200/80">
+      {speakers.map((speaker) => (
+        <SpeakerRow
+          key={speaker.id}
+          speaker={speaker}
+          editorMode={editorMode}
+          imageDisplay={imageDisplay}
+          bioLines={2}
+        />
+      ))}
+    </ul>
+  );
+}
+
+/** Mobile list + desktop multi-column grid (default). */
+function SpeakersResponsiveGridLayout({
+  speakers,
+  editorMode,
+  imageDisplay,
+}: {
+  speakers: EventSiteSpeaker[];
+  editorMode?: boolean;
+  imageDisplay: Record<string, unknown>;
+}) {
+  return (
+    <>
+      <ul className="mt-10 divide-y divide-slate-200/80 md:hidden">
+        {speakers.map((speaker) => (
+          <SpeakerRow
+            key={speaker.id}
+            speaker={speaker}
+            editorMode={editorMode}
+            imageDisplay={imageDisplay}
+            bioLines={2}
+          />
+        ))}
+      </ul>
+      <ul className="mt-10 hidden gap-x-8 gap-y-10 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {speakers.map((speaker) => (
+          <li
+            key={speaker.id}
+            className={cn(editorMode && speaker.hidden && "opacity-50")}
+          >
+            <SpeakerPhoto
+              speaker={speaker}
+              editorMode={editorMode}
+              display={imageDisplay}
+              className="aspect-[3/4] max-h-80 w-full"
+            />
+            <div className="pt-4">
+              <SpeakerDetails speaker={speaker} bioLines={3} />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function SpeakersSpotlightLayout({
+  speakers,
+  editorMode,
+  imageDisplay,
+}: {
+  speakers: EventSiteSpeaker[];
+  editorMode?: boolean;
+  imageDisplay: Record<string, unknown>;
+}) {
+  const featured = speakers.filter((s) => s.featured);
+  const regular = speakers.filter((s) => !s.featured);
+  const spotlight = featured.length > 0 ? featured : speakers.slice(0, 2);
+  const remainder =
+    featured.length > 0 ? regular : speakers.slice(spotlight.length);
+
+  return (
+    <div className="mt-10 space-y-10">
+      <ul className="space-y-10">
+        {spotlight.map((speaker) => (
+          <li
+            key={speaker.id}
+            className={cn(
+              "flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-8",
+              editorMode && speaker.hidden && "opacity-50",
+            )}
+          >
+            <SpeakerPhoto
+              speaker={speaker}
+              editorMode={editorMode}
+              display={imageDisplay}
+              className="aspect-[4/3] w-full max-h-72 shrink-0 lg:aspect-[3/4] lg:h-auto lg:max-h-80 lg:w-44"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--site-accent)]">
+                Featured
+              </p>
+              <div className="mt-2">
+                <SpeakerDetails speaker={speaker} bioLines="none" />
+              </div>
+              {speaker.bio ? (
+                <p className="mt-3 text-sm leading-relaxed">{speaker.bio}</p>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+      {remainder.length > 0 ? (
+        <ul className="divide-y divide-slate-200/80 border-t border-slate-200/80">
+          {remainder.map((speaker) => (
+            <SpeakerRow
+              key={speaker.id}
+              speaker={speaker}
+              editorMode={editorMode}
+              imageDisplay={imageDisplay}
+              bioLines={2}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
+function sponsorPlaceholder(tier: EventSponsorTierGroup["tier"]): EventSponsorRecord {
+  return {
+    id: `placeholder-${tier}`,
+    name: "Sponsor logo",
+    logoUrl: null,
+    websiteUrl: null,
+    sortOrder: 0,
+    tier,
+  };
+}
+
+function resolveSponsorTiers(
+  props: SectionRenderProps & { data: EventSiteRenderData },
+): EventSponsorTierGroup[] {
+  const showTiers = parseSponsorSectionTiers(props.content.showTiers);
+  return props.data.sponsorGroups.filter((group) => showTiers.includes(group.tier));
+}
+
+function SponsorLogo({
+  sponsor,
+  size = "default",
+  inCard = false,
+}: {
+  sponsor: EventSponsorRecord;
+  size?: "default" | "compact";
+  inCard?: boolean;
+}) {
+  const alt = sponsorAltText(sponsor);
+  const imgClass = cn(
+    "object-contain opacity-80 grayscale transition hover:opacity-100 hover:grayscale-0",
+    size === "compact" ? "h-8 max-w-[120px]" : "h-12 max-w-[160px]",
+  );
+  const content = sponsor.logoUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={sponsor.logoUrl} alt={alt} className={imgClass} />
+  ) : (
+    <span className="text-sm opacity-40">{alt}</span>
+  );
+
+  const wrapped = inCard ? (
+    <div
+      className="flex h-24 w-40 items-center justify-center bg-white px-4 shadow-sm"
+      style={{ borderRadius: "var(--site-radius)" }}
+    >
+      {content}
+    </div>
+  ) : (
+    content
+  );
+
+  if (sponsor.logoUrl && sponsor.websiteUrl) {
+    return (
+      <a
+        href={sponsor.websiteUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block"
+        title={alt}
+      >
+        {wrapped}
+      </a>
+    );
+  }
+
+  return wrapped;
+}
+
+function SponsorTierBlock({
+  tier,
+  sponsors,
+  showTierLabels,
+  variant,
+  editorMode,
+}: {
+  tier: EventSponsorTierGroup;
+  sponsors: EventSponsorRecord[];
+  showTierLabels: boolean;
+  variant: "grouped" | "logo-wall" | "cards" | "compact";
+  editorMode?: boolean;
+}) {
+  const items =
+    sponsors.length > 0
+      ? sponsors
+      : editorMode
+        ? [sponsorPlaceholder(tier.tier)]
+        : [];
+
+  if (items.length === 0) return null;
+
+  const listClass =
+    variant === "compact"
+      ? "mt-3 flex flex-wrap items-center justify-center gap-4"
+      : variant === "cards"
+        ? "mt-4 flex flex-wrap items-center justify-center gap-5"
+        : "mt-4 flex flex-wrap items-center justify-center gap-8";
+
+  return (
+    <div
+      className={cn(
+        variant === "logo-wall" && "border-t border-slate-200/70 pt-8 first:border-t-0 first:pt-0",
+      )}
+    >
+      {showTierLabels && variant !== "logo-wall" ? (
+        <p className="text-center text-xs font-semibold uppercase tracking-[0.15em] opacity-50">
+          {tier.label}
+        </p>
+      ) : null}
+      <ul className={listClass}>
+        {items.map((s) => (
+          <li key={s.id}>
+            <SponsorLogo
+              sponsor={s}
+              size={variant === "compact" ? "compact" : "default"}
+              inCard={variant === "cards"}
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
 export function SpeakersSection(props: SectionRenderProps & { data: EventSiteRenderData }) {
-  const { content, editorMode } = props;
+  const { content, editorMode, variant } = props;
   const title = String(content.title ?? "Speakers");
-  const items = ((content.items as EventSiteSpeaker[]) ?? []).filter(
-    (s) => !s.hidden,
-  );
-  if (items.length === 0 && !editorMode) return null;
+  const speakers = sortSpeakers(resolveSpeakers(content, editorMode));
+  const layout =
+    variant === "default" || variant === "cards" ? "grid" : variant;
+  const imageDisplay = content as Record<string, unknown>;
+
+  if (speakers.length === 0 && !editorMode) return null;
 
   return sectionShell(
     props,
     <SiteContainer id="speakers">
-      <SiteHeading>{title}</SiteHeading>
-      <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {(items.length ? items : editorMode ? [{ id: "placeholder", firstName: "Add", lastName: "speaker", order: 0, featured: false, hidden: false }] : []).map(
-          (speaker) => (
-            <li
-              key={speaker.id}
-              className="overflow-hidden bg-white shadow-sm"
-              style={{ borderRadius: "var(--site-radius)" }}
-            >
-              {speaker.photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={speaker.photoUrl}
-                  alt=""
-                  className="aspect-[4/5] w-full object-cover"
-                />
-              ) : (
-                <div
-                  className="flex aspect-[4/5] items-center justify-center text-sm font-medium text-white"
-                  style={{ backgroundColor: "var(--site-accent)" }}
-                >
-                  {editorMode
-                    ? "Add speaker photo"
-                    : speakerDisplayName(speaker).slice(0, 1).toUpperCase()}
-                </div>
-              )}
-              <div className="p-4">
-                <p
-                  className="font-semibold text-[var(--site-primary)]"
-                  style={{ fontFamily: "var(--site-heading-font)" }}
-                >
-                  {speakerDisplayName(speaker)}
-                </p>
-                {speaker.jobTitle || speaker.organization ? (
-                  <p className="mt-1 text-sm opacity-70">
-                    {[speaker.jobTitle, speaker.organization]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                ) : null}
-                {speaker.bio ? (
-                  <p className="mt-2 line-clamp-3 text-sm">{speaker.bio}</p>
-                ) : null}
-              </div>
-            </li>
-          ),
-        )}
-      </ul>
+      <SiteHeading className={textAlignClass(content, "left")}>{title}</SiteHeading>
+      {layout === "list" ? (
+        <SpeakersListLayout speakers={speakers} editorMode={editorMode} imageDisplay={imageDisplay} />
+      ) : layout === "spotlight" ? (
+        <SpeakersSpotlightLayout speakers={speakers} editorMode={editorMode} imageDisplay={imageDisplay} />
+      ) : (
+        <SpeakersResponsiveGridLayout speakers={speakers} editorMode={editorMode} imageDisplay={imageDisplay} />
+      )}
     </SiteContainer>,
+  );
+}
+
+type AgendaSessionItem = EventSiteRenderData["sessions"][number];
+
+function agendaPlaceholderSession(): AgendaSessionItem {
+  return {
+    id: "placeholder",
+    title: "Sessions appear from your event agenda",
+    description: null,
+    location: null,
+    dateLabel: "",
+    timeLabel: null,
+  };
+}
+
+function resolveAgendaSessions(
+  data: EventSiteRenderData,
+  editorMode?: boolean,
+): AgendaSessionItem[] {
+  if (data.sessions.length) return data.sessions;
+  return editorMode ? [agendaPlaceholderSession()] : [];
+}
+
+function AgendaListLayout({ sessions }: { sessions: AgendaSessionItem[] }) {
+  return (
+    <ul className="mt-8 space-y-3">
+      {sessions.map((session) => (
+        <li
+          key={session.id}
+          className="bg-white p-5 shadow-sm"
+          style={{ borderRadius: "var(--site-radius)" }}
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h3
+              className="font-semibold text-[var(--site-primary)]"
+              style={{ fontFamily: "var(--site-heading-font)" }}
+            >
+              {session.title}
+            </h3>
+            {session.timeLabel ? (
+              <span className="text-sm opacity-60">{session.timeLabel}</span>
+            ) : null}
+          </div>
+          {session.location ? (
+            <p className="mt-1 text-sm opacity-60">{session.location}</p>
+          ) : null}
+          {session.description ? (
+            <p className="mt-2 line-clamp-2 text-sm">{session.description}</p>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function AgendaTimelineLayout({ sessions }: { sessions: AgendaSessionItem[] }) {
+  return (
+    <ol className="mt-10 border-l border-slate-200 pl-6">
+      {sessions.map((session) => (
+        <li key={session.id} className="relative pb-8 last:pb-0">
+          <span
+            className="absolute -left-[29px] top-1 size-3 rounded-full border-2 border-white shadow-sm"
+            style={{ backgroundColor: "var(--site-accent)" }}
+            aria-hidden
+          />
+          {session.timeLabel ? (
+            <p className="text-xs font-semibold uppercase tracking-wide opacity-60">
+              {session.timeLabel}
+            </p>
+          ) : null}
+          <h3
+            className="mt-1 font-semibold text-[var(--site-primary)]"
+            style={{ fontFamily: "var(--site-heading-font)" }}
+          >
+            {session.title}
+          </h3>
+          {session.location ? (
+            <p className="mt-1 text-sm opacity-60">{session.location}</p>
+          ) : null}
+          {session.description ? (
+            <p className="mt-2 text-sm leading-relaxed">{session.description}</p>
+          ) : null}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function groupAgendaSessionsByDate(
+  sessions: AgendaSessionItem[],
+): { dateLabel: string; sessions: AgendaSessionItem[] }[] {
+  const groups: { dateLabel: string; sessions: AgendaSessionItem[] }[] = [];
+  for (const session of sessions) {
+    const label = session.dateLabel || "Schedule";
+    const existing = groups.find((g) => g.dateLabel === label);
+    if (existing) existing.sessions.push(session);
+    else groups.push({ dateLabel: label, sessions: [session] });
+  }
+  return groups;
+}
+
+function AgendaGroupedLayout({ sessions }: { sessions: AgendaSessionItem[] }) {
+  const groups = groupAgendaSessionsByDate(sessions);
+  return (
+    <div className="mt-8 space-y-8">
+      {groups.map((group) => (
+        <div key={group.dateLabel}>
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--site-accent)]">
+            {group.dateLabel}
+          </p>
+          <ul className="mt-3 divide-y divide-slate-200/80 border-t border-slate-200/80">
+            {group.sessions.map((session) => (
+              <li
+                key={session.id}
+                className="flex flex-wrap items-baseline justify-between gap-2 py-4"
+              >
+                <div className="min-w-0">
+                  <h3
+                    className="font-semibold text-[var(--site-primary)]"
+                    style={{ fontFamily: "var(--site-heading-font)" }}
+                  >
+                    {session.title}
+                  </h3>
+                  {session.location ? (
+                    <p className="mt-1 text-sm opacity-60">{session.location}</p>
+                  ) : null}
+                  {session.description ? (
+                    <p className="mt-1 text-sm leading-relaxed">{session.description}</p>
+                  ) : null}
+                </div>
+                {session.timeLabel ? (
+                  <span className="shrink-0 text-sm font-medium opacity-70">
+                    {session.timeLabel}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AgendaCompactLayout({ sessions }: { sessions: AgendaSessionItem[] }) {
+  return (
+    <ul className="mt-8 divide-y divide-slate-200/80">
+      {sessions.map((session) => (
+        <li key={session.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+          <div className="flex min-w-0 items-baseline gap-3">
+            {session.timeLabel ? (
+              <span className="w-20 shrink-0 text-xs font-semibold uppercase tracking-wide opacity-60">
+                {session.timeLabel}
+              </span>
+            ) : null}
+            <span className="truncate font-medium text-[var(--site-primary)]">
+              {session.title}
+            </span>
+          </div>
+          {session.location ? (
+            <span className="shrink-0 text-xs opacity-60">{session.location}</span>
+          ) : null}
+        </li>
+      ))}
+    </ul>
   );
 }
 
 export function AgendaSection(props: SectionRenderProps & { data: EventSiteRenderData }) {
-  const { data, content } = props;
+  const { data, content, variant, editorMode } = props;
   const title = String(content.title ?? "Agenda");
-  if (data.sessions.length === 0 && !props.editorMode) return null;
+  const sessions = resolveAgendaSessions(data, editorMode);
+  if (sessions.length === 0 && !editorMode) return null;
 
   return sectionShell(
     props,
     <SiteContainer id="agenda">
-      <SiteHeading>{title}</SiteHeading>
-      <ul className="mt-8 space-y-3">
-        {(data.sessions.length ? data.sessions : props.editorMode ? [{ id: "p", title: "Sessions appear from your event agenda", dateLabel: "", timeLabel: null, description: null, location: null }] : []).map(
-          (session) => (
-            <li
-              key={session.id}
-              className="bg-white p-5 shadow-sm"
-              style={{ borderRadius: "var(--site-radius)" }}
-            >
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3
-                  className="font-semibold text-[var(--site-primary)]"
-                  style={{ fontFamily: "var(--site-heading-font)" }}
-                >
-                  {session.title}
-                </h3>
-                {session.timeLabel ? (
-                  <span className="text-sm opacity-60">{session.timeLabel}</span>
-                ) : null}
-              </div>
-              {session.location ? (
-                <p className="mt-1 text-sm opacity-60">{session.location}</p>
-              ) : null}
-              {session.description ? (
-                <p className="mt-2 line-clamp-2 text-sm">{session.description}</p>
-              ) : null}
-            </li>
-          ),
-        )}
-      </ul>
+      <SiteHeading className={textAlignClass(content, "left")}>{title}</SiteHeading>
+      {variant === "timeline" ? (
+        <AgendaTimelineLayout sessions={sessions} />
+      ) : variant === "grouped" ? (
+        <AgendaGroupedLayout sessions={sessions} />
+      ) : variant === "compact" ? (
+        <AgendaCompactLayout sessions={sessions} />
+      ) : (
+        <AgendaListLayout sessions={sessions} />
+      )}
     </SiteContainer>,
-    "bg-slate-50/80",
+    { background: "bg-slate-50/80" },
   );
 }
 
-export function SponsorsSection(props: SectionRenderProps) {
+export function SponsorsSection(props: SectionRenderProps & { data: EventSiteRenderData }) {
   const title = String(props.content.title ?? "Our sponsors");
-  const showTiers = parseSponsorSectionTiers(props.content.showTiers);
-  const tiers = props.data.sponsorGroups.filter((group) =>
-    showTiers.includes(group.tier),
-  );
+  const showTierLabels = props.content.showTierLabels !== false;
+  const tiers = resolveSponsorTiers(props);
+  const layout = props.variant === "default" ? "grouped" : props.variant;
+  const sponsorVariant =
+    layout === "logo-wall" ||
+    layout === "cards" ||
+    layout === "compact"
+      ? layout
+      : "grouped";
   const hasSponsors = tiers.some((t) => t.sponsors.length > 0);
   if (!hasSponsors && !props.editorMode) return null;
 
   return sectionShell(
     props,
     <SiteContainer>
-      <SiteHeading>{title}</SiteHeading>
-      <div className="mt-10 space-y-10">
-        {tiers.map((tier) =>
-          tier.sponsors.length > 0 || props.editorMode ? (
-            <div key={tier.tier}>
-              <p className="text-center text-xs font-semibold uppercase tracking-[0.15em] opacity-50">
-                {tier.label}
-              </p>
-              <ul className="mt-4 flex flex-wrap items-center justify-center gap-8">
-                {(tier.sponsors.length
-                  ? tier.sponsors
-                  : props.editorMode
-                    ? [
-                        {
-                          id: `placeholder-${tier.tier}`,
-                          name: "Sponsor logo",
-                          logoUrl: null,
-                          websiteUrl: null,
-                          sortOrder: 0,
-                          tier: tier.tier,
-                        },
-                      ]
-                    : []
-                ).map((s) => {
-                  const alt = sponsorAltText(s);
-                  return (
-                  <li key={s.id}>
-                    {s.logoUrl ? (
-                      s.websiteUrl ? (
-                        <a
-                          href={s.websiteUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block"
-                          title={alt}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={s.logoUrl}
-                            alt={alt}
-                            className="h-12 max-w-[160px] object-contain opacity-80 grayscale transition hover:opacity-100 hover:grayscale-0"
-                          />
-                        </a>
-                      ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={s.logoUrl}
-                          alt={alt}
-                          className="h-12 max-w-[160px] object-contain opacity-80 grayscale transition hover:opacity-100 hover:grayscale-0"
-                        />
-                      )
-                    ) : (
-                      <span className="text-sm opacity-40">{alt}</span>
-                    )}
-                  </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ) : null,
-        )}
+      <SiteHeading className={textAlignClass(props.content, "left")}>{title}</SiteHeading>
+      <div className={cn("mt-10", sponsorVariant === "grouped" ? "space-y-10" : "space-y-0")}>
+        {tiers.map((tier) => (
+          <SponsorTierBlock
+            key={tier.tier}
+            tier={tier}
+            sponsors={tier.sponsors}
+            showTierLabels={showTierLabels}
+            variant={sponsorVariant}
+            editorMode={props.editorMode}
+          />
+        ))}
       </div>
     </SiteContainer>,
   );
 }
 
 export function VenueSection(props: SectionRenderProps & { data: EventSiteRenderData }) {
-  const { content, data } = props;
+  const { content, data, variant } = props;
   const title = String(content.title ?? "Venue");
   const address = String(content.address || data.venue || "");
-  if (!address && !props.editorMode) return null;
+  const description = content.description ? String(content.description) : "";
+  const imageUrl = content.imageUrl ? String(content.imageUrl) : null;
+  const layout = variant === "default" ? "split" : variant;
+
+  if (!address && !description && !imageUrl && !props.editorMode) return null;
+
+  const centeredByDefault = layout === "stacked" || layout === "minimal";
+  const details = (
+    <div className={textAlignClass(content, centeredByDefault ? "center" : "left")}>
+      <SiteHeading>{title}</SiteHeading>
+      {address ? <p className="mt-4 text-lg">{address}</p> : null}
+      {description ? (
+        <p className="mt-3 text-sm leading-relaxed">{description}</p>
+      ) : null}
+    </div>
+  );
+
+  if (layout === "stacked") {
+    return sectionShell(
+      props,
+      <SiteContainer>
+        <div className="mx-auto max-w-2xl">{details}</div>
+        {imageUrl ? (
+          <SiteImage
+            src={imageUrl}
+            display={content}
+            className="mt-10 aspect-[16/9] shadow-sm"
+          />
+        ) : props.editorMode ? (
+          <div className="mt-10 flex aspect-[16/9] items-center justify-center bg-slate-100 text-sm text-slate-500">
+            Add a venue image in section content
+          </div>
+        ) : null}
+      </SiteContainer>,
+    );
+  }
+
+  if (layout === "overlay") {
+    return sectionShell(
+      props,
+      <SiteContainer>
+        <div
+          className="relative overflow-hidden shadow-sm"
+          style={{ borderRadius: siteImageStyles(content).borderRadius }}
+        >
+          {imageUrl ? (
+            <SiteImage src={imageUrl} display={content} className="aspect-[21/9]" />
+          ) : (
+            <div
+              className="aspect-[21/9] w-full"
+              style={{ backgroundColor: "var(--site-accent)" }}
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
+          <div
+            className={cn(
+              "absolute inset-x-0 bottom-0 p-6 text-white md:p-10",
+              textAlignClass(content, "left"),
+            )}
+          >
+            <h2
+              className="text-2xl font-semibold md:text-3xl"
+              style={{ fontFamily: "var(--site-heading-font)" }}
+            >
+              {title}
+            </h2>
+            {address ? <p className="mt-2 text-lg text-white/90">{address}</p> : null}
+            {description ? (
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/80">
+                {description}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </SiteContainer>,
+    );
+  }
+
+  if (layout === "minimal") {
+    return sectionShell(
+      props,
+      <SiteContainer>
+        <div className="mx-auto max-w-2xl">{details}</div>
+      </SiteContainer>,
+      { background: "bg-slate-50/80" },
+    );
+  }
 
   return sectionShell(
     props,
     <SiteContainer>
       <div className="grid gap-8 md:grid-cols-2 md:items-center">
-        <div>
-          <SiteHeading>{title}</SiteHeading>
-          {address ? <p className="mt-4 text-lg">{address}</p> : null}
-          {content.description ? (
-            <p className="mt-3 text-sm leading-relaxed">{String(content.description)}</p>
-          ) : null}
-        </div>
-        {content.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={String(content.imageUrl)}
-            alt=""
-            className="aspect-video w-full object-cover shadow-sm"
-            style={{ borderRadius: "var(--site-radius)" }}
-          />
+        {details}
+        {imageUrl ? (
+          <SiteImage src={imageUrl} display={content} className="aspect-video shadow-sm" />
+        ) : props.editorMode ? (
+          <div className="flex aspect-video items-center justify-center bg-slate-100 text-sm text-slate-500">
+            Optional venue image
+          </div>
         ) : null}
       </div>
     </SiteContainer>,
@@ -650,35 +1340,38 @@ export function VenueSection(props: SectionRenderProps & { data: EventSiteRender
 
 export function GallerySection(props: SectionRenderProps) {
   const title = String(props.content.title ?? "Gallery");
-  const images = (props.content.images as { id: string; url: string; caption: string }[]) ?? [];
+  const sectionContent = props.content as Record<string, unknown>;
+  const images = (props.content.images as GalleryImageItem[]) ?? [];
   if (images.length === 0 && !props.editorMode) return null;
 
   return sectionShell(
     props,
     <SiteContainer>
-      <SiteHeading>{title}</SiteHeading>
+      <SiteHeading className={textAlignClass(props.content, "left")}>{title}</SiteHeading>
       <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {(images.length ? images : props.editorMode ? [{ id: "p", url: "", caption: "Add gallery images" }] : []).map(
-          (img) => (
+          (img) => {
+            const display = resolveImageDisplay(sectionContent, img);
+            return (
             <li
               key={img.id}
-              className="overflow-hidden bg-white shadow-sm"
+              className="bg-white shadow-sm"
               style={{ borderRadius: "var(--site-radius)" }}
             >
               {img.url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={img.url} alt={img.caption} className="aspect-[4/3] w-full object-cover" />
+                <SiteImage src={img.url} alt={img.caption} display={display} className="aspect-[4/3]" />
               ) : (
                 <div className="flex aspect-[4/3] items-center justify-center bg-slate-100 text-sm opacity-50">
                   {img.caption}
                 </div>
               )}
             </li>
-          ),
+            );
+          },
         )}
       </ul>
     </SiteContainer>,
-    "bg-slate-50/80",
+    { background: "bg-slate-50/80" },
   );
 }
 
@@ -687,24 +1380,34 @@ export function RegistrationCtaSection(props: SectionRenderProps & { data: Event
   if (!data.ctaVisible || !data.ctaHref) return null;
   const title = String(content.title ?? `Join us at ${data.eventName}`);
   const subtitle = String(content.subtitle ?? "");
+  const background = getSectionBackgroundValue(content);
+  const bg = resolveSectionBackground(content, undefined);
+  const style: CSSProperties = { backgroundColor: "var(--site-accent)", ...bg.style };
+  // Theme/custom/image are colourful by default and need light text; white/muted are
+  // already light backgrounds, so keep the normal dark heading/body colours there.
+  const useLightText = background !== "white" && background !== "muted";
 
   return sectionShell(
     props,
     <div
-      className="px-6 py-16 text-center text-white md:px-10"
-      style={{ backgroundColor: "var(--site-accent)" }}
+      className={cn("px-6 py-16 md:px-10", textAlignClass(content, "center"), useLightText && "text-white")}
+      style={style}
     >
       <SiteContainer>
-        <SiteHeading className="!text-white">{title}</SiteHeading>
-        {subtitle ? <p className="mx-auto mt-3 max-w-xl text-white/85">{subtitle}</p> : null}
-        <div className="mt-8 flex justify-center">
+        <SiteHeading className={useLightText ? "!text-white" : undefined}>{title}</SiteHeading>
+        {subtitle ? (
+          <p className={cn("mx-auto mt-3 max-w-xl", useLightText ? "text-white/85" : "opacity-70")}>
+            {subtitle}
+          </p>
+        ) : null}
+        <div className={cn("mt-8 flex", alignJustifyClass(content, "center"))}>
           <SiteButton
             label={data.ctaLabel}
             href={data.ctaHref}
             accent={data.config.theme.accentColor}
             style="solid"
             radius={globalStyles.borderRadius}
-            inverted
+            inverted={useLightText}
           />
         </div>
       </SiteContainer>
@@ -722,19 +1425,21 @@ export function ContactSection(props: SectionRenderProps & { data: EventSiteRend
   return sectionShell(
     props,
     <SiteContainer>
-      <SiteHeading>{title}</SiteHeading>
-      <div className="mt-6 space-y-2 text-sm">
-        {content.showOrgName !== false ? (
-          <p className="font-medium text-[var(--site-primary)]">{data.orgName}</p>
-        ) : null}
-        {email ? (
-          <p>
-            <a href={`mailto:${email}`} className="underline underline-offset-2">
-              {email}
-            </a>
-          </p>
-        ) : null}
-        {phone ? <p>{phone}</p> : null}
+      <div className={textAlignClass(content, "left")}>
+        <SiteHeading>{title}</SiteHeading>
+        <div className="mt-6 space-y-2 text-sm">
+          {content.showOrgName !== false ? (
+            <p className="font-medium text-[var(--site-primary)]">{data.orgName}</p>
+          ) : null}
+          {email ? (
+            <p>
+              <a href={`mailto:${email}`} className="underline underline-offset-2">
+                {email}
+              </a>
+            </p>
+          ) : null}
+          {phone ? <p>{phone}</p> : null}
+        </div>
       </div>
     </SiteContainer>,
   );
@@ -778,7 +1483,7 @@ export function StatisticsSection(props: SectionRenderProps) {
   return sectionShell(
     props,
     <SiteContainer>
-      <SiteHeading className="text-center">{title}</SiteHeading>
+      <SiteHeading className={textAlignClass(props.content, "center")}>{title}</SiteHeading>
       <ul className="mt-10 grid gap-6 sm:grid-cols-3">
         {items.map((item, i) => (
           <li key={i} className="text-center">
@@ -795,7 +1500,7 @@ export function StatisticsSection(props: SectionRenderProps) {
         ))}
       </ul>
     </SiteContainer>,
-    "bg-slate-50/80",
+    { background: "bg-slate-50/80" },
   );
 }
 
@@ -807,7 +1512,7 @@ export function TestimonialsSection(props: SectionRenderProps) {
   return sectionShell(
     props,
     <SiteContainer>
-      <SiteHeading>{title}</SiteHeading>
+      <SiteHeading className={textAlignClass(props.content, "left")}>{title}</SiteHeading>
       <ul className="mt-8 grid gap-6 md:grid-cols-2">
         {items.map((item, i) => (
           <li
@@ -835,7 +1540,7 @@ export function FaqSection(props: SectionRenderProps) {
   return sectionShell(
     props,
     <SiteContainer>
-      <SiteHeading>{title}</SiteHeading>
+      <SiteHeading className={textAlignClass(props.content, "left")}>{title}</SiteHeading>
       <dl className="mt-8 space-y-4">
         {items.map((item, i) => (
           <div
@@ -849,7 +1554,7 @@ export function FaqSection(props: SectionRenderProps) {
         ))}
       </dl>
     </SiteContainer>,
-    "bg-slate-50/80",
+    { background: "bg-slate-50/80" },
   );
 }
 

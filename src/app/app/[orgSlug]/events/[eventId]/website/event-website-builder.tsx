@@ -32,11 +32,12 @@ import { SectionEditorPanel } from "./builder/section-editor-panel";
 import { SectionStrip } from "./builder/section-strip";
 import { SetupPanel } from "./builder/setup-panel";
 import { SeoPanel } from "./builder/seo-panel";
+import { DomainPanel } from "./builder/domain-panel";
 import { useBuilderState } from "./use-builder-state";
 import { cn } from "@/lib/utils";
 import { sortSections } from "@/modules/event-sites/sections";
 
-type BuilderTab = "setup" | "design" | "seo";
+type BuilderTab = "setup" | "design" | "seo" | "domain";
 
 type Props = {
   orgSlug: string;
@@ -60,6 +61,7 @@ const TABS: { id: BuilderTab; label: string }[] = [
   { id: "setup", label: "Setup" },
   { id: "design", label: "Design" },
   { id: "seo", label: "SEO" },
+  { id: "domain", label: "Domain" },
 ];
 
 export function EventWebsiteBuilder({
@@ -294,6 +296,12 @@ export function EventWebsiteBuilder({
       {activeTab === "seo" ? (
         <div className="min-h-0 flex-1 overflow-y-auto">
           <SeoPanel config={config} onChange={setConfig} />
+        </div>
+      ) : null}
+
+      {activeTab === "domain" ? (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <DomainPanel orgSlug={orgSlug} eventId={eventId} customDomain={initial.customDomain} />
         </div>
       ) : null}
 

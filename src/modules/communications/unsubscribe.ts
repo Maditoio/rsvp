@@ -4,8 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { actionFail, actionOk, publicActionError, type ActionResult } from "@/lib/action-result";
-
-const PLATFORM_EMAIL_PURPOSE = "platform_emails";
+import { PLATFORM_EMAIL_UNSUBSCRIBE_PURPOSE } from "@/modules/communications/email-unsubscribe";
 
 export async function unsubscribePlatformEmails(
   formData: FormData,
@@ -39,7 +38,7 @@ export async function unsubscribePlatformEmails(
         organisationId: priorMessage.organisationId,
         eventId: priorMessage.eventId,
         email,
-        purpose: PLATFORM_EMAIL_PURPOSE,
+        purpose: PLATFORM_EMAIL_UNSUBSCRIBE_PURPOSE,
         granted: false,
       },
     });

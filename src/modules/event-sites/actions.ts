@@ -175,7 +175,15 @@ export async function uploadEventSiteImage(
   orgSlug: string,
   eventId: string,
   formData: FormData,
-  purpose: "hero" | "speaker" | "gallery" | "venue" | "og",
+  purpose:
+    | "hero"
+    | "speaker"
+    | "gallery"
+    | "venue"
+    | "og"
+    | "logo"
+    | "about"
+    | "section-bg",
 ) {
   return runAction(async () => {
     const ctx = await requireEvent(orgSlug, eventId, "event.update");
@@ -190,6 +198,9 @@ export async function uploadEventSiteImage(
       gallery: "website/gallery",
       venue: "website/venue",
       og: "website/og",
+      logo: "website/logo",
+      about: "website/about",
+      "section-bg": "website/section-bg",
     } as const;
 
     const { url } = await uploadEventAssetImage({
@@ -197,7 +208,10 @@ export async function uploadEventSiteImage(
       eventId,
       file,
       pathnameSuffix: suffixMap[purpose],
-      kind: purpose === "hero" || purpose === "venue" ? "background" : "logo",
+      kind:
+        purpose === "hero" || purpose === "venue" || purpose === "section-bg"
+          ? "background"
+          : "logo",
     });
 
     return { url, purpose };

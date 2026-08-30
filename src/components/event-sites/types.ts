@@ -40,4 +40,6 @@ export type SectionRenderProps = {
   selected?: boolean;
   onSelect?: () => void;
   editorMode?: boolean;
+  /** False when section is hidden from the published site (editor preview only). */
+  sectionEnabled?: boolean;
 };

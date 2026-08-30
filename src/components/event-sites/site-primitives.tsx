@@ -82,6 +82,7 @@ export function SiteContainer({
 export function SiteSection({
   children,
   className,
+  style,
   id,
   selected,
   onSelect,
@@ -89,6 +90,7 @@ export function SiteSection({
 }: {
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
   id?: string;
   selected?: boolean;
   onSelect?: () => void;
@@ -104,7 +106,7 @@ export function SiteSection({
         editorMode && !selected && "hover:ring-1 hover:ring-indigo-300 hover:ring-inset",
         className,
       )}
-      style={{ scrollMarginTop: "4rem" }}
+      style={{ scrollMarginTop: "4rem", ...style }}
       onClick={editorMode ? onSelect : undefined}
       onKeyDown={
         editorMode

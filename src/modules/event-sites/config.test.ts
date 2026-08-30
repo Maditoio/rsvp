@@ -120,7 +120,7 @@ describe("eventSiteConfigFromEvent", () => {
     const hero = config.sections.find((s) => s.type === "hero");
     expect(hero?.content.headline).toBe("Mining Summit");
     expect(hero?.content.subheadline).toBe("A flagship mining event.");
-    expect(hero?.content.imageUrl).toBe("https://example.com/logo.png");
+    expect(hero?.content.imageUrl).toBeNull();
     const about = config.sections.find((s) => s.type === "about");
     expect(about?.content.body).toBe("A flagship mining event.");
   });

@@ -112,7 +112,8 @@ export function SectionStrip({
           <button
             type="button"
             className="inline-flex size-7 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
-            aria-label={selected.enabled ? "Hide section" : "Show section"}
+            aria-label={selected.enabled ? "Hide section from published site" : "Show section on published site"}
+            title={selected.enabled ? "Hide from published site" : "Show on published site"}
             onClick={() => toggleSection(selected.id)}
           >
             {selected.enabled ? (

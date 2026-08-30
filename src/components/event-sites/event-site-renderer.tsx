@@ -15,6 +15,13 @@ const PREVIEW_WIDTH: Record<
   mobile: "390px",
 };
 
+function coerceDate(value: Date | string | null | undefined): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export function buildEventSiteRenderData(input: {
   orgName: string;
   eventName: string;
@@ -46,8 +53,8 @@ export function buildEventSiteRenderData(input: {
     orgName: input.orgName,
     eventName: input.eventName,
     venue: input.venue,
-    startsAt: input.startsAt,
-    endsAt: input.endsAt,
+    startsAt: coerceDate(input.startsAt),
+    endsAt: coerceDate(input.endsAt),
     timezone: input.timezone,
     logoUrl: input.logoUrl,
     config: input.config,
@@ -71,8 +78,10 @@ export function EventSiteRenderer({
     data.config.theme,
     data.config.globalStyles,
   );
-  const sections = sortSections(data.config.sections).filter((s) => s.enabled);
   const editorMode = Boolean(data.editorMode);
+  const sections = sortSections(data.config.sections).filter(
+    (s) => s.enabled || editorMode,
+  );
 
   return (
     <div
@@ -102,6 +111,7 @@ export function EventSiteRenderer({
               ? () => onSelectSection(section.id)
               : undefined,
             editorMode,
+            sectionEnabled: section.enabled,
           }),
         )}
       </div>

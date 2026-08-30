@@ -41,10 +41,17 @@ export type PublishedEventSite = {
   publicUrl: string;
 };
 
+export type EventCustomDomainState = {
+  domain: string | null;
+  status: string;
+  error: string | null;
+};
+
 export type EventWebsiteSettings = {
   config: EventSiteConfig;
   websitePublishedAt: Date | null;
   sponsorGroups: EventSponsorTierGroup[];
+  customDomain: EventCustomDomainState;
   event: {
     name: string;
     slug: string;
@@ -103,6 +110,9 @@ export async function loadEventWebsiteSettings(
           allowPublicApplication: true,
           websiteConfig: true,
           websitePublishedAt: true,
+          customDomain: true,
+          customDomainStatus: true,
+          customDomainError: true,
         },
       },
     },
@@ -125,6 +135,11 @@ export async function loadEventWebsiteSettings(
     config,
     websitePublishedAt: event.settings?.websitePublishedAt ?? null,
     sponsorGroups,
+    customDomain: {
+      domain: event.settings?.customDomain ?? null,
+      status: event.settings?.customDomainStatus ?? "none",
+      error: event.settings?.customDomainError ?? null,
+    },
     event: {
       name: event.name,
       slug: event.slug,

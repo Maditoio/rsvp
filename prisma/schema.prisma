@@ -353,6 +353,13 @@ model EventSettings {
   websiteConfig          Json?
   /// When set, the public event site at /e/{org}/{event} is live.
   websitePublishedAt     DateTime?
+  /// Custom domain for this event's public site (e.g. tickets.acme.com), lowercased, no protocol/path.
+  customDomain           String?   @unique
+  /// none | pending | verified | error
+  customDomainStatus     String    @default("none")
+  customDomainError      String?
+  customDomainRequestedAt DateTime?
+  customDomainVerifiedAt DateTime?
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
