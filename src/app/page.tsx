@@ -128,7 +128,7 @@ export default function HomePage() {
               Bizcon RSVP · Event Intelligence
             </p>
             <h1 className="mt-6 text-4xl font-semibold leading-tight text-slate-900 sm:text-5xl lg:text-7xl lg:leading-[1.1]">
-              Run professional summits that attendees actually remember.
+              Run professional business events that attendees actually remember.
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-700">
               Invitees, reminders, live polls, floor plans, badges, and check-in
@@ -417,8 +417,13 @@ export default function HomePage() {
         </div>
         <div className="mx-auto mt-14 max-w-6xl border-t border-slate-200 px-6 pt-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <p className="text-sm text-slate-500">© 2026 Bizcon RSVP</p>
+            <div className="flex flex-col items-center gap-1 sm:items-start">
+              <p className="text-sm text-slate-500">© 2026 Bizcon RSVP</p>
+              <p className="text-xs text-slate-400">Distributed by DetourSA</p>
+            </div>
+          <div className="flex flex-col items-center gap-1 sm:items-end">
             <p className="text-sm text-slate-500">Event Intelligence for professional summits.</p>
+          </div>
           </div>
         </div>
       </footer>
