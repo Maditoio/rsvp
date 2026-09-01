@@ -25,7 +25,7 @@ import {
   resolveSectionBackground,
   textAlignClass,
 } from "@/modules/event-sites/section-style";
-import { parseSponsorSectionTiers, sponsorAltText, type EventSponsorRecord, type EventSponsorTierGroup } from "@/modules/sponsors/config";
+import { parseSponsorSectionTiers, parseSponsorLogoGrayscale, parseSponsorLogoSize, SPONSOR_LOGO_SIZE_PRESETS, sponsorAltText, type EventSponsorRecord, type EventSponsorTierGroup } from "@/modules/sponsors/config";
 import {
   SiteButton,
   SiteContainer,
@@ -1005,29 +1005,46 @@ function resolveSponsorTiers(
 
 function SponsorLogo({
   sponsor,
-  size = "default",
+  logoSize = "md",
+  grayscale = true,
   inCard = false,
 }: {
   sponsor: EventSponsorRecord;
-  size?: "default" | "compact";
+  logoSize?: ReturnType<typeof parseSponsorLogoSize>;
+  grayscale?: boolean;
   inCard?: boolean;
 }) {
   const alt = sponsorAltText(sponsor);
+  const preset = SPONSOR_LOGO_SIZE_PRESETS[logoSize];
   const imgClass = cn(
-    "object-contain opacity-80 grayscale transition hover:opacity-100 hover:grayscale-0",
-    size === "compact" ? "h-8 max-w-[120px]" : "h-12 max-w-[160px]",
+    "object-contain transition",
+    grayscale
+      ? "opacity-80 grayscale hover:opacity-100 hover:grayscale-0"
+      : "opacity-100",
   );
   const content = sponsor.logoUrl ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={sponsor.logoUrl} alt={alt} className={imgClass} />
+    <img
+      src={sponsor.logoUrl}
+      alt={alt}
+      className={imgClass}
+      style={{
+        height: `${preset.heightPx}px`,
+        maxWidth: `${preset.maxWidthPx}px`,
+      }}
+    />
   ) : (
     <span className="text-sm opacity-40">{alt}</span>
   );
 
   const wrapped = inCard ? (
     <div
-      className="flex h-24 w-40 items-center justify-center bg-white px-4 shadow-sm"
-      style={{ borderRadius: "var(--site-radius)" }}
+      className="flex items-center justify-center bg-white px-4 shadow-sm"
+      style={{
+        borderRadius: "var(--site-radius)",
+        height: `${preset.cardHeightPx}px`,
+        width: `${preset.cardWidthPx}px`,
+      }}
     >
       {content}
     </div>
@@ -1057,12 +1074,16 @@ function SponsorTierBlock({
   sponsors,
   showTierLabels,
   variant,
+  logoSize,
+  logoGrayscale,
   editorMode,
 }: {
   tier: EventSponsorTierGroup;
   sponsors: EventSponsorRecord[];
   showTierLabels: boolean;
   variant: "grouped" | "logo-wall" | "cards" | "compact";
+  logoSize: ReturnType<typeof parseSponsorLogoSize>;
+  logoGrayscale: boolean;
   editorMode?: boolean;
 }) {
   const items =
@@ -1097,7 +1118,8 @@ function SponsorTierBlock({
           <li key={s.id}>
             <SponsorLogo
               sponsor={s}
-              size={variant === "compact" ? "compact" : "default"}
+              logoSize={logoSize}
+              grayscale={logoGrayscale}
               inCard={variant === "cards"}
             />
           </li>
@@ -1325,6 +1347,8 @@ export function AgendaSection(props: SectionRenderProps & { data: EventSiteRende
 export function SponsorsSection(props: SectionRenderProps & { data: EventSiteRenderData }) {
   const title = String(props.content.title ?? "Our sponsors");
   const showTierLabels = props.content.showTierLabels !== false;
+  const logoSize = parseSponsorLogoSize(props.content.logoSize);
+  const logoGrayscale = parseSponsorLogoGrayscale(props.content.logoGrayscale);
   const tiers = resolveSponsorTiers(props);
   const layout = props.variant === "default" ? "grouped" : props.variant;
   const sponsorVariant =
@@ -1348,6 +1372,8 @@ export function SponsorsSection(props: SectionRenderProps & { data: EventSiteRen
             sponsors={tier.sponsors}
             showTierLabels={showTierLabels}
             variant={sponsorVariant}
+            logoSize={logoSize}
+            logoGrayscale={logoGrayscale}
             editorMode={props.editorMode}
           />
         ))}

@@ -41,4 +41,12 @@ describe("event site content sections", () => {
     });
     expect(sectionDisplayLabel(titled)).toBe("Dress code");
   });
+
+  it("creates sponsors section with logo display defaults", () => {
+    const section = createSection("sponsors", 4);
+    expect(section.content).toMatchObject({
+      logoGrayscale: true,
+      logoSize: "md",
+    });
+  });
 });

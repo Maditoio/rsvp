@@ -155,3 +155,38 @@ export function parseSponsorSectionTiers(value: unknown): EventSponsorTierId[] {
   );
   return tiers.length > 0 ? tiers : defaultSponsorSectionTiers();
 }
+
+export const SPONSOR_LOGO_SIZES = ["sm", "md", "lg", "xl"] as const;
+export type SponsorLogoSize = (typeof SPONSOR_LOGO_SIZES)[number];
+
+export const SPONSOR_LOGO_SIZE_LABELS: Record<SponsorLogoSize, string> = {
+  sm: "Small",
+  md: "Medium",
+  lg: "Large",
+  xl: "Extra large",
+};
+
+export const SPONSOR_LOGO_SIZE_PRESETS: Record<
+  SponsorLogoSize,
+  { heightPx: number; maxWidthPx: number; cardHeightPx: number; cardWidthPx: number }
+> = {
+  sm: { heightPx: 32, maxWidthPx: 120, cardHeightPx: 80, cardWidthPx: 128 },
+  md: { heightPx: 48, maxWidthPx: 160, cardHeightPx: 96, cardWidthPx: 160 },
+  lg: { heightPx: 64, maxWidthPx: 220, cardHeightPx: 112, cardWidthPx: 208 },
+  xl: { heightPx: 80, maxWidthPx: 280, cardHeightPx: 128, cardWidthPx: 256 },
+};
+
+export function parseSponsorLogoSize(value: unknown): SponsorLogoSize {
+  if (
+    typeof value === "string" &&
+    SPONSOR_LOGO_SIZES.includes(value as SponsorLogoSize)
+  ) {
+    return value as SponsorLogoSize;
+  }
+  return "md";
+}
+
+/** Defaults to true so existing sites keep grayscale logos. */
+export function parseSponsorLogoGrayscale(value: unknown): boolean {
+  return value !== false;
+}

@@ -158,6 +158,8 @@ export function defaultSectionContent(
         title: "Our sponsors",
         showTiers: ["PLATINUM", "GOLD", "SILVER", "BRONZE"],
         showTierLabels: true,
+        logoGrayscale: true,
+        logoSize: "md",
       };
     case "venue":
       return {

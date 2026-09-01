@@ -30,6 +30,10 @@ import {
   EVENT_SPONSOR_TIERS,
   EVENT_SPONSOR_TIER_LABELS,
   parseSponsorSectionTiers,
+  parseSponsorLogoGrayscale,
+  parseSponsorLogoSize,
+  SPONSOR_LOGO_SIZE_LABELS,
+  SPONSOR_LOGO_SIZES,
   type EventSponsorTierId,
 } from "@/modules/sponsors/config";
 import { useToast } from "@/components/ui/toast";
@@ -438,6 +442,20 @@ export function SectionEditorPanel({
               checked={section.content.showTierLabels !== false}
               onChange={(showTierLabels) => patchContent(section.id, { showTierLabels })}
             />
+            <Toggle
+              label="Grayscale logos"
+              checked={parseSponsorLogoGrayscale(section.content.logoGrayscale)}
+              onChange={(logoGrayscale) => patchContent(section.id, { logoGrayscale })}
+            />
+            <SelectField
+              label="Logo size"
+              value={parseSponsorLogoSize(section.content.logoSize)}
+              options={SPONSOR_LOGO_SIZES.map((size) => ({
+                value: size,
+                label: SPONSOR_LOGO_SIZE_LABELS[size],
+              }))}
+              onChange={(logoSize) => patchContent(section.id, { logoSize })}
+            />
             <p className="text-xs text-slate-500">
               Sponsor logos and tiers are managed on the{" "}
               <a
@@ -447,6 +465,8 @@ export function SectionEditorPanel({
                 Sponsors
               </a>{" "}
               tab. Logos are always ordered by tier; turn off labels if you prefer a cleaner look.
+              Turn off grayscale to show logos in full colour, and increase logo size when you need
+              more prominence.
             </p>
           </>
         ) : null}

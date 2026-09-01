@@ -3,6 +3,8 @@ import {
   EVENT_SPONSOR_TIERS,
   deriveSponsorNameFromFilename,
   groupSponsorsByTier,
+  parseSponsorLogoGrayscale,
+  parseSponsorLogoSize,
   parseSponsorSectionTiers,
   parseSponsorTier,
   sponsorAltText,
@@ -122,5 +124,27 @@ describe("parseSponsorSectionTiers", () => {
       "GOLD",
       "SILVER",
     ]);
+  });
+});
+
+describe("parseSponsorLogoSize", () => {
+  it("defaults to medium", () => {
+    expect(parseSponsorLogoSize(null)).toBe("md");
+    expect(parseSponsorLogoSize("invalid")).toBe("md");
+  });
+
+  it("accepts known sizes", () => {
+    expect(parseSponsorLogoSize("xl")).toBe("xl");
+  });
+});
+
+describe("parseSponsorLogoGrayscale", () => {
+  it("defaults to true", () => {
+    expect(parseSponsorLogoGrayscale(undefined)).toBe(true);
+    expect(parseSponsorLogoGrayscale(null)).toBe(true);
+  });
+
+  it("allows disabling grayscale", () => {
+    expect(parseSponsorLogoGrayscale(false)).toBe(false);
   });
 });
