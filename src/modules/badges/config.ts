@@ -201,7 +201,8 @@ export const badgeConfigSchema = z.object({
   sponsors: z.array(badgeSponsorSchema).max(20).default([]),
 });
 
-export type BadgeConfig = z.infer<typeof badgeConfigSchema>;
+type BadgeConfigBase = z.infer<typeof badgeConfigSchema>;
+export type BadgeConfig = Omit<BadgeConfigBase, "layout"> & { layout: BadgeLayout };
 
 export const DEFAULT_BADGE_CONFIG: BadgeConfig = badgeConfigSchema.parse({});
 

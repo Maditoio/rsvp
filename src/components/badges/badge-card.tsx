@@ -12,6 +12,7 @@ import {
   poseLeftEdge,
   snapElementPose,
   type BadgeElementId,
+  type BadgeLayout,
   type HorizontalAnchor,
   type SnapGuideState,
 } from "@/modules/badges/layout";
@@ -42,7 +43,7 @@ function PoseShell({
   children,
 }: {
   id: BadgeElementId;
-  layout: BadgePrintPayload["config"]["layout"];
+  layout: BadgeLayout;
   editable?: boolean;
   selected?: boolean;
   onSelect?: (id: BadgeElementId | null) => void;
