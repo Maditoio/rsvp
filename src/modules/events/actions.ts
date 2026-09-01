@@ -15,6 +15,7 @@ import {
   publicActionError,
 } from "@/lib/action-result";
 import { optionalUrlSchema } from "@/lib/validation";
+import { parseDatetimeLocalValue } from "@/lib/timezone";
 
 const eventSchema = z.object({
   name: z.string().min(2).max(160),
@@ -33,8 +34,11 @@ const eventSchema = z.object({
   allowPublicApplication: z.boolean().optional(),
 });
 
-function parseDate(value?: string) {
-  if (!value) return null;
+function parseDate(value?: string, timeZone?: string) {
+  if (!value?.trim()) return null;
+  if (timeZone) {
+    return parseDatetimeLocalValue(value, timeZone);
+  }
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
 }
@@ -69,8 +73,8 @@ export async function createEvent(orgSlug: string, formData: FormData) {
       description: input.description || null,
       venue: input.venue || null,
       timezone: input.timezone,
-      startsAt: parseDate(input.startsAt),
-      endsAt: parseDate(input.endsAt),
+      startsAt: parseDate(input.startsAt, input.timezone),
+      endsAt: parseDate(input.endsAt, input.timezone),
       website: input.website || null,
       settings: {
         create: {
@@ -120,8 +124,8 @@ export async function updateEvent(
       website: String(formData.get("website") ?? ""),
     });
 
-    const startsAt = parseDate(input.startsAt);
-    const endsAt = parseDate(input.endsAt);
+    const startsAt = parseDate(input.startsAt, input.timezone);
+    const endsAt = parseDate(input.endsAt, input.timezone);
     if (startsAt && endsAt && endsAt <= startsAt) {
       return actionFail("End date must be after the start date.");
     }

@@ -218,7 +218,7 @@ export async function importSalesforceContacts(
     const local = email.split("@")[0] || "Contact";
     rows.push({
       firstName: nameOrFallback(row.firstName ?? "", local),
-      lastName: nameOrFallback(row.lastName ?? "", "Contact"),
+      lastName: row.lastName?.trim() ?? "",
       email,
       company: row.company?.trim() || undefined,
       jobTitle: row.jobTitle?.trim() || undefined,

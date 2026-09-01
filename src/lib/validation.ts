@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseDatetimeLocalValue } from "@/lib/timezone";
 
 /** Shared email pattern for client-side checks and import previews. */
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -100,6 +101,7 @@ export function parseDateRange(
 export function parseOptionalDateRange(
   startsAtRaw: string,
   endsAtRaw: string,
+  timeZone?: string,
 ): { ok: true; startsAt: Date | null; endsAt: Date | null } | { ok: false; error: string } {
   const startsTrimmed = startsAtRaw.trim();
   const endsTrimmed = endsAtRaw.trim();
@@ -111,9 +113,13 @@ export function parseOptionalDateRange(
     return { ok: false, error: "Provide both start and end times, or leave both blank." };
   }
 
-  const startsAt = new Date(startsTrimmed);
-  const endsAt = new Date(endsTrimmed);
-  if (Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
+  const startsAt = timeZone
+    ? parseDatetimeLocalValue(startsTrimmed, timeZone)
+    : new Date(startsTrimmed);
+  const endsAt = timeZone
+    ? parseDatetimeLocalValue(endsTrimmed, timeZone)
+    : new Date(endsTrimmed);
+  if (!startsAt || !endsAt || Number.isNaN(startsAt.getTime()) || Number.isNaN(endsAt.getTime())) {
     return { ok: false, error: "Enter valid start and end times." };
   }
   if (endsAt <= startsAt) {

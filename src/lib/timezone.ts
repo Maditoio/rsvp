@@ -91,3 +91,49 @@ export function eachCalendarDayInRange(
 
   return days;
 }
+
+const DATETIME_LOCAL_RE =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2})?$/;
+
+/** Format a UTC instant for `<input type="datetime-local">` in an IANA timezone. */
+export function toDatetimeLocalValue(date: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+
+  const read = (type: string) =>
+    parts.find((part) => part.type === type)?.value ?? "00";
+  let hour = read("hour");
+  if (hour === "24") hour = "00";
+
+  return `${read("year")}-${read("month")}-${read("day")}T${hour}:${read("minute")}`;
+}
+
+/** Parse a datetime-local string as wall-clock time in an IANA timezone. */
+export function parseDatetimeLocalValue(
+  value: string,
+  timeZone: string,
+): Date | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const match = trimmed.match(DATETIME_LOCAL_RE);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hours = Number(match[4]);
+  const minutes = Number(match[5]);
+  if ([year, month, day, hours, minutes].some((n) => Number.isNaN(n))) {
+    return null;
+  }
+
+  return utcFromZonedDateTime(year, month, day, hours, minutes, timeZone);
+}

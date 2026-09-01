@@ -326,7 +326,7 @@ export async function createContact(
       eventId,
       email: input.email,
       firstName: input.firstName,
-      lastName: input.lastName,
+      lastName: input.lastName ?? "",
       phone: emptyToNull(input.phone),
       company: emptyToNull(input.company),
       jobTitle: emptyToNull(input.jobTitle),

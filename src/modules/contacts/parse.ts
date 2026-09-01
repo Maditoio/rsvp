@@ -24,9 +24,9 @@ export type ImportFieldDef = {
 };
 
 export const IMPORT_FIELDS: ImportFieldDef[] = [
-  { key: "firstName", label: "First Name", requirement: "required_if_no_email" },
-  { key: "lastName", label: "Last Name", requirement: "required_if_no_email" },
-  { key: "email", label: "Email", requirement: "required_if_no_name" },
+  { key: "firstName", label: "First Name", requirement: "required" },
+  { key: "lastName", label: "Last Name", requirement: "optional" },
+  { key: "email", label: "Email", requirement: "required" },
   { key: "phone", label: "Phone", requirement: "optional" },
   { key: "company", label: "Company", requirement: "optional" },
   { key: "jobTitle", label: "Job Title", requirement: "optional" },
@@ -123,15 +123,11 @@ export function validateColumnMap(map: ColumnMap): string | null {
   const values = Object.values(map);
   const hasEmail = values.includes("email");
   const hasFirst = values.includes("firstName");
-  const hasLast = values.includes("lastName");
-  if (!hasEmail && !(hasFirst && hasLast)) {
-    return "Map either Email, or both First Name and Last Name.";
-  }
   if (!hasEmail) {
     return "Email is required for invitees. Map an Email column.";
   }
-  if (!hasFirst || !hasLast) {
-    return "Map both First Name and Last Name.";
+  if (!hasFirst) {
+    return "Map a First Name column.";
   }
   const assigned = values.filter((v) => v !== "ignore");
   const unique = new Set(assigned);
@@ -165,7 +161,7 @@ export function previewImport(
       issues.push({ line, email, reason: "invalid_email" });
       return;
     }
-    if (!firstName || !lastName) {
+    if (!firstName) {
       issues.push({ line, email, reason: "missing_name" });
       return;
     }
@@ -219,8 +215,9 @@ export const contactCreateSchema = z.object({
   lastName: z
     .string()
     .trim()
-    .min(1, "Last name is required")
-    .max(80, "Last name must be 80 characters or fewer"),
+    .max(80, "Last name must be 80 characters or fewer")
+    .optional()
+    .or(z.literal("")),
   email: z
     .string()
     .trim()

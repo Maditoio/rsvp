@@ -453,7 +453,7 @@ export function InviteesPanel({
               />
             </div>
             <div>
-              <Label htmlFor="invitee-last-name">Last name</Label>
+              <Label htmlFor="invitee-last-name">Last name (optional)</Label>
               <Input
                 id="invitee-last-name"
                 name="lastName"

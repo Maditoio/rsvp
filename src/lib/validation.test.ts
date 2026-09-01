@@ -34,4 +34,17 @@ describe("validation", () => {
     expect(parseOptionalDateRange("", "").ok).toBe(true);
     expect(parseOptionalDateRange("2026-08-22T10:00", "").ok).toBe(false);
   });
+
+  it("parses optional date ranges in an event timezone", () => {
+    const result = parseOptionalDateRange(
+      "2026-09-01T09:00",
+      "2026-09-01T18:00",
+      "Africa/Johannesburg",
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.startsAt?.toISOString()).toBe("2026-09-01T07:00:00.000Z");
+      expect(result.endsAt?.toISOString()).toBe("2026-09-01T16:00:00.000Z");
+    }
+  });
 });

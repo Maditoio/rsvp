@@ -9,14 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
 import { optionalUrlSchema, parseOptionalDateRange } from "@/lib/validation";
-
-function toDatetimeLocal(value: Date | string | null) {
-  if (!value) return "";
-  const d = typeof value === "string" ? new Date(value) : value;
-  if (Number.isNaN(d.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+import { toDatetimeLocalValue } from "@/lib/timezone";
 
 export function EventEditForm({
   orgSlug,
@@ -62,9 +55,11 @@ export function EventEditForm({
             toast.error(message);
             return;
           }
+          const timezone = String(formData.get("timezone") ?? "UTC").trim() || "UTC";
           const range = parseOptionalDateRange(
             String(formData.get("startsAt") ?? ""),
             String(formData.get("endsAt") ?? ""),
+            timezone,
           );
           if (!range.ok) {
             setError(range.error);
@@ -103,7 +98,11 @@ export function EventEditForm({
               id="startsAt"
               name="startsAt"
               type="datetime-local"
-              defaultValue={toDatetimeLocal(event.startsAt)}
+              defaultValue={
+                event.startsAt
+                  ? toDatetimeLocalValue(new Date(event.startsAt), event.timezone)
+                  : ""
+              }
             />
           </div>
           <div>
@@ -112,10 +111,17 @@ export function EventEditForm({
               id="endsAt"
               name="endsAt"
               type="datetime-local"
-              defaultValue={toDatetimeLocal(event.endsAt)}
+              defaultValue={
+                event.endsAt
+                  ? toDatetimeLocalValue(new Date(event.endsAt), event.timezone)
+                  : ""
+              }
             />
           </div>
         </div>
+        <p className="text-xs text-slate-500">
+          Start and end times use the event timezone above.
+        </p>
         <div>
           <Label htmlFor="website">Website</Label>
           <Input

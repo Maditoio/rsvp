@@ -10,6 +10,10 @@ describe("contact import preview", () => {
         Email: "ada@example.com",
       },
       {
+        "First Name": "Grace",
+        Email: "grace@example.com",
+      },
+      {
         "First Name": "Bad",
         "Last Name": "Address",
         Email: "not-an-email",
@@ -37,17 +41,23 @@ describe("contact import preview", () => {
         email: "ada@example.com",
         line: 2,
       }),
+      expect.objectContaining({
+        firstName: "Grace",
+        lastName: "",
+        email: "grace@example.com",
+        line: 3,
+      }),
     ]);
 
     expect(preview.issues).toEqual([
-      { line: 3, email: "not-an-email", reason: "invalid_email" },
-      { line: 4, email: "noname@example.com", reason: "missing_name" },
-      { line: 5, email: "ada@example.com", reason: "duplicate_in_file" },
-      { line: 6, email: "missing-name@example.com", reason: "missing_name" },
+      { line: 4, email: "not-an-email", reason: "invalid_email" },
+      { line: 5, email: "noname@example.com", reason: "missing_name" },
+      { line: 6, email: "ada@example.com", reason: "duplicate_in_file" },
+      { line: 7, email: "missing-name@example.com", reason: "missing_name" },
     ]);
 
     const accounted = preview.valid.length + preview.issues.length;
-    expect(accounted).toBe(5);
+    expect(accounted).toBe(6);
   });
 });
 
@@ -72,6 +82,20 @@ describe("contactCreateSchema", () => {
         company: "Analytical Engines",
         country: "United Kingdom",
       });
+    }
+  });
+
+  it("accepts an empty last name when first name and email are present", () => {
+    const result = contactCreateSchema.safeParse({
+      firstName: "Ada",
+      lastName: "",
+      email: "ada@example.com",
+      country: "",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.lastName).toBe("");
     }
   });
 
