@@ -34,6 +34,43 @@ describe("session import parse", () => {
     expect(uk?.getMinutes()).toBe(30);
   });
 
+  it("parses datetimes in the event timezone without server offset drift", () => {
+    const startsAt = parseSessionDatetime(
+      "2026-09-09 08:00",
+      "Africa/Johannesburg",
+    );
+    const endsAt = parseSessionDatetime(
+      "2026-09-09 09:00",
+      "Africa/Johannesburg",
+    );
+
+    expect(startsAt?.toISOString()).toBe("2026-09-09T06:00:00.000Z");
+    expect(endsAt?.toISOString()).toBe("2026-09-09T07:00:00.000Z");
+  });
+
+  it("previews import rows using the event timezone", () => {
+    const preview = previewSessionImport(
+      [
+        {
+          Title: "Keynote",
+          Description: "Welcome",
+          "Start datetime": "2026-11-14 09:00",
+          "End datetime": "2026-11-14 10:00",
+          Location: "Hall A",
+          Track: "Main",
+          "Speaker names": "Ada Lovelace",
+          Format: "Hybrid",
+        },
+      ],
+      undefined,
+      "Africa/Johannesburg",
+    );
+
+    expect(preview.valid[0]?.startsAt?.toISOString()).toBe(
+      "2026-11-14T07:00:00.000Z",
+    );
+  });
+
   it("previews valid rows and reports issues", () => {
     const preview = previewSessionImport([
       {

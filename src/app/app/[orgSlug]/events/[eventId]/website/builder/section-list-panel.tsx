@@ -15,6 +15,8 @@ import {
   sortSections,
   createSection,
   EVENT_SITE_SECTION_TYPES,
+  isSectionTypeAddable,
+  sectionDisplayLabel,
   type EventSiteSection,
   type EventSiteSectionType,
 } from "@/modules/event-sites/sections";
@@ -61,8 +63,8 @@ export function SectionListPanel({
     onSelectSection(section.id);
   }
 
-  const addable = EVENT_SITE_SECTION_TYPES.filter(
-    (type) => !sections.some((s) => s.type === type && type !== "gallery"),
+  const addable = EVENT_SITE_SECTION_TYPES.filter((type) =>
+    isSectionTypeAddable(type, sections),
   );
 
   return (
@@ -90,7 +92,7 @@ export function SectionListPanel({
                 className="min-w-0 flex-1 truncate text-left text-sm font-medium text-slate-800"
                 onClick={() => onSelectSection(section.id)}
               >
-                {SECTION_TYPE_LABELS[section.type as EventSiteSectionType]}
+                {sectionDisplayLabel(section)}
               </button>
               <div className="flex shrink-0 items-center gap-0.5">
                 <button

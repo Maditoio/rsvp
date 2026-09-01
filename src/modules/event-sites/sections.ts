@@ -15,6 +15,7 @@ export const EVENT_SITE_SECTION_TYPES = [
   "sponsors",
   "venue",
   "gallery",
+  "content",
   "registration-cta",
   "contact",
   "footer",
@@ -35,6 +36,29 @@ export type EventSiteSection = {
   settings: Record<string, unknown>;
 };
 
+export const REPEATABLE_SECTION_TYPES: EventSiteSectionType[] = [
+  "gallery",
+  "content",
+];
+
+export function sectionDisplayLabel(section: EventSiteSection): string {
+  if (section.type === "content") {
+    const label = String(section.content.label ?? "").trim();
+    if (label) return label;
+    const title = String(section.content.title ?? "").trim();
+    if (title) return title;
+  }
+  return SECTION_TYPE_LABELS[section.type];
+}
+
+export function isSectionTypeAddable(
+  type: EventSiteSectionType,
+  sections: EventSiteSection[],
+): boolean {
+  if (REPEATABLE_SECTION_TYPES.includes(type)) return true;
+  return !sections.some((section) => section.type === type);
+}
+
 export const SECTION_TYPE_LABELS: Record<EventSiteSectionType, string> = {
   header: "Header / Navigation",
   hero: "Hero",
@@ -45,6 +69,7 @@ export const SECTION_TYPE_LABELS: Record<EventSiteSectionType, string> = {
   sponsors: "Sponsors",
   venue: "Venue",
   gallery: "Gallery",
+  content: "Content block",
   "registration-cta": "Registration CTA",
   contact: "Contact",
   footer: "Footer",
@@ -153,6 +178,20 @@ export function defaultSectionContent(
         imageFit: "cover",
         imagePosition: "center",
         imageRadius: "none",
+      };
+    case "content":
+      return {
+        label: "",
+        eyebrow: "",
+        title: "",
+        subtitle: "",
+        body: "",
+        imageUrl: null,
+        imageFit: "cover",
+        imagePosition: "center",
+        imageRadius: "none",
+        ctaLabel: "",
+        ctaUrl: null,
       };
     case "registration-cta":
       return {
@@ -326,6 +365,28 @@ export const SECTION_VARIANT_OPTIONS: Partial<
       description: "Image grid with optional captions.",
     },
   ],
+  content: [
+    {
+      value: "text",
+      label: "Text only",
+      description: "Title and body copy in a single column.",
+    },
+    {
+      value: "split",
+      label: "Text with image",
+      description: "Copy beside an image on the right.",
+    },
+    {
+      value: "split-left",
+      label: "Image with text",
+      description: "Image on the left with copy on the right.",
+    },
+    {
+      value: "image",
+      label: "Image focus",
+      description: "Large image with optional title and caption below.",
+    },
+  ],
   "registration-cta": [
     {
       value: "banner",
@@ -365,6 +426,8 @@ export function defaultSectionVariant(type: EventSiteSectionType): string {
       return "list";
     case "gallery":
       return "grid";
+    case "content":
+      return "text";
     case "registration-cta":
       return "banner";
     default:

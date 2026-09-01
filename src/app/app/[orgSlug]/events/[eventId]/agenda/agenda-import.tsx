@@ -9,6 +9,7 @@ import {
   type SessionImportPreviewResult,
 } from "@/modules/sessions/import-actions";
 import { SESSION_TEMPLATE_HEADERS } from "@/modules/sessions/parse";
+import { formatSessionSchedule } from "@/lib/session-schedule";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { useToast } from "@/components/ui/toast";
@@ -16,9 +17,11 @@ import { useToast } from "@/components/ui/toast";
 export function AgendaImport({
   orgSlug,
   eventId,
+  timezone,
 }: {
   orgSlug: string;
   eventId: string;
+  timezone: string;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -93,6 +96,13 @@ export function AgendaImport({
               {" · "}
               {preview.uploaded} row{preview.uploaded === 1 ? "" : "s"} uploaded
             </p>
+            <p className="text-xs text-slate-500">
+              Datetimes in your file are interpreted in{" "}
+              <span className="font-medium text-slate-700">
+                {preview.timezone.replace(/_/g, " ")}
+              </span>
+              . Update this under Edit event if needed.
+            </p>
 
             <dl className="grid grid-cols-3 gap-3 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
               <div>
@@ -147,21 +157,23 @@ export function AgendaImport({
                   Preview (first {Math.min(preview.rows.length, 8)})
                 </p>
                 <ul className="divide-y divide-slate-100 text-sm">
-                  {preview.rows.slice(0, 8).map((row) => (
+                  {preview.rows.slice(0, 8).map((row) => {
+                    const schedule = formatSessionSchedule(
+                      row.startsAt,
+                      row.endsAt,
+                      preview.timezone,
+                    );
+                    return (
                     <li key={row.line} className="px-3 py-2">
                       <p className="font-medium text-slate-900">{row.title}</p>
                       <p className="text-xs text-slate-500">
-                        {row.startsAt?.toLocaleString("en-GB") ?? "No time"}
-                        {row.endsAt
-                          ? ` – ${row.endsAt.toLocaleTimeString("en-GB", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}`
-                          : ""}
+                        {schedule.dateLabel}
+                        {schedule.timeLabel ? ` · ${schedule.timeLabel}` : ""}
                         {row.location ? ` · ${row.location}` : ""}
                       </p>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               </div>
             ) : null}

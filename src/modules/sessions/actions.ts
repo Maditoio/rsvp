@@ -21,14 +21,14 @@ const sessionSchema = z.object({
   format: z.enum(["PHYSICAL", "ONLINE", "HYBRID"]).default("PHYSICAL"),
 });
 
-function parseDate(value?: string) {
-  if (!value) return null;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
 export async function saveSession(orgSlug: string, eventId: string, formData: FormData) {
   const ctx = await requireEvent(orgSlug, eventId, "event.update");
+  const event = await prisma.event.findFirst({
+    where: { id: eventId, organisationId: ctx.organisation.id },
+    select: { timezone: true },
+  });
+  const timezone = event?.timezone || "UTC";
+
   const input = sessionSchema.parse({
     sessionId: String(formData.get("sessionId") ?? "") || undefined,
     title: String(formData.get("title") ?? ""),
@@ -44,7 +44,11 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
     ? z.coerce.number().int().positive().parse(input.capacity)
     : null;
 
-  const slot = parseOptionalDateRange(input.startsAt ?? "", input.endsAt ?? "");
+  const slot = parseOptionalDateRange(
+    input.startsAt ?? "",
+    input.endsAt ?? "",
+    timezone,
+  );
   if (!slot.ok) {
     throw new Error(slot.error);
   }

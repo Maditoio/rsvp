@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
 import { optionalUrlSchema, parseOptionalDateRange } from "@/lib/validation";
 import { toDatetimeLocalValue } from "@/lib/timezone";
+import { TimezoneSelect } from "@/components/timezone-select";
 
 export function EventEditForm({
   orgSlug,
@@ -87,10 +88,7 @@ export function EventEditForm({
           <Label htmlFor="venue">Venue</Label>
           <Input id="venue" name="venue" defaultValue={event.venue ?? ""} />
         </div>
-        <div>
-          <Label htmlFor="timezone">Timezone</Label>
-          <Input id="timezone" name="timezone" defaultValue={event.timezone} />
-        </div>
+        <TimezoneSelect defaultValue={event.timezone} />
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label htmlFor="startsAt">Starts</Label>

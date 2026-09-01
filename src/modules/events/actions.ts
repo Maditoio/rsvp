@@ -16,12 +16,19 @@ import {
 } from "@/lib/action-result";
 import { optionalUrlSchema } from "@/lib/validation";
 import { parseDatetimeLocalValue } from "@/lib/timezone";
+import { isValidIanaTimezone } from "@/lib/timezone-options";
 
 const eventSchema = z.object({
   name: z.string().min(2).max(160),
   description: z.string().max(4000).optional().or(z.literal("")),
   venue: z.string().max(200).optional().or(z.literal("")),
-  timezone: z.string().min(1).max(80),
+  timezone: z
+    .string()
+    .min(1)
+    .max(80)
+    .refine(isValidIanaTimezone, {
+      message: "Select a valid timezone",
+    }),
   startsAt: z.string().optional().or(z.literal("")),
   endsAt: z.string().optional().or(z.literal("")),
   website: optionalUrlSchema,

@@ -68,6 +68,7 @@ const sectionSchema = z.object({
     "sponsors",
     "venue",
     "gallery",
+    "content",
     "registration-cta",
     "contact",
     "footer",

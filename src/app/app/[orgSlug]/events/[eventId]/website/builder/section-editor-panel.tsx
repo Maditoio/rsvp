@@ -19,7 +19,7 @@ import {
 import { ImageDisplayControls } from "./image-display-controls";
 import { SectionAppearanceControls } from "./appearance-controls";
 import {
-  SECTION_TYPE_LABELS,
+  sectionDisplayLabel,
   updateSection,
   newDefaultSpeaker,
   type EventSiteSection,
@@ -67,6 +67,7 @@ export function SectionEditorPanel({
   const heroInputRef = useRef<HTMLInputElement>(null);
   const headerLogoInputRef = useRef<HTMLInputElement>(null);
   const aboutImageInputRef = useRef<HTMLInputElement>(null);
+  const contentImageInputRef = useRef<HTMLInputElement>(null);
   const venueInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const speakerInputRef = useRef<HTMLInputElement>(null);
@@ -89,14 +90,14 @@ export function SectionEditorPanel({
   async function runUpload(
     uploadKey: string,
     file: File,
-    purpose: "hero" | "speaker" | "gallery" | "venue" | "og" | "logo" | "about",
+    purpose: "hero" | "speaker" | "gallery" | "venue" | "og" | "logo" | "about" | "content",
     onUrl: (url: string) => void,
   ) {
     setUploadingKey(uploadKey);
     try {
       const prepared = await prepareImageForUpload(
         file,
-        purpose === "hero" || purpose === "venue" || purpose === "about"
+        purpose === "hero" || purpose === "venue" || purpose === "about" || purpose === "content"
           ? "background"
           : "logo",
       );
@@ -129,7 +130,7 @@ export function SectionEditorPanel({
     );
   }
 
-  const title = SECTION_TYPE_LABELS[section.type as keyof typeof SECTION_TYPE_LABELS];
+  const title = sectionDisplayLabel(section);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -319,6 +320,77 @@ export function SectionEditorPanel({
                 onChange={(patch) => patchContent(section.id, patch)}
               />
             ) : null}
+          </>
+        ) : null}
+
+        {section.type === "content" ? (
+          <>
+            <Field
+              label="Section label"
+              value={String(section.content.label ?? "")}
+              onChange={(v) => patchContent(section.id, { label: v })}
+              hint="Shown in the builder section list. Optional."
+            />
+            <Field
+              label="Eyebrow"
+              value={String(section.content.eyebrow ?? "")}
+              onChange={(v) => patchContent(section.id, { eyebrow: v })}
+            />
+            <Field
+              label="Title"
+              value={String(section.content.title ?? "")}
+              onChange={(v) => patchContent(section.id, { title: v })}
+            />
+            <Field
+              label="Subtitle"
+              value={String(section.content.subtitle ?? "")}
+              onChange={(v) => patchContent(section.id, { subtitle: v })}
+            />
+            <TextArea
+              label="Body"
+              value={String(section.content.body ?? "")}
+              onChange={(v) => patchContent(section.id, { body: v })}
+              rows={6}
+            />
+            {section.variant === "split" ||
+            section.variant === "split-left" ||
+            section.variant === "image" ? (
+              <ImageUploadField
+                label={section.variant === "image" ? "Featured image" : "Side image"}
+                hint={
+                  section.variant === "image"
+                    ? "Large image with optional copy below."
+                    : "Shown beside the text in split layouts."
+                }
+                imageUrl={section.content.imageUrl as string | null}
+                inputRef={contentImageInputRef}
+                uploading={uploadingKey === `${section.id}:content`}
+                onUpload={(file) =>
+                  void runUpload(`${section.id}:content`, file, "content", (url) =>
+                    patchContent(section.id, { imageUrl: url }),
+                  )
+                }
+                onRemove={() => patchContent(section.id, { imageUrl: null })}
+              />
+            ) : null}
+            {section.variant === "split" ||
+            section.variant === "split-left" ||
+            section.variant === "image" ? (
+              <ImageDisplayControls
+                content={section.content}
+                onChange={(patch) => patchContent(section.id, patch)}
+              />
+            ) : null}
+            <Field
+              label="Button label"
+              value={String(section.content.ctaLabel ?? "")}
+              onChange={(v) => patchContent(section.id, { ctaLabel: v })}
+            />
+            <Field
+              label="Button URL"
+              value={String(section.content.ctaUrl ?? "")}
+              onChange={(v) => patchContent(section.id, { ctaUrl: v || null })}
+            />
           </>
         ) : null}
 

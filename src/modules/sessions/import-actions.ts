@@ -23,6 +23,7 @@ export type SessionImportPreviewResult = {
   issueCount: number;
   issues: ReturnType<typeof previewSessionImport>["issues"];
   rows: SessionImportRow[];
+  timezone: string;
 };
 
 export async function previewAgendaImport(
@@ -31,7 +32,13 @@ export async function previewAgendaImport(
   formData: FormData,
 ): Promise<ActionResult<SessionImportPreviewResult>> {
   return runAction(async () => {
-    await requireEvent(orgSlug, eventId, "event.update");
+    const ctx = await requireEvent(orgSlug, eventId, "event.update");
+    const event = await prisma.event.findFirst({
+      where: { id: eventId, organisationId: ctx.organisation.id },
+      select: { timezone: true },
+    });
+    const timezone = event?.timezone || "UTC";
+
     const file = formData.get("file");
     if (!(file instanceof File) || file.size === 0) {
       throw new Error("Choose a CSV or Excel file");
@@ -45,7 +52,7 @@ export async function previewAgendaImport(
       throw new Error("No data rows found in this file.");
     }
 
-    const preview = previewSessionImport(rows);
+    const preview = previewSessionImport(rows, undefined, timezone);
     return {
       filename: file.name,
       uploaded: rows.length,
@@ -53,6 +60,7 @@ export async function previewAgendaImport(
       issueCount: preview.issues.length,
       issues: preview.issues,
       rows: preview.valid,
+      timezone,
     };
   }, "Could not preview agenda import");
 }

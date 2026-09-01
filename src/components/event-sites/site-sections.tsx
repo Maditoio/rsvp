@@ -523,6 +523,133 @@ export function AboutSection(props: SectionRenderProps & { data: EventSiteRender
   );
 }
 
+function contentHasBody(content: Record<string, unknown>) {
+  return Boolean(
+    String(content.eyebrow ?? "").trim() ||
+      String(content.title ?? "").trim() ||
+      String(content.subtitle ?? "").trim() ||
+      String(content.body ?? "").trim() ||
+      content.imageUrl,
+  );
+}
+
+function ContentTextBlock({
+  content,
+  align = "left",
+}: {
+  content: Record<string, unknown>;
+  align?: "left" | "center" | "right";
+}) {
+  const eyebrow = String(content.eyebrow ?? "").trim();
+  const title = String(content.title ?? "").trim();
+  const subtitle = String(content.subtitle ?? "").trim();
+  const body = String(content.body ?? "");
+  const ctaLabel = String(content.ctaLabel ?? "").trim();
+  const ctaUrl = String(content.ctaUrl ?? "").trim();
+
+  return (
+    <div className={textAlignClass(content, align)}>
+      {eyebrow ? (
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--site-accent)]">
+          {eyebrow}
+        </p>
+      ) : null}
+      {title ? <SiteHeading className={eyebrow ? "mt-2" : undefined}>{title}</SiteHeading> : null}
+      {subtitle ? (
+        <p className="mt-3 text-lg leading-relaxed opacity-80">{subtitle}</p>
+      ) : null}
+      {body ? (
+        <p className="mt-4 whitespace-pre-wrap leading-relaxed">{body}</p>
+      ) : null}
+      {ctaLabel && ctaUrl ? (
+        <div className={cn("mt-6 flex", alignJustifyClass(content, align))}>
+          <SiteButton
+            label={ctaLabel}
+            href={ctaUrl}
+            accent="var(--site-accent)"
+            style="solid"
+            radius="full"
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function ContentSection(props: SectionRenderProps & { data: EventSiteRenderData }) {
+  const { content, variant, editorMode } = props;
+  const hasContent = contentHasBody(content);
+  if (!hasContent && !editorMode) return null;
+
+  const imageUrl = content.imageUrl ? String(content.imageUrl) : null;
+  const placeholder = (
+    <div className="flex aspect-[4/3] items-center justify-center bg-slate-100 text-sm text-slate-500">
+      Upload an image in the section editor
+    </div>
+  );
+
+  if (variant === "image") {
+    return sectionShell(
+      props,
+      <SiteContainer>
+        {imageUrl ? (
+          <SiteImage src={imageUrl} display={content} className="aspect-[21/9] w-full" />
+        ) : editorMode ? (
+          placeholder
+        ) : null}
+        {hasContent ? (
+          <div className="mt-8">
+            <ContentTextBlock content={content} align="left" />
+          </div>
+        ) : editorMode ? (
+          <p className="mt-4 text-sm opacity-50">Add a title, body, or image in the editor.</p>
+        ) : null}
+      </SiteContainer>,
+    );
+  }
+
+  if (variant === "split" || variant === "split-left") {
+    const imageFirst = variant === "split-left";
+    return sectionShell(
+      props,
+      <SiteContainer>
+        <div className="grid items-center gap-10 md:grid-cols-2">
+          {imageFirst ? (
+            imageUrl ? (
+              <SiteImage src={imageUrl} display={content} className="aspect-[4/3]" />
+            ) : editorMode ? (
+              placeholder
+            ) : null
+          ) : null}
+          {hasContent ? (
+            <ContentTextBlock content={content} align="left" />
+          ) : editorMode ? (
+            <p className="text-sm opacity-50">Add title and body copy in the editor.</p>
+          ) : null}
+          {!imageFirst ? (
+            imageUrl ? (
+              <SiteImage src={imageUrl} display={content} className="aspect-[4/3]" />
+            ) : editorMode ? (
+              placeholder
+            ) : null
+          ) : null}
+        </div>
+      </SiteContainer>,
+    );
+  }
+
+  return sectionShell(
+    props,
+    <SiteContainer>
+      {hasContent ? (
+        <ContentTextBlock content={content} align="left" />
+      ) : (
+        <p className="text-sm opacity-50">Add title and body copy in the editor.</p>
+      )}
+    </SiteContainer>,
+  );
+}
+
 export function EventDetailsSection(props: SectionRenderProps & { data: EventSiteRenderData }) {
   const { data, content, editorMode } = props;
   const title = String(content.title ?? "Event details");
@@ -1583,6 +1710,8 @@ export function renderSiteSection(
       return <VenueSection {...props} />;
     case "gallery":
       return <GallerySection {...props} />;
+    case "content":
+      return <ContentSection {...props} />;
     case "registration-cta":
       return <RegistrationCtaSection {...props} />;
     case "contact":

@@ -24,6 +24,8 @@ import { createEvent } from "@/modules/events/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TimezoneSelect } from "@/components/timezone-select";
+import { detectBrowserTimezone } from "@/lib/timezone-options";
 import { cn } from "@/lib/utils";
 
 type Step = 1 | 2 | 3;
@@ -45,6 +47,7 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
   const [name, setName] = useState("");
   const [format, setFormat] = useState<Format | null>(null);
   const [access, setAccess] = useState<Access | null>(null);
+  const [timezone, setTimezone] = useState("UTC");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [showConcierge, setShowConcierge] = useState(false);
@@ -88,6 +91,10 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
 
   useEffect(() => () => clearConciergeTimers(), [clearConciergeTimers]);
 
+  useEffect(() => {
+    setTimezone(detectBrowserTimezone());
+  }, []);
+
   function goNext() {
     setError(null);
     if (step === 1) {
@@ -116,8 +123,7 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
 
     const fd = new FormData();
     fd.set("name", name.trim());
-    // Slug is derived server-side from the event name (createEvent → toSlug).
-    fd.set("timezone", "Africa/Johannesburg");
+    fd.set("timezone", timezone);
     fd.set(
       "allowPublicApplication",
       access === "open_application" ? "true" : "false",
@@ -241,6 +247,11 @@ export function EventCreateForm({ orgSlug }: { orgSlug: string }) {
               onClick={() => setFormat("meeting_focused")}
             />
           </div>
+          <TimezoneSelect
+            value={timezone}
+            onChange={setTimezone}
+            hint="Event dates, agenda imports, and scheduling use this timezone."
+          />
           {error ? <p className="text-sm text-danger">{error}</p> : null}
           <WizardFooter onBack={goBack}>
             <Button type="button" onClick={goNext}>

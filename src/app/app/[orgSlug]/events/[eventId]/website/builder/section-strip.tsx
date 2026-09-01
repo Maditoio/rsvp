@@ -14,6 +14,8 @@ import {
   sortSections,
   createSection,
   EVENT_SITE_SECTION_TYPES,
+  isSectionTypeAddable,
+  sectionDisplayLabel,
   type EventSiteSection,
   type EventSiteSectionType,
 } from "@/modules/event-sites/sections";
@@ -60,8 +62,8 @@ export function SectionStrip({
     onSelectSection(section.id);
   }
 
-  const addable = EVENT_SITE_SECTION_TYPES.filter(
-    (type) => !sections.some((s) => s.type === type && type !== "gallery"),
+  const addable = EVENT_SITE_SECTION_TYPES.filter((type) =>
+    isSectionTypeAddable(type, sections),
   );
 
   const selectedIndex = sections.findIndex((s) => s.id === selectedSectionId);
@@ -84,7 +86,7 @@ export function SectionStrip({
             )}
           >
             {!section.enabled ? <EyeOff className="size-3" /> : null}
-            {SECTION_TYPE_LABELS[section.type as EventSiteSectionType]}
+            {sectionDisplayLabel(section)}
           </button>
         ))}
       </div>

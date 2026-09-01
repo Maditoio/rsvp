@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { parseOptionalDateRange } from "@/lib/validation";
+import { toDatetimeLocalValue } from "@/lib/timezone";
 import { AgendaImport } from "./agenda-import";
 import {
   SessionOnlineControls,
@@ -36,12 +37,11 @@ type SessionRow = {
   teamsMeeting: SessionOnlineMeeting | null;
 };
 
-function toDatetimeLocalValue(iso: string) {
+function toDatetimeLocalValueForEvent(iso: string, timezone: string) {
   if (!iso) return "";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return toDatetimeLocalValue(date, timezone);
 }
 
 function formatLabel(format: SessionRow["format"]) {
@@ -263,7 +263,8 @@ export function AgendaPanel({
         description={
           <>
             Download the template, fill in all sessions, then import the file to
-            build the programme. You can also add or edit sessions one at a time.
+            build the programme. Datetimes in the file use the event timezone.
+            You can also add or edit sessions one at a time.
             {canManage ? (
               <span className="mt-2 block text-xs text-slate-500">
                 Times shown in {timezone.replace(/_/g, " ")}
@@ -274,7 +275,7 @@ export function AgendaPanel({
         actions={
           canManage ? (
             <>
-              <AgendaImport orgSlug={orgSlug} eventId={eventId} />
+              <AgendaImport orgSlug={orgSlug} eventId={eventId} timezone={timezone} />
               <Button type="button" leadingIcon="plus" onClick={openCreate}>
                 Add session
               </Button>
@@ -318,6 +319,7 @@ export function AgendaPanel({
             const slot = parseOptionalDateRange(
               String(formData.get("startsAt") ?? ""),
               String(formData.get("endsAt") ?? ""),
+              timezone,
             );
             if (!slot.ok) {
               setError(slot.error);
@@ -419,7 +421,9 @@ export function AgendaPanel({
               name="startsAt"
               type="datetime-local"
               defaultValue={
-                editing ? toDatetimeLocalValue(editing.startsAtValue) : ""
+                editing
+                  ? toDatetimeLocalValueForEvent(editing.startsAtValue, timezone)
+                  : ""
               }
             />
           </div>
@@ -430,10 +434,15 @@ export function AgendaPanel({
               name="endsAt"
               type="datetime-local"
               defaultValue={
-                editing ? toDatetimeLocalValue(editing.endsAtValue) : ""
+                editing
+                  ? toDatetimeLocalValueForEvent(editing.endsAtValue, timezone)
+                  : ""
               }
             />
           </div>
+          <p className="text-xs text-slate-500">
+            Session times use the event timezone ({timezone.replace(/_/g, " ")}).
+          </p>
 
           {canManage ? (
             <SessionOnlineControls

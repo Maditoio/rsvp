@@ -2,6 +2,10 @@ import { z } from "zod";
 import Papa from "papaparse";
 import ExcelJS from "exceljs";
 import type { SessionFormat } from "@prisma/client";
+import {
+  parseDatetimeLocalValue,
+  utcFromZonedDateTime,
+} from "@/lib/timezone";
 
 export const SESSION_TEMPLATE_HEADERS = [
   "Title",
@@ -122,7 +126,10 @@ function cellFromMapped(
 }
 
 /** Parse spreadsheet datetime cells (ISO, UK, or Excel serial). */
-export function parseSessionDatetime(value: string): Date | null {
+export function parseSessionDatetime(
+  value: string,
+  timeZone?: string,
+): Date | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
@@ -132,6 +139,42 @@ export function parseSessionDatetime(value: string): Date | null {
     const ms = (serial - 25569) * 86_400_000;
     const date = new Date(ms);
     return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  if (timeZone) {
+    const isoLike = trimmed.match(
+      /^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::\d{2})?$/,
+    );
+    if (isoLike) {
+      const date = utcFromZonedDateTime(
+        Number(isoLike[1]),
+        Number(isoLike[2]),
+        Number(isoLike[3]),
+        Number(isoLike[4]),
+        Number(isoLike[5]),
+        timeZone,
+      );
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    const uk = trimmed.match(
+      /^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?:[ T](\d{1,2}):(\d{2}))?$/,
+    );
+    if (uk) {
+      const [, day, month, year, hour = "0", minute = "0"] = uk;
+      const date = utcFromZonedDateTime(
+        Number(year),
+        Number(month),
+        Number(day),
+        Number(hour),
+        Number(minute),
+        timeZone,
+      );
+      return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    const local = parseDatetimeLocalValue(trimmed.replace(" ", "T"), timeZone);
+    if (local) return local;
   }
 
   const iso = trimmed.replace(" ", "T");
@@ -198,6 +241,7 @@ const sessionImportRowSchema = z.object({
 export function previewSessionImport(
   rows: SheetRow[],
   columnMap?: SessionColumnMap,
+  timeZone?: string,
 ): SessionImportPreview {
   const valid: SessionImportRow[] = [];
   const issues: SessionImportIssue[] = [];
@@ -236,8 +280,8 @@ export function previewSessionImport(
       return;
     }
 
-    const startsAt = startsRaw ? parseSessionDatetime(startsRaw) : null;
-    const endsAt = endsRaw ? parseSessionDatetime(endsRaw) : null;
+    const startsAt = startsRaw ? parseSessionDatetime(startsRaw, timeZone) : null;
+    const endsAt = endsRaw ? parseSessionDatetime(endsRaw, timeZone) : null;
 
     if ((startsRaw && !startsAt) || (endsRaw && !endsAt)) {
       issues.push({

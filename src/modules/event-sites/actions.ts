@@ -183,6 +183,7 @@ export async function uploadEventSiteImage(
     | "og"
     | "logo"
     | "about"
+    | "content"
     | "section-bg",
 ) {
   return runAction(async () => {
@@ -200,6 +201,7 @@ export async function uploadEventSiteImage(
       og: "website/og",
       logo: "website/logo",
       about: "website/about",
+      content: "website/content",
       "section-bg": "website/section-bg",
     } as const;
 
