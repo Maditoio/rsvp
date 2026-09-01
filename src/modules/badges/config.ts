@@ -68,7 +68,7 @@ export {
   moveLayoutElement,
   parseBadgeLayout,
 } from "./layout";
-export type { BadgeElementId, BadgeElementPose, BadgeLayout } from "./layout";
+export type { BadgeElementId, BadgeElementPose, BadgeLayout, HorizontalAnchor } from "./layout";
 export {
   BADGE_COLOR_SWATCHES,
   BADGE_GRADIENT_PRESETS,

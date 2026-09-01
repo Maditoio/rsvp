@@ -8,8 +8,11 @@ import {
 } from "react";
 import type { BadgePrintPayload } from "@/modules/badges/print-payload";
 import {
+  poseFromSnap,
+  poseLeftEdge,
   snapElementPose,
   type BadgeElementId,
+  type HorizontalAnchor,
   type SnapGuideState,
 } from "@/modules/badges/layout";
 import { categoryAccentStyle } from "@/modules/badges/category-accent";
@@ -43,7 +46,12 @@ function PoseShell({
   editable?: boolean;
   selected?: boolean;
   onSelect?: (id: BadgeElementId | null) => void;
-  onMove?: (id: BadgeElementId, x: number, y: number) => void;
+  onMove?: (
+    id: BadgeElementId,
+    x: number,
+    y: number,
+    anchorX?: HorizontalAnchor,
+  ) => void;
   onSnapGuides?: (guides: SnapGuideState | null) => void;
   className?: string;
   style?: CSSProperties;
@@ -67,7 +75,7 @@ function PoseShell({
     const heightPct = (shellRect.height / parentRect.height) * 100;
     const startX = e.clientX;
     const startY = e.clientY;
-    const originX = pose.x;
+    const originLeft = poseLeftEdge(pose, widthPct);
     const originY = pose.y;
 
     shell.setPointerCapture(e.pointerId);
@@ -76,13 +84,14 @@ function PoseShell({
       const dxPct = ((ev.clientX - startX) / parentRect.width) * 100;
       const dyPct = ((ev.clientY - startY) / parentRect.height) * 100;
       const snapped = snapElementPose(
-        originX + dxPct,
+        originLeft + dxPct,
         originY + dyPct,
         widthPct,
         heightPct,
       );
+      const next = poseFromSnap(snapped, widthPct);
       onSnapGuides?.(snapped.guides);
-      onMove?.(id, snapped.x, snapped.y);
+      onMove?.(id, next.x, next.y, next.anchorX);
     }
 
     function onUp(ev: PointerEvent) {
@@ -95,6 +104,14 @@ function PoseShell({
     window.addEventListener("pointermove", onMovePointer);
     window.addEventListener("pointerup", onUp);
   }
+
+  const anchorX = pose.anchorX ?? "left";
+  const horizontalTransform =
+    anchorX === "center"
+      ? "translateX(-50%)"
+      : anchorX === "right"
+        ? "translateX(-100%)"
+        : undefined;
 
   return (
     <div
@@ -111,6 +128,7 @@ function PoseShell({
         left: `${pose.x}%`,
         top: `${pose.y}%`,
         zIndex: pose.zIndex,
+        transform: horizontalTransform,
         ...style,
       }}
       onPointerDown={handlePointerDown}
@@ -192,17 +210,18 @@ function CategoryBadge({
   const { config } = badge;
   const label = badge.categoryName?.trim() || "Category";
   const isPlaceholder = !badge.categoryName?.trim();
+  const fontSize = config.categorySize > 0 ? config.categorySize : 10;
 
   if (config.categoryStyle === "pill") {
     return (
       <span
         className={cn(
-          "inline-block max-w-[85mm] rounded-full px-2.5 py-0.5 font-semibold shadow-sm ring-1 ring-white/70",
+          "inline-block max-w-[85mm] whitespace-nowrap rounded-full px-2.5 py-0.5 font-semibold shadow-sm ring-1 ring-white/70",
           isPlaceholder && editable && "opacity-80",
         )}
         style={{
           ...categoryAccentStyle(label),
-          fontSize: Math.max(config.categorySize, editable ? 12 : 0),
+          fontSize,
           fontFamily: BADGE_FONT_CSS[config.categoryFont ?? "inter"],
         }}
       >
@@ -219,7 +238,7 @@ function CategoryBadge({
         isPlaceholder && editable && "opacity-80",
       )}
       style={{
-        fontSize: Math.max(config.categorySize, editable ? 12 : 0),
+        fontSize,
         fontFamily: BADGE_FONT_CSS[config.categoryFont ?? "inter"],
         color: config.categoryColor,
       }}
@@ -240,7 +259,12 @@ export function BadgeCard({
   editable?: boolean;
   selectedElement?: BadgeElementId | null;
   onSelectElement?: (id: BadgeElementId | null) => void;
-  onMoveElement?: (id: BadgeElementId, x: number, y: number) => void;
+  onMoveElement?: (
+    id: BadgeElementId,
+    x: number,
+    y: number,
+    anchorX?: HorizontalAnchor,
+  ) => void;
 }) {
   const { config, logoUrl, sponsorLogos } = badge;
   const layout = config.layout;

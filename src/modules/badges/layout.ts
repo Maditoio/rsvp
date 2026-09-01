@@ -14,12 +14,18 @@ export const BADGE_ELEMENT_IDS = [
 
 export type BadgeElementId = (typeof BADGE_ELEMENT_IDS)[number];
 
+export type HorizontalAnchor = "left" | "center" | "right";
+
 export type BadgeElementPose = {
-  /** Left edge as % of badge width (0–100). */
+  /**
+   * Horizontal position as % of badge width (0–100).
+   * `left` (default): left edge; `center`: horizontal centre; `right`: right edge.
+   */
   x: number;
   /** Top edge as % of badge height (0–100). */
   y: number;
   zIndex: number;
+  anchorX?: HorizontalAnchor;
 };
 
 export type BadgeLayout = Record<BadgeElementId, BadgeElementPose>;
@@ -59,10 +65,16 @@ export function parsePose(
   const y = typeof raw.y === "number" ? raw.y : Number(raw.y);
   const z =
     typeof raw.zIndex === "number" ? raw.zIndex : Number(raw.zIndex);
+  const anchorRaw = raw.anchorX;
+  const anchorX =
+    anchorRaw === "left" || anchorRaw === "center" || anchorRaw === "right"
+      ? anchorRaw
+      : fallback.anchorX;
   return {
     x: Number.isFinite(x) ? clampPct(x) : fallback.x,
     y: Number.isFinite(y) ? clampPct(y) : fallback.y,
     zIndex: Number.isFinite(z) ? Math.round(z) : fallback.zIndex,
+    ...(anchorX ? { anchorX } : {}),
   };
 }
 
@@ -168,19 +180,46 @@ export function parseBadgeLayout(
   return next;
 }
 
+export function poseLeftEdge(
+  pose: BadgeElementPose,
+  widthPct: number,
+): number {
+  const anchor = pose.anchorX ?? "left";
+  if (anchor === "center") return pose.x - widthPct / 2;
+  if (anchor === "right") return pose.x - widthPct;
+  return pose.x;
+}
+
+export function poseFromSnap(
+  snapped: { x: number; y: number; guides: SnapGuideState },
+  widthPct: number,
+): Pick<BadgeElementPose, "x" | "y" | "anchorX"> {
+  if (snapped.guides.vertical) {
+    return { x: 50, y: snapped.y, anchorX: "center" };
+  }
+  return { x: snapped.x, y: snapped.y, anchorX: "left" };
+}
+
 export function moveLayoutElement(
   layout: BadgeLayout,
   id: BadgeElementId,
   x: number,
   y: number,
+  anchorX?: HorizontalAnchor,
 ): BadgeLayout {
+  const next: BadgeElementPose = {
+    ...layout[id],
+    x: clampPct(x),
+    y: clampPct(y),
+  };
+  if (anchorX === "left") {
+    delete next.anchorX;
+  } else if (anchorX) {
+    next.anchorX = anchorX;
+  }
   return {
     ...layout,
-    [id]: {
-      ...layout[id],
-      x: clampPct(x),
-      y: clampPct(y),
-    },
+    [id]: next,
   };
 }
 

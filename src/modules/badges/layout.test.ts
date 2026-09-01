@@ -1,5 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { getLayoutPreset, moveLayoutElement, snapElementPose } from "./layout";
+import {
+  getLayoutPreset,
+  moveLayoutElement,
+  poseFromSnap,
+  poseLeftEdge,
+  snapElementPose,
+} from "./layout";
+
+describe("poseLeftEdge", () => {
+  it("converts centre anchor to left edge", () => {
+    expect(poseLeftEdge({ x: 50, y: 10, zIndex: 1, anchorX: "center" }, 20)).toBe(
+      40,
+    );
+  });
+});
+
+describe("poseFromSnap", () => {
+  it("stores centre anchor when snapped horizontally", () => {
+    const snapped = snapElementPose(40, 45, 20, 10);
+    expect(poseFromSnap(snapped, 20)).toEqual({
+      x: 50,
+      y: 45,
+      anchorX: "center",
+    });
+  });
+
+  it("keeps left anchor when not snapped", () => {
+    const snapped = snapElementPose(5, 5, 10, 10);
+    expect(poseFromSnap(snapped, 10)).toEqual({
+      x: 5,
+      y: 5,
+      anchorX: "left",
+    });
+  });
+});
 
 describe("snapElementPose", () => {
   it("snaps element centre to badge centre", () => {

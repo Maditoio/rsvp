@@ -38,7 +38,7 @@ import {
   type BadgeTextFill,
   type BadgeSponsor,
 } from "@/modules/badges/config";
-import { snapElementPose } from "@/modules/badges/layout";
+import { poseFromSnap, poseLeftEdge, snapElementPose } from "@/modules/badges/layout";
 import {
   BADGE_PREVIEW_SAMPLE,
   type BadgePrintPayload,
@@ -100,6 +100,7 @@ export function BadgeSettingsForm({
   const [selectedElement, setSelectedElement] = useState<BadgeElementId | null>(
     null,
   );
+  const [canvasMode, setCanvasMode] = useState<"design" | "print">("design");
 
   const [designId, setDesignId] = useState<BadgeDesignId>(config.designId);
   const [applyPreset, setApplyPreset] = useState(true);
@@ -568,18 +569,20 @@ export function BadgeSettingsForm({
                     heightPct = (er.height / pr.height) * 100;
                   }
                   const snapped = snapElementPose(
-                    pose.x,
+                    poseLeftEdge(pose, widthPct),
                     pose.y,
                     widthPct,
                     heightPct,
                     100,
                   );
+                  const next = poseFromSnap(snapped, widthPct);
                   setLayout((prev) =>
                     moveLayoutElement(
                       prev,
                       selectedElement,
-                      snapped.x,
-                      snapped.y,
+                      next.x,
+                      next.y,
+                      next.anchorX,
                     ),
                   );
                 }}
@@ -1177,8 +1180,10 @@ export function BadgeSettingsForm({
             <div className="space-y-3 rounded-xl bg-indigo-50/60 p-3">
               <p className="text-xs text-indigo-700">
                 Preview shows a sample “Delegate” category. Drag the category
-                pill on the canvas to place it. On printed badges it only
-                appears when the attendee has a category assigned.
+                pill on the canvas to place it — use Print preview to confirm
+                the exact printed position. When snapped to the horizontal
+                centre, the category stays centred even if the label text is
+                longer on a printed badge.
               </p>
               <div>
                 <Label htmlFor="categoryStyle">Category style</Label>
@@ -1201,9 +1206,23 @@ export function BadgeSettingsForm({
                 onClick={() => {
                   setSelectedElement("category");
                   const pose = layout.category;
-                  const snapped = snapElementPose(pose.x, pose.y, 28, 8, 100);
+                  const widthPct = 28;
+                  const snapped = snapElementPose(
+                    poseLeftEdge(pose, widthPct),
+                    pose.y,
+                    widthPct,
+                    8,
+                    100,
+                  );
+                  const next = poseFromSnap(snapped, widthPct);
                   setLayout((prev) =>
-                    moveLayoutElement(prev, "category", snapped.x, 86),
+                    moveLayoutElement(
+                      prev,
+                      "category",
+                      next.x,
+                      next.y,
+                      next.anchorX,
+                    ),
                   );
                 }}
               >
@@ -1411,15 +1430,45 @@ export function BadgeSettingsForm({
             </p>
           </div>
 
+          <div className="flex rounded-full bg-slate-100 p-1">
+            <button
+              type="button"
+              className={cn(
+                "flex-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                canvasMode === "design"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900",
+              )}
+              onClick={() => setCanvasMode("design")}
+            >
+              Design
+            </button>
+            <button
+              type="button"
+              className={cn(
+                "flex-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                canvasMode === "print"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900",
+              )}
+              onClick={() => {
+                setCanvasMode("print");
+                setSelectedElement(null);
+              }}
+            >
+              Print preview
+            </button>
+          </div>
+
           <div className="flex justify-center rounded-xl bg-slate-50 p-4">
             <BadgePreviewFrame template={previewPayload.template}>
               <BadgeCard
                 badge={previewPayload}
-                editable
+                editable={canvasMode === "design"}
                 selectedElement={selectedElement}
                 onSelectElement={setSelectedElement}
-                onMoveElement={(id, x, y) =>
-                  setLayout((prev) => moveLayoutElement(prev, id, x, y))
+                onMoveElement={(id, x, y, anchorX) =>
+                  setLayout((prev) => moveLayoutElement(prev, id, x, y, anchorX))
                 }
               />
             </BadgePreviewFrame>
