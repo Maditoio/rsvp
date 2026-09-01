@@ -6,6 +6,7 @@ import {
   buildDefaultConfig,
   getPrimaryCta,
   applyTemplateToConfig,
+  type EventSiteSpeaker,
 } from "./config";
 import {
   getEventSiteTemplate,
@@ -104,6 +105,46 @@ describe("parseEventSiteConfig", () => {
       theme: { accentColor: "#f00" },
     });
     expect(parsed.theme.accentColor).toBe("#FF0000");
+  });
+
+  it("truncates oversized speaker bios instead of throwing", () => {
+    const longBio = "a".repeat(5000);
+    const parsed = parseEventSiteConfig({
+      schemaVersion: 2,
+      templateId: "executive-summit",
+      theme: DEFAULT_EVENT_SITE_CONFIG.theme,
+      globalStyles: DEFAULT_EVENT_SITE_CONFIG.globalStyles,
+      sections: DEFAULT_EVENT_SITE_CONFIG.sections.map((section) =>
+        section.type === "speakers"
+          ? {
+              ...section,
+              content: {
+                ...section.content,
+                items: [
+                  {
+                    id: "spk-1",
+                    firstName: "Alex",
+                    lastName: "Morgan",
+                    bio: longBio,
+                  },
+                ],
+              },
+            }
+          : section,
+      ),
+      seo: DEFAULT_EVENT_SITE_CONFIG.seo,
+    });
+
+    const speakers = parsed.sections.find((s) => s.type === "speakers");
+    const items = speakers?.content.items as EventSiteSpeaker[];
+    expect(items[0]?.bio).toHaveLength(4000);
+    expect(() => eventSiteConfigFromEvent({
+      name: "Test Event",
+      description: null,
+      venue: null,
+      logoUrl: null,
+      config: parsed,
+    })).not.toThrow();
   });
 });
 

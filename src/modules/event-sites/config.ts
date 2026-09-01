@@ -33,6 +33,8 @@ export type EventSiteCtaType = (typeof EVENT_SITE_CTA_TYPES)[number];
 
 export const EVENT_SITE_SCHEMA_VERSION = 2;
 
+const SPEAKER_BIO_MAX = 4000;
+
 const speakerSchema = z.object({
   id: z.string().min(1),
   firstName: z.string().max(60).default(""),
@@ -41,7 +43,7 @@ const speakerSchema = z.object({
   organization: z.string().max(160).optional(),
   country: z.string().max(80).optional(),
   photoUrl: z.string().url().optional().nullable(),
-  bio: z.string().max(800).optional(),
+  bio: z.string().max(SPEAKER_BIO_MAX).optional(),
   linkedIn: z.string().url().optional().nullable(),
   website: z.string().url().optional().nullable(),
   featured: z.boolean().default(false),
@@ -50,6 +52,56 @@ const speakerSchema = z.object({
 });
 
 export type EventSiteSpeaker = z.infer<typeof speakerSchema>;
+
+function truncateText(value: unknown, max: number): string | undefined {
+  if (value == null) return undefined;
+  const text = String(value).trim();
+  if (!text) return undefined;
+  return text.length > max ? text.slice(0, max) : text;
+}
+
+function optionalUrl(value: unknown): string | null | undefined {
+  if (value == null || value === "") return null;
+  const text = String(value).trim();
+  if (!text) return null;
+  try {
+    return new URL(text).toString();
+  } catch {
+    return null;
+  }
+}
+
+function sanitizeSpeakerInput(
+  raw: Record<string, unknown>,
+  index: number,
+): z.input<typeof speakerSchema> {
+  return {
+    id: String(raw.id ?? `spk_${index}`),
+    firstName: truncateText(raw.firstName, 60) ?? "Speaker",
+    lastName: truncateText(raw.lastName, 60) ?? "",
+    jobTitle: truncateText(raw.jobTitle ?? raw.title, 160),
+    organization: truncateText(raw.organization ?? raw.company, 160),
+    country: truncateText(raw.country, 80),
+    photoUrl: optionalUrl(raw.photoUrl ?? raw.imageUrl),
+    bio: truncateText(raw.bio, SPEAKER_BIO_MAX),
+    linkedIn: optionalUrl(raw.linkedIn),
+    website: optionalUrl(raw.website),
+    featured: Boolean(raw.featured),
+    order: typeof raw.order === "number" ? raw.order : index,
+    hidden: Boolean(raw.hidden),
+  };
+}
+
+function fallbackSpeaker(index: number): EventSiteSpeaker {
+  return {
+    id: `spk_${index}`,
+    firstName: "Speaker",
+    lastName: "",
+    featured: false,
+    order: index,
+    hidden: false,
+  };
+}
 
 export function speakerDisplayName(s: EventSiteSpeaker): string {
   const name = [s.firstName, s.lastName].filter(Boolean).join(" ").trim();
@@ -126,27 +178,32 @@ export type EventSiteConfig = z.infer<typeof eventSiteConfigSchema>;
 
 function normalizeSpeakers(raw: unknown[]): EventSiteSpeaker[] {
   return raw.map((item, index) => {
-    const r = item as Record<string, unknown>;
+    const r = (
+      item && typeof item === "object" ? item : {}
+    ) as Record<string, unknown>;
+
+    let candidate: Record<string, unknown>;
     if (typeof r.firstName === "string" || typeof r.lastName === "string") {
-      const parsed = speakerSchema.safeParse({ ...r, order: r.order ?? index });
-      if (parsed.success) return parsed.data;
+      candidate = { ...r, order: r.order ?? index };
+    } else {
+      const legacyName = String(r.name ?? "Speaker");
+      const parts = legacyName.split(/\s+/);
+      candidate = {
+        id: r.id,
+        firstName: parts[0] ?? "Speaker",
+        lastName: parts.slice(1).join(" "),
+        jobTitle: r.title ?? r.jobTitle,
+        organization: r.company ?? r.organization,
+        photoUrl: r.imageUrl ?? r.photoUrl ?? null,
+        bio: r.bio,
+        featured: r.featured ?? false,
+        order: typeof r.order === "number" ? r.order : index,
+        hidden: r.hidden ?? false,
+      };
     }
-    const legacyName = String(r.name ?? "Speaker");
-    const parts = legacyName.split(/\s+/);
-    const firstName = parts[0] ?? "Speaker";
-    const lastName = parts.slice(1).join(" ");
-    return speakerSchema.parse({
-      id: String(r.id ?? `spk_${index}`),
-      firstName,
-      lastName,
-      jobTitle: r.title ?? r.jobTitle,
-      organization: r.company ?? r.organization,
-      photoUrl: r.imageUrl ?? r.photoUrl ?? null,
-      bio: r.bio,
-      featured: r.featured ?? false,
-      order: typeof r.order === "number" ? r.order : index,
-      hidden: r.hidden ?? false,
-    });
+
+    const parsed = speakerSchema.safeParse(sanitizeSpeakerInput(candidate, index));
+    return parsed.success ? parsed.data : fallbackSpeaker(index);
   });
 }
 
