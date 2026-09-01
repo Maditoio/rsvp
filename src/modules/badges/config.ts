@@ -103,6 +103,7 @@ const poseSchema = z.object({
   x: z.coerce.number().min(0).max(100),
   y: z.coerce.number().min(0).max(100),
   zIndex: z.coerce.number().int().min(0).max(100).default(1),
+  anchorX: z.enum(["left", "center", "right"]).optional(),
 });
 
 const layoutSchema = z.object({
