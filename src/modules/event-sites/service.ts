@@ -11,7 +11,9 @@ import {
   groupSponsorsByTier,
   type EventSponsorTierGroup,
 } from "@/modules/sponsors/config";
+import type { EventSpeakerRecord } from "@/modules/speakers/config";
 import { loadEventSponsorsForEvent } from "@/modules/sponsors/service";
+import { loadEventSpeakersForEvent } from "@/modules/speakers/service";
 
 export type EventSiteSessionPreview = {
   id: string;
@@ -37,6 +39,7 @@ export type PublishedEventSite = {
   websitePublishedAt: Date;
   sessions: EventSiteSessionPreview[];
   sponsorGroups: EventSponsorTierGroup[];
+  speakers: EventSpeakerRecord[];
   applyUrl: string | null;
   publicUrl: string;
 };
@@ -51,6 +54,7 @@ export type EventWebsiteSettings = {
   config: EventSiteConfig;
   websitePublishedAt: Date | null;
   sponsorGroups: EventSponsorTierGroup[];
+  speakers: EventSpeakerRecord[];
   customDomain: EventCustomDomainState;
   event: {
     name: string;
@@ -121,6 +125,7 @@ export async function loadEventWebsiteSettings(
 
   const sponsors = await loadEventSponsorsForEvent(organisationId, eventId);
   const sponsorGroups = groupSponsorsByTier(sponsors);
+  const speakers = await loadEventSpeakersForEvent(organisationId, eventId);
 
   const rawConfig = parseEventSiteConfig(event.settings?.websiteConfig);
   const config = eventSiteConfigFromEvent({
@@ -135,6 +140,7 @@ export async function loadEventWebsiteSettings(
     config,
     websitePublishedAt: event.settings?.websitePublishedAt ?? null,
     sponsorGroups,
+    speakers,
     customDomain: {
       domain: event.settings?.customDomain ?? null,
       status: event.settings?.customDomainStatus ?? "none",
@@ -223,6 +229,10 @@ export async function loadPublishedEventSite(
     event.id,
   );
   const sponsorGroups = groupSponsorsByTier(sponsors);
+  const speakers = await loadEventSpeakersForEvent(
+    event.organisationId,
+    event.id,
+  );
 
   return {
     orgSlug,
@@ -240,6 +250,7 @@ export async function loadPublishedEventSite(
       event.settings.websitePublishedAt ?? new Date(),
     sessions: mapSessions(sessions, event.timezone, maxSessions),
     sponsorGroups,
+    speakers,
     applyUrl,
     publicUrl,
   };

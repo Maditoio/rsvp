@@ -230,6 +230,7 @@ model Organisation {
   attendeeMapLocations    AttendeeMapLocation[]
   mapAnalyticsEvents      MapAnalyticsEvent[]
   eventSponsors           EventSponsor[]
+  eventSpeakers           EventSpeaker[]
 }
 
 model OrganisationUser {
@@ -308,6 +309,7 @@ model Event {
   attendeeMapLocations     AttendeeMapLocation[]
   mapAnalyticsEvents       MapAnalyticsEvent[]
   sponsors                 EventSponsor[]
+  speakers                 EventSpeaker[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -330,6 +332,32 @@ model EventSponsor {
 
   @@index([organisationId, eventId])
   @@index([eventId, tier, sortOrder])
+}
+
+model EventSpeaker {
+  id             String   @id @default(cuid())
+  organisationId String
+  eventId        String
+  firstName      String
+  lastName       String   @default("")
+  jobTitle       String?
+  organization   String?
+  country        String?
+  bio            String?
+  photoUrl       String?
+  linkedInUrl    String?
+  websiteUrl     String?
+  featured       Boolean  @default(false)
+  hidden         Boolean  @default(false)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, eventId])
+  @@index([eventId, sortOrder])
 }
 
 model EventSettings {

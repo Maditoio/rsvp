@@ -12,9 +12,7 @@ import {
   parseEventSiteConfig,
   parseTemplateId,
   applyTemplateToConfig,
-  newSpeakerId,
   type EventSiteConfig,
-  type EventSiteSpeaker,
 } from "./config";
 import { loadEventWebsiteSettings } from "./service";
 
@@ -276,43 +274,6 @@ export async function applyEventSiteTemplate(
 
     return { config };
   }, "Could not apply template.");
-}
-
-export async function addEventSiteSpeaker(
-  orgSlug: string,
-  eventId: string,
-) {
-  return runAction(async () => {
-    const ctx = await requireEvent(orgSlug, eventId, "event.update");
-    const settings = await loadEventWebsiteSettings(
-      ctx.organisation.id,
-      eventId,
-    );
-    if (!settings) throw new Error("Event not found.");
-
-    const speaker: EventSiteSpeaker = {
-      id: newSpeakerId(),
-      firstName: "New",
-      lastName: "Speaker",
-      featured: false,
-      order: 0,
-      hidden: false,
-    };
-
-    const sections = settings.config.sections.map((s) => {
-      if (s.type !== "speakers") return s;
-      const items = (s.content.items as EventSiteSpeaker[]) ?? [];
-      return {
-        ...s,
-        content: { ...s.content, items: [...items, speaker] },
-      };
-    });
-
-    const config: EventSiteConfig = { ...settings.config, sections };
-    await saveWebsiteConfig(ctx.organisation.id, eventId, config);
-
-    return { speaker, config };
-  }, "Could not add speaker.");
 }
 
 export { parseEventSiteConfig };

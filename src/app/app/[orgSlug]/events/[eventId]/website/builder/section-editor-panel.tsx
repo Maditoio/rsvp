@@ -1,16 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import Link from "next/link";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Drawer } from "@/components/ui/drawer";
 import {
   EVENT_SITE_CTA_TYPES,
-  speakerDisplayName,
   type EventSiteConfig,
-  type EventSiteSpeaker,
 } from "@/modules/event-sites/config";
 import {
   HERO_SPLIT_IMAGE_WIDTH,
@@ -21,7 +19,6 @@ import { SectionAppearanceControls } from "./appearance-controls";
 import {
   sectionDisplayLabel,
   updateSection,
-  newDefaultSpeaker,
   type EventSiteSection,
 } from "@/modules/event-sites/sections";
 import { prepareImageForUpload } from "@/modules/files/prepare-image-upload";
@@ -74,8 +71,6 @@ export function SectionEditorPanel({
   const contentImageInputRef = useRef<HTMLInputElement>(null);
   const venueInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const speakerInputRef = useRef<HTMLInputElement>(null);
-  const editingSpeakerIdRef = useRef<string | null>(null);
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
 
   const section = config.sections.find((s) => s.id === selectedSectionId) ?? null;
@@ -399,27 +394,29 @@ export function SectionEditorPanel({
         ) : null}
 
         {section.type === "speakers" ? (
-          <SpeakersEditor
-            section={section}
-            onTitleChange={(title) => patchContent(section.id, { title })}
-            onChange={(items) => patchContent(section.id, { items })}
-            onPatchContent={(patch) => patchContent(section.id, patch)}
-            uploadingSpeakerId={
-              uploadingKey?.startsWith(`${section.id}:speaker:`)
-                ? uploadingKey.split(":").pop() ?? null
-                : null
-            }
-            onUploadPhoto={(speakerId, file) => {
-              editingSpeakerIdRef.current = speakerId;
-              void runUpload(`${section.id}:speaker:${speakerId}`, file, "speaker", (url) => {
-                const items = ((section.content.items as EventSiteSpeaker[]) ?? []).map((s) =>
-                  s.id === speakerId ? { ...s, photoUrl: url } : s,
-                );
-                patchContent(section.id, { items });
-              });
-            }}
-            speakerInputRef={speakerInputRef}
-          />
+          <>
+            <Field
+              label="Section title"
+              value={String(section.content.title ?? "")}
+              onChange={(title) => patchContent(section.id, { title })}
+            />
+            <ImageDisplayControls
+              content={section.content}
+              onChange={(patch) => patchContent(section.id, patch)}
+              hideRadius
+            />
+            <p className="text-xs text-slate-500">
+              Photo fit and position apply to all speakers. Manage names, bios, photos,
+              and visibility on the{" "}
+              <Link
+                href={`/app/${orgSlug}/events/${eventId}/speakers`}
+                className="font-medium text-indigo-600 hover:text-indigo-700"
+              >
+                Speakers
+              </Link>{" "}
+              tab — the roster syncs automatically to this preview and the published site.
+            </p>
+          </>
         ) : null}
 
         {section.type === "agenda" ? (
@@ -918,170 +915,6 @@ function RangeField({
         className="mt-2 w-full accent-indigo-600"
       />
     </div>
-  );
-}
-
-function SpeakersEditor({
-  section,
-  onTitleChange,
-  onChange,
-  onPatchContent,
-  uploadingSpeakerId,
-  onUploadPhoto,
-  speakerInputRef,
-}: {
-  section: EventSiteSection;
-  onTitleChange: (title: string) => void;
-  onChange: (items: EventSiteSpeaker[]) => void;
-  onPatchContent: (patch: Record<string, unknown>) => void;
-  uploadingSpeakerId: string | null;
-  onUploadPhoto: (speakerId: string, file: File) => void;
-  speakerInputRef: React.RefObject<HTMLInputElement | null>;
-}) {
-  const items = (section.content.items as EventSiteSpeaker[]) ?? [];
-  const [drawerSpeaker, setDrawerSpeaker] = useState<EventSiteSpeaker | null>(null);
-
-  function updateSpeaker(id: string, patch: Partial<EventSiteSpeaker>) {
-    onChange(items.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-  }
-
-  return (
-    <>
-      <Field
-        label="Section title"
-        value={String(section.content.title ?? "")}
-        onChange={onTitleChange}
-      />
-      <ImageDisplayControls
-        content={section.content}
-        onChange={onPatchContent}
-        hideRadius
-      />
-      <p className="text-xs text-slate-500">
-        Photo fit and position apply to all speakers. Corners stay square so layouts stay clean on mobile.
-      </p>
-      <div className="space-y-2">
-        {items.map((speaker) => (
-          <div key={speaker.id} className="rounded-lg border border-slate-200 p-3">
-            <div className="flex items-center gap-3">
-              {speaker.photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={speaker.photoUrl} alt="" className="size-10 rounded-full object-cover" />
-              ) : (
-                <div className="flex size-10 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700">
-                  {speakerDisplayName(speaker).slice(0, 1)}
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{speakerDisplayName(speaker)}</p>
-                <p className="truncate text-xs text-slate-500">
-                  {speaker.hidden ? "Hidden on site" : (speaker.jobTitle ?? "Speaker")}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                aria-label={speaker.hidden ? "Show speaker on site" : "Hide speaker from site"}
-                onClick={() => updateSpeaker(speaker.id, { hidden: !speaker.hidden })}
-              >
-                {speaker.hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </Button>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setDrawerSpeaker(speaker)}>
-                Edit
-              </Button>
-            </div>
-          </div>
-        ))}
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => {
-            const speaker = newDefaultSpeaker();
-            onChange([...items, speaker]);
-            setDrawerSpeaker(speaker);
-          }}
-        >
-          Add speaker
-        </Button>
-      </div>
-
-      <Drawer
-        open={Boolean(drawerSpeaker)}
-        onClose={() => setDrawerSpeaker(null)}
-        title="Edit speaker"
-        size="md"
-      >
-        {drawerSpeaker ? (
-          <div className="space-y-4">
-            <Field label="First name" value={drawerSpeaker.firstName} onChange={(v) => {
-              updateSpeaker(drawerSpeaker.id, { firstName: v });
-              setDrawerSpeaker({ ...drawerSpeaker, firstName: v });
-            }} />
-            <Field label="Last name" value={drawerSpeaker.lastName} onChange={(v) => {
-              updateSpeaker(drawerSpeaker.id, { lastName: v });
-              setDrawerSpeaker({ ...drawerSpeaker, lastName: v });
-            }} />
-            <Field label="Job title" value={drawerSpeaker.jobTitle ?? ""} onChange={(v) => {
-              updateSpeaker(drawerSpeaker.id, { jobTitle: v });
-              setDrawerSpeaker({ ...drawerSpeaker, jobTitle: v });
-            }} />
-            <Field label="Organization" value={drawerSpeaker.organization ?? ""} onChange={(v) => {
-              updateSpeaker(drawerSpeaker.id, { organization: v });
-              setDrawerSpeaker({ ...drawerSpeaker, organization: v });
-            }} />
-            <TextArea label="Bio" value={drawerSpeaker.bio ?? ""} onChange={(v) => {
-              updateSpeaker(drawerSpeaker.id, { bio: v });
-              setDrawerSpeaker({ ...drawerSpeaker, bio: v });
-            }} />
-            <Toggle
-              label="Show on published site"
-              checked={!drawerSpeaker.hidden}
-              onChange={(visible) => {
-                updateSpeaker(drawerSpeaker.id, { hidden: !visible });
-                setDrawerSpeaker({ ...drawerSpeaker, hidden: !visible });
-              }}
-            />
-            <div>
-              <Label>Photo</Label>
-              <input
-                ref={speakerInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file && drawerSpeaker) onUploadPhoto(drawerSpeaker.id, file);
-                  e.target.value = "";
-                }}
-              />
-              <Button type="button" variant="secondary" size="sm" className="mt-1.5" disabled={uploadingSpeakerId === drawerSpeaker.id} onClick={() => speakerInputRef.current?.click()}>
-                {uploadingSpeakerId === drawerSpeaker.id ? (
-                  <span className="inline-flex items-center gap-2">
-                    <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                    Uploading…
-                  </span>
-                ) : (
-                  "Upload photo"
-                )}
-              </Button>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                onChange(items.filter((s) => s.id !== drawerSpeaker.id));
-                setDrawerSpeaker(null);
-              }}
-            >
-              Remove speaker
-            </Button>
-          </div>
-        ) : null}
-      </Drawer>
-    </>
   );
 }
 

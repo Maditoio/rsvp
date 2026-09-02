@@ -3,6 +3,7 @@ import { sortSections } from "@/modules/event-sites/sections";
 import { eventSiteThemeStyle } from "@/modules/event-sites/theme";
 import { getPrimaryCta, type EventSiteConfig } from "@/modules/event-sites/config";
 import type { EventSponsorTierGroup } from "@/modules/sponsors/config";
+import type { EventSpeakerRecord } from "@/modules/speakers/config";
 import { renderSiteSection } from "./site-sections";
 import type { EventSiteRenderData, EventSiteRendererProps } from "./types";
 
@@ -33,6 +34,7 @@ export function buildEventSiteRenderData(input: {
   config: EventSiteConfig;
   sessions: EventSiteRenderData["sessions"];
   sponsorGroups?: EventSponsorTierGroup[];
+  speakers?: EventSpeakerRecord[];
   applyUrl: string | null;
   allowPublicApplication: boolean;
   editorMode?: boolean;
@@ -60,6 +62,7 @@ export function buildEventSiteRenderData(input: {
     config: input.config,
     sessions: input.sessions,
     sponsorGroups: input.sponsorGroups ?? [],
+    speakers: input.speakers ?? [],
     ctaHref,
     ctaVisible,
     ctaLabel: cta.label,

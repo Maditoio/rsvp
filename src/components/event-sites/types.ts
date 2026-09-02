@@ -3,6 +3,7 @@ import type { EventSiteSectionType } from "@/modules/event-sites/sections";
 import type { EventSiteSessionPreview } from "@/modules/event-sites/service";
 import type { EventSiteGlobalStyles } from "@/modules/event-sites/theme";
 import type { EventSponsorTierGroup } from "@/modules/sponsors/config";
+import type { EventSpeakerRecord } from "@/modules/speakers/config";
 
 export type EventSiteRenderData = {
   orgName: string;
@@ -15,6 +16,7 @@ export type EventSiteRenderData = {
   config: EventSiteConfig;
   sessions: EventSiteSessionPreview[];
   sponsorGroups: EventSponsorTierGroup[];
+  speakers: EventSpeakerRecord[];
   ctaHref: string | null;
   ctaVisible: boolean;
   ctaLabel: string;

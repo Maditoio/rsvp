@@ -88,6 +88,7 @@ export default async function PublicEventSitePage({
     config: site.websiteConfig,
     sessions: agendaSection?.enabled ? site.sessions.slice(0, maxSessions) : [],
     sponsorGroups: site.sponsorGroups,
+    speakers: site.speakers,
     applyUrl: site.applyUrl,
     allowPublicApplication: site.allowPublicApplication,
   });

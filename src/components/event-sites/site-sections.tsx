@@ -3,8 +3,8 @@ import { cn, formatEventWindow } from "@/lib/utils";
 import { SiteMobileNav } from "./site-mobile-nav";
 import {
   speakerDisplayName,
-  type EventSiteSpeaker,
-} from "@/modules/event-sites/config";
+  type EventSpeakerRecord,
+} from "@/modules/speakers/config";
 import {
   heroFullMinHeight,
   heroImageObjectStyles,
@@ -708,33 +708,40 @@ export function EventDetailsSection(props: SectionRenderProps & { data: EventSit
   );
 }
 
-function speakerPlaceholder(): EventSiteSpeaker {
+function speakerPlaceholder(): EventSpeakerRecord {
   return {
     id: "placeholder",
     firstName: "Add",
     lastName: "speaker",
-    order: 0,
+    jobTitle: null,
+    organization: null,
+    country: null,
+    bio: null,
+    photoUrl: null,
+    linkedInUrl: null,
+    websiteUrl: null,
     featured: false,
     hidden: false,
+    sortOrder: 0,
   };
 }
 
 function resolveSpeakers(
-  content: Record<string, unknown>,
+  data: EventSiteRenderData,
   editorMode?: boolean,
-): EventSiteSpeaker[] {
-  const allItems = (content.items as EventSiteSpeaker[]) ?? [];
+): EventSpeakerRecord[] {
+  const allItems = data.speakers ?? [];
   const visibleItems = allItems.filter((s) => !s.hidden);
   const displayItems = editorMode ? allItems : visibleItems;
   if (displayItems.length) return displayItems;
   return editorMode ? [speakerPlaceholder()] : [];
 }
 
-function sortSpeakers(speakers: EventSiteSpeaker[]): EventSiteSpeaker[] {
-  return [...speakers].sort((a, b) => a.order - b.order);
+function sortSpeakers(speakers: EventSpeakerRecord[]): EventSpeakerRecord[] {
+  return [...speakers].sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-function speakerSubtitle(speaker: EventSiteSpeaker): string | null {
+function speakerSubtitle(speaker: EventSpeakerRecord): string | null {
   const line = [speaker.jobTitle, speaker.organization].filter(Boolean).join(" · ");
   return line || null;
 }
@@ -745,7 +752,7 @@ function SpeakerPhoto({
   className,
   display,
 }: {
-  speaker: EventSiteSpeaker;
+  speaker: EventSpeakerRecord;
   editorMode?: boolean;
   className?: string;
   display: Record<string, unknown>;
@@ -779,7 +786,7 @@ function SpeakerPhoto({
   );
 }
 
-function SpeakerName({ speaker }: { speaker: EventSiteSpeaker }) {
+function SpeakerName({ speaker }: { speaker: EventSpeakerRecord }) {
   return (
     <p
       className="font-semibold text-[var(--site-primary)]"
@@ -795,7 +802,7 @@ function SpeakerDetails({
   bioLines = 3,
   compact = false,
 }: {
-  speaker: EventSiteSpeaker;
+  speaker: EventSpeakerRecord;
   bioLines?: 2 | 3 | "none";
   compact?: boolean;
 }) {
@@ -828,7 +835,7 @@ function SpeakerRow({
   imageDisplay,
   bioLines = 2,
 }: {
-  speaker: EventSiteSpeaker;
+  speaker: EventSpeakerRecord;
   editorMode?: boolean;
   imageDisplay: Record<string, unknown>;
   bioLines?: 2 | 3;
@@ -858,7 +865,7 @@ function SpeakersListLayout({
   editorMode,
   imageDisplay,
 }: {
-  speakers: EventSiteSpeaker[];
+  speakers: EventSpeakerRecord[];
   editorMode?: boolean;
   imageDisplay: Record<string, unknown>;
 }) {
@@ -883,7 +890,7 @@ function SpeakersResponsiveGridLayout({
   editorMode,
   imageDisplay,
 }: {
-  speakers: EventSiteSpeaker[];
+  speakers: EventSpeakerRecord[];
   editorMode?: boolean;
   imageDisplay: Record<string, unknown>;
 }) {
@@ -927,7 +934,7 @@ function SpeakersSpotlightLayout({
   editorMode,
   imageDisplay,
 }: {
-  speakers: EventSiteSpeaker[];
+  speakers: EventSpeakerRecord[];
   editorMode?: boolean;
   imageDisplay: Record<string, unknown>;
 }) {
@@ -1132,7 +1139,7 @@ function SponsorTierBlock({
 export function SpeakersSection(props: SectionRenderProps & { data: EventSiteRenderData }) {
   const { content, editorMode, variant } = props;
   const title = String(content.title ?? "Speakers");
-  const speakers = sortSpeakers(resolveSpeakers(content, editorMode));
+  const speakers = sortSpeakers(resolveSpeakers(props.data, editorMode));
   const layout =
     variant === "default" || variant === "cards" ? "grid" : variant;
   const imageDisplay = content as Record<string, unknown>;

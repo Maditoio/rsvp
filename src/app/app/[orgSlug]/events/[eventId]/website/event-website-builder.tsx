@@ -123,6 +123,7 @@ export function EventWebsiteBuilder({
           ? sessions.slice(0, maxSessions)
           : [],
         sponsorGroups: initial.sponsorGroups,
+        speakers: initial.speakers,
         applyUrl,
         allowPublicApplication: initial.event.allowPublicApplication,
         editorMode: true,
