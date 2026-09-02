@@ -169,7 +169,9 @@ export async function loadPublishedEventSite(
   const event = await prisma.event.findFirst({
     where: { slug: eventSlug, organisation: { slug: orgSlug } },
     include: {
-      organisation: { select: { id: true, name: true, slug: true } },
+      organisation: {
+        select: { id: true, name: true, slug: true, suspendedAt: true },
+      },
       settings: true,
     },
   });
@@ -177,6 +179,12 @@ export async function loadPublishedEventSite(
 
   const isPreview = options?.preview === true;
   const isPublished = Boolean(event.settings.websitePublishedAt);
+  const isSuspended = Boolean(
+    event.organisation.suspendedAt || event.suspendedAt,
+  );
+
+  if (isSuspended && !isPreview) return null;
+  if (isSuspended && isPreview && !options?.organisationId) return null;
 
   if (!isPublished && !isPreview) return null;
   if (

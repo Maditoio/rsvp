@@ -53,6 +53,36 @@ export default async function PlatformPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
+              Governance
+            </p>
+            <h2 className="mt-1 font-display text-2xl text-slate-900">
+              Organisations & events
+            </h2>
+            <p className="mt-1 text-sm text-slate-700">
+              Search companies, review their events, and suspend access when needed.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/platform/organisations"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
+            >
+              Organisations
+            </Link>
+            <Link
+              href="/platform/events"
+              className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              All events
+            </Link>
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
               Navigation
             </p>
             <h2 className="mt-1 font-display text-2xl text-slate-900">Product surfaces</h2>

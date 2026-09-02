@@ -173,6 +173,8 @@ model Organisation {
   slug      String   @unique
   /// Platform-admin gate: AI floor-plan assist (detect/plot). Manual map flow always available.
   venueAiFloorPlanEnabled Boolean @default(false)
+  /// When set, organiser access and public surfaces for this tenant are blocked.
+  suspendedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -261,6 +263,8 @@ model Event {
   endsAt         DateTime?
   logoUrl        String?
   website        String?
+  /// When set, organiser access and the published event site are blocked.
+  suspendedAt    DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

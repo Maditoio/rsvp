@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Route } from "lucide-react";
+import { Building2, CalendarDays, LayoutDashboard, Route } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/platform", label: "Overview", icon: LayoutDashboard, exact: true },
+  { href: "/platform/organisations", label: "Organisations", icon: Building2 },
+  { href: "/platform/events", label: "Events", icon: CalendarDays },
   { href: "/platform/surfaces", label: "Surfaces", icon: Route },
 ] as const;
 

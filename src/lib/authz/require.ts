@@ -100,6 +100,10 @@ export async function requireOrg(
     throw new AuthzError("Organisation not found", 404);
   }
 
+  if (!user.platformAdmin && organisation.suspendedAt) {
+    throw new AuthzError("This organisation has been suspended.", 403);
+  }
+
   if (user.platformAdmin) {
     return {
       user,
@@ -172,10 +176,19 @@ export async function requireEvent(
 
   const event = await prisma.event.findFirst({
     where: { id: eventId, organisationId: organisation.id },
-    select: { id: true },
+    select: { id: true, suspendedAt: true },
   });
   if (!event) {
     throw new AuthzError("Event not found", 404);
+  }
+
+  if (!user.platformAdmin) {
+    if (organisation.suspendedAt) {
+      throw new AuthzError("This organisation has been suspended.", 403);
+    }
+    if (event.suspendedAt) {
+      throw new AuthzError("This event has been suspended.", 403);
+    }
   }
 
   const membership = user.platformAdmin
