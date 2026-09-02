@@ -56,11 +56,11 @@ export const createSpeakerSchema = z.object({
   websiteUrl: optionalUrl,
   featured: z
     .union([z.literal("on"), z.literal("true"), z.literal("false"), z.boolean()])
-    .optional()
+    .nullish()
     .transform((v) => v === "on" || v === true || v === "true"),
   hidden: z
     .union([z.literal("on"), z.literal("true"), z.literal("false"), z.boolean()])
-    .optional()
+    .nullish()
     .transform((v) => v === "on" || v === true || v === "true"),
 });
 

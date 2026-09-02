@@ -1,8 +1,32 @@
 import { describe, expect, it } from "vitest";
 import {
+  createSpeakerSchema,
   legacyWebsiteSpeakerToRecord,
   speakerDisplayName,
 } from "./config";
+
+describe("createSpeakerSchema", () => {
+  it("accepts unchecked featured and hidden checkboxes from FormData", () => {
+    const parsed = createSpeakerSchema.parse({
+      firstName: "Alex",
+      lastName: "Morgan",
+      jobTitle: "CEO",
+      organization: "Acme",
+      country: "United Kingdom",
+      bio: "",
+      linkedInUrl: "",
+      websiteUrl: "",
+      featured: null,
+      hidden: null,
+    });
+    expect(parsed).toMatchObject({
+      firstName: "Alex",
+      lastName: "Morgan",
+      featured: false,
+      hidden: false,
+    });
+  });
+});
 
 describe("speakerDisplayName", () => {
   it("joins first and last name", () => {
