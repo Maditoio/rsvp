@@ -14,7 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { COUNTRIES, isCountryName } from "@/lib/countries";
 import { useToast } from "@/components/ui/toast";
 import { prepareImageForUpload } from "@/modules/files/prepare-image-upload";
 import { friendlyUploadFailure } from "@/modules/files/image-upload";
@@ -47,6 +49,10 @@ export function SpeakerForm({
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [featured, setFeatured] = useState(speaker?.featured ?? false);
   const [hidden, setHidden] = useState(speaker?.hidden ?? false);
+  const legacyCountry =
+    speaker?.country && !isCountryName(speaker.country)
+      ? speaker.country
+      : null;
 
   return (
     <Drawer
@@ -166,12 +172,23 @@ export function SpeakerForm({
 
         <div>
           <Label htmlFor="speaker-country">Country</Label>
-          <Input
+          <Select
             id="speaker-country"
             name="country"
             defaultValue={speaker?.country ?? ""}
+            autoComplete="country-name"
             className="mt-1.5"
-          />
+          >
+            <option value="">Select a country</option>
+            {legacyCountry ? (
+              <option value={legacyCountry}>{legacyCountry}</option>
+            ) : null}
+            {COUNTRIES.map((country) => (
+              <option key={country} value={country}>
+                {country}
+              </option>
+            ))}
+          </Select>
         </div>
 
         <div>
