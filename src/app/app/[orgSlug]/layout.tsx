@@ -1,6 +1,8 @@
 import { OrganiserShell } from "@/components/shells/organiser-shell";
+import { SuspensionNotice } from "@/components/suspension-notice";
 import { requireOrg } from "@/lib/authz/require";
-import { safe } from "@/lib/authz/safe";
+import { isSuspensionError, suspensionScope } from "@/lib/authz/suspension";
+import { fromAuthz, safe } from "@/lib/authz/safe";
 import { loadUserWorkspaces } from "@/modules/workspaces/resolve";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +12,18 @@ export default async function OrgLayout({
   params,
 }: LayoutProps<"/app/[orgSlug]">) {
   const { orgSlug } = await params;
-  const ctx = await safe(() => requireOrg(orgSlug, "org.read"));
+
+  let ctx;
+  try {
+    ctx = await requireOrg(orgSlug, "org.read");
+  } catch (error) {
+    const scope = suspensionScope(error);
+    if (isSuspensionError(error) && scope) {
+      return <SuspensionNotice scope={scope} />;
+    }
+    fromAuthz(error);
+  }
+
   const { workspaces } = await safe(() => loadUserWorkspaces());
   return (
     <OrganiserShell

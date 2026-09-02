@@ -1,7 +1,9 @@
 import { EventNavScope } from "@/components/shells/event-nav-scope";
 import { EventLayoutFrame } from "@/components/shells/event-layout-frame";
+import { SuspensionNotice } from "@/components/suspension-notice";
 import { requireEvent } from "@/lib/authz/require";
-import { safe } from "@/lib/authz/safe";
+import { isSuspensionError, suspensionScope } from "@/lib/authz/suspension";
+import { fromAuthz } from "@/lib/authz/safe";
 import { prisma } from "@/lib/db/prisma";
 
 export default async function EventLayout({
@@ -9,7 +11,18 @@ export default async function EventLayout({
   params,
 }: LayoutProps<"/app/[orgSlug]/events/[eventId]">) {
   const { orgSlug, eventId } = await params;
-  const ctx = await safe(() => requireEvent(orgSlug, eventId, "event.read"));
+
+  let ctx;
+  try {
+    ctx = await requireEvent(orgSlug, eventId, "event.read");
+  } catch (error) {
+    const scope = suspensionScope(error);
+    if (isSuspensionError(error) && scope) {
+      return <SuspensionNotice scope={scope} />;
+    }
+    fromAuthz(error);
+  }
+
   const event = await prisma.event.findFirst({
     where: { id: eventId, organisationId: ctx.organisation.id },
     select: { name: true },

@@ -101,7 +101,11 @@ export async function requireOrg(
   }
 
   if (!user.platformAdmin && organisation.suspendedAt) {
-    throw new AuthzError("This organisation has been suspended.", 403);
+    throw new AuthzError(
+      "This organisation has been suspended.",
+      403,
+      "ORG_SUSPENDED",
+    );
   }
 
   if (user.platformAdmin) {
@@ -184,10 +188,18 @@ export async function requireEvent(
 
   if (!user.platformAdmin) {
     if (organisation.suspendedAt) {
-      throw new AuthzError("This organisation has been suspended.", 403);
+      throw new AuthzError(
+        "This organisation has been suspended.",
+        403,
+        "ORG_SUSPENDED",
+      );
     }
     if (event.suspendedAt) {
-      throw new AuthzError("This event has been suspended.", 403);
+      throw new AuthzError(
+        "This event has been suspended.",
+        403,
+        "EVENT_SUSPENDED",
+      );
     }
   }
 

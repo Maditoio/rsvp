@@ -1,10 +1,14 @@
+export type AuthzErrorCode = "ORG_SUSPENDED" | "EVENT_SUSPENDED";
+
 export class AuthzError extends Error {
   status: number;
+  code?: AuthzErrorCode;
 
-  constructor(message: string, status = 403) {
+  constructor(message: string, status = 403, code?: AuthzErrorCode) {
     super(message);
     this.name = "AuthzError";
     this.status = status;
+    this.code = code;
   }
 }
 
