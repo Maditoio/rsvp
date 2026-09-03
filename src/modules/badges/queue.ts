@@ -153,51 +153,10 @@ export type BadgeQueueRow = {
   checkedInAt: Date | null;
 };
 
-/**
- * Ensure every desk-checked-in attendee has a Badge queue row.
- * Repairs cases where check-in succeeded without enqueue (or older data).
- */
-export async function syncBadgeQueueForCheckedInAttendees(
-  organisationId: string,
-  eventId: string,
-): Promise<number> {
-  const checkedIn = await prisma.attendee.findMany({
-    where: {
-      organisationId,
-      eventId,
-      OR: [
-        { status: "CHECKED_IN" },
-        { checkIns: { some: {} } },
-      ],
-      badges: { none: {} },
-    },
-    select: { id: true },
-    take: 500,
-  });
-
-  if (checkedIn.length === 0) return 0;
-
-  const now = new Date();
-  await prisma.badge.createMany({
-    data: checkedIn.map((a) => ({
-      organisationId,
-      eventId,
-      attendeeId: a.id,
-      status: "QUEUED" as const,
-      queuedAt: now,
-    })),
-    skipDuplicates: true,
-  });
-
-  return checkedIn.length;
-}
-
 export async function loadBadgePrintQueue(
   organisationId: string,
   eventId: string,
 ): Promise<BadgeQueueRow[]> {
-  await syncBadgeQueueForCheckedInAttendees(organisationId, eventId);
-
   const [badges, credentials] = await Promise.all([
     prisma.badge.findMany({
       where: { organisationId, eventId },
