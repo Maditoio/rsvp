@@ -194,8 +194,9 @@ export function poseFromSnap(
   snapped: { x: number; y: number; guides: SnapGuideState },
   widthPct: number,
 ): Pick<BadgeElementPose, "x" | "y" | "anchorX"> {
-  if (snapped.guides.vertical) {
-    return { x: 50, y: snapped.y, anchorX: "center" };
+  // Only the true centre line uses centre anchoring so long text grows evenly.
+  if (snapped.guides.vertical === SNAP_CENTER_PCT) {
+    return { x: SNAP_CENTER_PCT, y: snapped.y, anchorX: "center" };
   }
   return { x: snapped.x, y: snapped.y, anchorX: "left" };
 }
@@ -224,14 +225,62 @@ export function moveLayoutElement(
 }
 
 export const SNAP_THRESHOLD_PCT = 2;
-
-export type SnapGuideState = {
-  vertical: boolean;
-  horizontal: boolean;
-};
+/** Stronger pull toward the true centre so it is easier to hit than nearby quarters. */
+export const SNAP_CENTER_THRESHOLD_PCT = 2.75;
+export const SNAP_CENTER_PCT = 50;
 
 /**
- * Snap so the element's centre lines up with the badge centre (and mid-axes).
+ * Vertical guide positions (% of badge width). Includes margins, quarters,
+ * thirds, and centre — matching common badge gutters (≈8%).
+ */
+export const SNAP_VERTICAL_TARGETS = [8, 25, 33.3, 50, 66.7, 75, 92] as const;
+
+/**
+ * Horizontal guide positions (% of badge height). Header / mid / footer bands.
+ */
+export const SNAP_HORIZONTAL_TARGETS = [8, 25, 33.3, 50, 66.7, 75, 88] as const;
+
+export type SnapGuideState = {
+  /** Active vertical guide at this % of badge width, or null. */
+  vertical: number | null;
+  /** Active horizontal guide at this % of badge height, or null. */
+  horizontal: number | null;
+};
+
+function snapThresholdForTarget(at: number, base: number): number {
+  return at === SNAP_CENTER_PCT ? SNAP_CENTER_THRESHOLD_PCT : base;
+}
+
+/**
+ * Pick the nearest guide within threshold. Centre wins ties so centre snaps
+ * stay preferred when equally close to a neighbour.
+ */
+export function nearestSnapTarget(
+  value: number,
+  targets: readonly number[],
+  threshold = SNAP_THRESHOLD_PCT,
+): number | null {
+  let best: number | null = null;
+  let bestDist = Infinity;
+
+  for (const t of targets) {
+    const limit = snapThresholdForTarget(t, threshold);
+    const dist = Math.abs(value - t);
+    if (dist > limit) continue;
+    if (
+      dist < bestDist ||
+      (dist === bestDist && t === SNAP_CENTER_PCT)
+    ) {
+      best = t;
+      bestDist = dist;
+    }
+  }
+
+  return best;
+}
+
+/**
+ * Snap so the element's centre lines up with nearby canvas guides.
  * `widthPct` / `heightPct` are the element size as % of the badge.
  */
 export function snapElementPose(
@@ -241,28 +290,27 @@ export function snapElementPose(
   heightPct: number,
   threshold = SNAP_THRESHOLD_PCT,
 ): { x: number; y: number; guides: SnapGuideState } {
-  const targets = [50];
   let nextX = x;
   let nextY = y;
-  let vertical = false;
-  let horizontal = false;
 
   const centerX = x + widthPct / 2;
-  for (const t of targets) {
-    if (Math.abs(centerX - t) <= threshold) {
-      nextX = t - widthPct / 2;
-      vertical = true;
-      break;
-    }
+  const vertical = nearestSnapTarget(
+    centerX,
+    SNAP_VERTICAL_TARGETS,
+    threshold,
+  );
+  if (vertical != null) {
+    nextX = vertical - widthPct / 2;
   }
 
   const centerY = y + heightPct / 2;
-  for (const t of targets) {
-    if (Math.abs(centerY - t) <= threshold) {
-      nextY = t - heightPct / 2;
-      horizontal = true;
-      break;
-    }
+  const horizontal = nearestSnapTarget(
+    centerY,
+    SNAP_HORIZONTAL_TARGETS,
+    threshold,
+  );
+  if (horizontal != null) {
+    nextY = horizontal - heightPct / 2;
   }
 
   return {

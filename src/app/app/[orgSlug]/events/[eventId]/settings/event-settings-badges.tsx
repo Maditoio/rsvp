@@ -38,7 +38,6 @@ import {
   type BadgeTextFill,
   type BadgeSponsor,
 } from "@/modules/badges/config";
-import { poseFromSnap, poseLeftEdge, snapElementPose } from "@/modules/badges/layout";
 import {
   BADGE_PREVIEW_SAMPLE,
   type BadgePrintPayload,
@@ -548,41 +547,20 @@ export function BadgeSettingsForm({
                 Selected:{" "}
                 <strong>{BADGE_ELEMENT_LABELS[selectedElement]}</strong>
                 {" · "}
-                drag to move — snaps to centre
+                drag to move — snaps to guides
               </p>
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
                 onClick={() => {
-                  const el = document.querySelector(
-                    `[data-badge-el="${selectedElement}"]`,
-                  ) as HTMLElement | null;
-                  const parent = el?.offsetParent as HTMLElement | null;
-                  const pose = layout[selectedElement];
-                  let widthPct = 20;
-                  let heightPct = 12;
-                  if (el && parent) {
-                    const er = el.getBoundingClientRect();
-                    const pr = parent.getBoundingClientRect();
-                    widthPct = (er.width / pr.width) * 100;
-                    heightPct = (er.height / pr.height) * 100;
-                  }
-                  const snapped = snapElementPose(
-                    poseLeftEdge(pose, widthPct),
-                    pose.y,
-                    widthPct,
-                    heightPct,
-                    100,
-                  );
-                  const next = poseFromSnap(snapped, widthPct);
                   setLayout((prev) =>
                     moveLayoutElement(
                       prev,
                       selectedElement,
-                      next.x,
-                      next.y,
-                      next.anchorX,
+                      50,
+                      prev[selectedElement].y,
+                      "center",
                     ),
                   );
                 }}
@@ -592,8 +570,8 @@ export function BadgeSettingsForm({
             </div>
           ) : (
             <p className="text-xs text-slate-500">
-              Click an element on the preview, then drag. Guides appear when it
-              snaps to the badge centre.
+              Click an element on the preview, then drag. Guides appear for
+              margins, thirds, quarters, and centre.
             </p>
           )}
         </BadgeSettingsSection>
@@ -1181,9 +1159,10 @@ export function BadgeSettingsForm({
               <p className="text-xs text-indigo-700">
                 Preview shows a sample “Delegate” category. Drag the category
                 pill on the canvas to place it — use Print preview to confirm
-                the exact printed position. When snapped to the horizontal
-                centre, the category stays centred even if the label text is
-                longer on a printed badge.
+                the exact printed position. Guides snap to margins, thirds,
+                quarters, and centre. When snapped to the horizontal centre,
+                the category stays centred even if the label text is longer on
+                a printed badge.
               </p>
               <div>
                 <Label htmlFor="categoryStyle">Category style</Label>
@@ -1205,23 +1184,13 @@ export function BadgeSettingsForm({
                 size="sm"
                 onClick={() => {
                   setSelectedElement("category");
-                  const pose = layout.category;
-                  const widthPct = 28;
-                  const snapped = snapElementPose(
-                    poseLeftEdge(pose, widthPct),
-                    pose.y,
-                    widthPct,
-                    8,
-                    100,
-                  );
-                  const next = poseFromSnap(snapped, widthPct);
                   setLayout((prev) =>
                     moveLayoutElement(
                       prev,
                       "category",
-                      next.x,
-                      next.y,
-                      next.anchorX,
+                      50,
+                      prev.category.y,
+                      "center",
                     ),
                   );
                 }}
@@ -1426,7 +1395,8 @@ export function BadgeSettingsForm({
           <div>
             <p className="text-sm font-semibold text-slate-900">Live canvas</p>
             <p className="mt-1 text-xs text-slate-500">
-              Drag any visible element. Selection ring uses indigo-600.
+              Drag any visible element. Selection ring uses indigo-600. Guides
+              snap to margins, thirds, quarters, and centre.
             </p>
           </div>
 

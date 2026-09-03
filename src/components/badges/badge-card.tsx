@@ -11,6 +11,7 @@ import {
   poseFromSnap,
   poseLeftEdge,
   snapElementPose,
+  SNAP_CENTER_PCT,
   type BadgeElementId,
   type BadgeLayout,
   type HorizontalAnchor,
@@ -147,15 +148,23 @@ function PoseShell({
 function SnapGuides({ guides }: { guides: SnapGuideState }) {
   return (
     <>
-      {guides.vertical ? (
+      {guides.vertical != null ? (
         <div
-          className="pointer-events-none absolute inset-y-0 left-1/2 z-[60] w-px -translate-x-1/2 bg-indigo-600"
+          className={cn(
+            "pointer-events-none absolute inset-y-0 z-[60] w-px -translate-x-1/2",
+            guides.vertical === SNAP_CENTER_PCT ? "bg-indigo-600" : "bg-indigo-400",
+          )}
+          style={{ left: `${guides.vertical}%` }}
           aria-hidden
         />
       ) : null}
-      {guides.horizontal ? (
+      {guides.horizontal != null ? (
         <div
-          className="pointer-events-none absolute inset-x-0 top-1/2 z-[60] h-px -translate-y-1/2 bg-indigo-600"
+          className={cn(
+            "pointer-events-none absolute inset-x-0 z-[60] h-px -translate-y-1/2",
+            guides.horizontal === SNAP_CENTER_PCT ? "bg-indigo-600" : "bg-indigo-400",
+          )}
+          style={{ top: `${guides.horizontal}%` }}
           aria-hidden
         />
       ) : null}
