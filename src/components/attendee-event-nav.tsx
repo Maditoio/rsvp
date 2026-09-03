@@ -8,6 +8,7 @@ import {
   CalendarDays,
   GitMerge,
   Handshake,
+  IdCard,
   LayoutDashboard,
   ListChecks,
   MapPinned,
@@ -37,6 +38,7 @@ function attendeeEventSecondaryItems(eventId: string) {
   return [
     { href: `${base}/profile`, label: "Profile", icon: User },
     { href: `${base}/qr`, label: "Check-in", icon: QrCode },
+    { href: `${base}/badge`, label: "Badge", icon: IdCard },
   ];
 }
 

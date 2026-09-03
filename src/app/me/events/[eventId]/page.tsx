@@ -154,12 +154,35 @@ export default async function AttendeeEventPage({
             Checked in {checkedInAt.toLocaleString()}
           </p>
         ) : null}
-        <Link
-          href={`/me/events/${eventId}/qr`}
-          className="mt-6 inline-flex rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
-        >
-          Show my QR code
-        </Link>
+        <div className="mt-6 flex flex-wrap gap-3">
+          {checkedInAt ? (
+            <Link
+              href={`/me/events/${eventId}/badge`}
+              className="inline-flex rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              Show my digital badge
+            </Link>
+          ) : (
+            <Link
+              href={`/me/events/${eventId}/qr`}
+              className="inline-flex rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              Show check-in QR
+            </Link>
+          )}
+          {checkedInAt ? (
+            <Link
+              href={`/me/events/${eventId}/qr`}
+              className="inline-flex rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Desk check-in QR
+            </Link>
+          ) : (
+            <p className="self-center text-sm text-slate-500">
+              Your entrance badge unlocks after desk check-in.
+            </p>
+          )}
+        </div>
       </Card>
       {attendance.event.description ? (
         <Card>

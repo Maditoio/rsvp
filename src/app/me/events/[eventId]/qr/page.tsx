@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { QrCodeImage } from "@/components/qr-code";
 import { getMyAttendanceQrDataUrl } from "@/modules/attendees/actions";
@@ -15,10 +16,16 @@ export default async function AttendeeQrPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-4xl text-slate-900">My QR code</h1>
+      <h1 className="font-display text-4xl text-slate-900">Check-in QR</h1>
       <p className="max-w-lg text-slate-700">
-        This is an opaque attendance token. It does not contain your name,
-        email, or company. Present it to check-in staff.
+        Present this code to desk check-in staff. After you are checked in, open{" "}
+        <Link
+          href={`/me/events/${eventId}/badge`}
+          className="font-semibold text-indigo-600 hover:text-indigo-700"
+        >
+          My badge
+        </Link>{" "}
+        for your entrance pass on this phone.
       </p>
       <Card className="flex flex-col items-center">
         <QrCodeImage dataUrl={dataUrl} label="Opaque attendance check-in code" />
