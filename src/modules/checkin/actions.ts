@@ -21,7 +21,6 @@ import type {
 } from "./types";
 import {
   enqueueBadgeAfterCheckIn,
-  getBadgeQueueInfo,
   type BadgeQueueInfo,
 } from "@/modules/badges/queue";
 
@@ -174,11 +173,14 @@ export async function performCheckIn(
 
     const view = maskAttendeeForCheckIn(attendee);
     if (view.alreadyCheckedIn) {
-      const badgeQueue = await getBadgeQueueInfo({
+      const badgeQueue = await enqueueBadgeAfterCheckIn({
         organisationId: ctx.organisation.id,
         eventId,
         attendeeId: view.attendeeId,
       });
+      if (badgeQueue.justQueued) {
+        revalidateCheckIn(orgSlug, eventId);
+      }
       return toSuccess(view, "already_checked_in", badgeQueue);
     }
 
@@ -221,11 +223,14 @@ export async function performCheckInByAttendeeId(
 
     const view = maskAttendeeForCheckIn(attendee);
     if (view.alreadyCheckedIn) {
-      const badgeQueue = await getBadgeQueueInfo({
+      const badgeQueue = await enqueueBadgeAfterCheckIn({
         organisationId: ctx.organisation.id,
         eventId,
         attendeeId: view.attendeeId,
       });
+      if (badgeQueue.justQueued) {
+        revalidateCheckIn(orgSlug, eventId);
+      }
       return toSuccess(view, "already_checked_in", badgeQueue);
     }
 
