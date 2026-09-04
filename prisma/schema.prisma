@@ -429,16 +429,19 @@ model EventApplication {
   jobTitle       String?
   country        String?
   message        String?
+  categoryId     String?
   status         ApplicationStatus @default(PENDING)
   invitationId   String?
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category     InvitationCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@unique([eventId, email])
   @@index([organisationId, eventId, status])
+  @@index([categoryId])
 }
 
 model EventUser {
@@ -525,6 +528,7 @@ model InvitationCategory {
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   invitations  Invitation[]
   attendees    Attendee[]
+  applications EventApplication[]
 
   @@unique([eventId, slug])
   @@index([organisationId])

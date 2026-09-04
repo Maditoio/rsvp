@@ -23,6 +23,11 @@ import {
   sendInvitationEmail,
 } from "@/modules/communications/email";
 
+import {
+  isPublicAttendanceSlug,
+} from "@/modules/applications/attendance-types";
+import { ensurePublicAttendanceCategory } from "@/modules/applications/ensure-attendance-category";
+
 const applySchema = z.object({
   firstName: z.string().trim().min(1, "First name is required").max(80),
   lastName: z.string().trim().min(1, "Last name is required").max(80),
@@ -38,6 +43,13 @@ const applySchema = z.object({
     .optional()
     .or(z.literal("")),
   message: z.string().max(1000).optional().or(z.literal("")),
+  attendanceType: z
+    .string()
+    .trim()
+    .min(1, "Select how you are attending")
+    .refine(isPublicAttendanceSlug, {
+      message: "Select a valid attendance type",
+    }),
 });
 
 export async function submitPublicApplication(
@@ -56,6 +68,7 @@ export async function submitPublicApplication(
       jobTitle: String(formData.get("jobTitle") ?? ""),
       country: String(formData.get("country") ?? ""),
       message: String(formData.get("message") ?? ""),
+      attendanceType: String(formData.get("attendanceType") ?? ""),
     });
 
     const limited = await rateLimit(`apply:${input.email}`, 5, 60);
@@ -78,15 +91,24 @@ export async function submitPublicApplication(
       return actionFail("An application for this email is already on file.");
     }
 
+    const category = await ensurePublicAttendanceCategory({
+      organisationId: event.organisationId,
+      eventId: event.id,
+      slug: input.attendanceType,
+    });
+
     const application = await prisma.eventApplication.create({
       data: {
         organisationId: event.organisationId,
         eventId: event.id,
-        ...input,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        email: input.email,
         company: input.company || null,
         jobTitle: input.jobTitle || null,
         country: input.country || null,
         message: input.message || null,
+        categoryId: category.id,
       },
     });
 
@@ -97,7 +119,7 @@ export async function submitPublicApplication(
       resource: "event_application",
       resourceId: application.id,
       ip: (await headers()).get("x-forwarded-for"),
-      metadata: { email: input.email },
+      metadata: { email: input.email, attendanceType: input.attendanceType },
     });
 
     return actionOk({ id: application.id });
@@ -190,6 +212,7 @@ export async function decideApplication(
         organisationId: ctx.organisation.id,
         eventId,
         contactId: contact.id,
+        categoryId: application.categoryId,
         status: "SENT",
         tokenHash: token.hash,
         sentAt: new Date(),

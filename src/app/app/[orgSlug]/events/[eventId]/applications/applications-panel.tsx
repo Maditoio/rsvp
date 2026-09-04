@@ -25,6 +25,7 @@ type ApplicationRow = {
   jobTitle: string | null;
   country: string | null;
   message: string | null;
+  categoryName: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
   createdAt: string;
 };
@@ -64,6 +65,12 @@ export function ApplicationsPanel({
       width: "1.5fr",
       cell: (row) =>
         [row.jobTitle, row.company].filter(Boolean).join(" · ") || "—",
+    },
+    {
+      id: "attendance",
+      header: "Attending as",
+      width: "1fr",
+      cell: (row) => row.categoryName ?? "—",
     },
     {
       id: "status",
@@ -131,6 +138,7 @@ export function ApplicationsPanel({
               row.email,
               row.company,
               row.jobTitle,
+              row.categoryName,
               row.status,
             ]
               .filter(Boolean)
@@ -173,6 +181,14 @@ export function ApplicationsPanel({
             <input type="hidden" name="applicationId" value={current.id} />
             <p className="font-medium text-slate-700">{displayName(current)}</p>
             <p className="text-sm text-slate-700">{current.email}</p>
+            {current.categoryName ? (
+              <p className="text-sm text-slate-700">
+                Attending as{" "}
+                <span className="font-medium text-slate-900">
+                  {current.categoryName}
+                </span>
+              </p>
+            ) : null}
             {current.message ? (
               <p className="text-sm text-slate-700">{current.message}</p>
             ) : null}

@@ -11,6 +11,7 @@ import { TurnstileWidget } from "@/components/turnstile";
 import { COUNTRIES } from "@/lib/countries";
 import { isValidEmail } from "@/lib/validation";
 import { useToast } from "@/components/ui/toast";
+import { PUBLIC_ATTENDANCE_TYPES } from "@/modules/applications/attendance-types";
 
 export function PublicApplyForm({
   orgSlug,
@@ -57,12 +58,16 @@ export function PublicApplyForm({
         const firstName = String(formData.get("firstName") ?? "").trim();
         const lastName = String(formData.get("lastName") ?? "").trim();
         const email = String(formData.get("email") ?? "").trim();
+        const attendanceType = String(formData.get("attendanceType") ?? "").trim();
         const nextFieldErrors: Record<string, string> = {};
         if (!firstName) nextFieldErrors.firstName = "First name is required.";
         if (!lastName) nextFieldErrors.lastName = "Last name is required.";
         if (!email) nextFieldErrors.email = "Email is required.";
         else if (!isValidEmail(email)) {
           nextFieldErrors.email = "Enter a valid email address.";
+        }
+        if (!attendanceType) {
+          nextFieldErrors.attendanceType = "Select how you are attending.";
         }
         if (Object.keys(nextFieldErrors).length > 0) {
           setFieldErrors(nextFieldErrors);
@@ -135,6 +140,20 @@ export function PublicApplyForm({
             </option>
           ))}
         </Select>
+      </div>
+      <div>
+        <Label htmlFor="attendanceType">I am attending as</Label>
+        <Select id="attendanceType" name="attendanceType" required>
+          <option value="">Select attendance type</option>
+          {PUBLIC_ATTENDANCE_TYPES.map((type) => (
+            <option key={type.slug} value={type.slug}>
+              {type.name}
+            </option>
+          ))}
+        </Select>
+        {fieldErrors.attendanceType ? (
+          <p className="mt-1 text-sm text-danger">{fieldErrors.attendanceType}</p>
+        ) : null}
       </div>
       <div>
         <Label htmlFor="message">Why you wish to attend</Label>

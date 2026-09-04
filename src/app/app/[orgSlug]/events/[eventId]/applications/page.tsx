@@ -15,6 +15,7 @@ export default async function ApplicationsPage({
   const applications = await prisma.eventApplication.findMany({
     where: { eventId, organisationId: ctx.organisation.id },
     orderBy: { createdAt: "desc" },
+    include: { category: { select: { name: true, slug: true } } },
   });
 
   return (
@@ -52,6 +53,7 @@ export default async function ApplicationsPage({
             jobTitle: row.jobTitle,
             country: row.country,
             message: row.message,
+            categoryName: row.category?.name ?? null,
             status: row.status,
             createdAt: row.createdAt.toLocaleDateString("en-GB"),
           }))}
