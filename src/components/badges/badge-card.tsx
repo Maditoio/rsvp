@@ -211,24 +211,20 @@ function AttendeeName({
 function CategoryBadge({
   badge,
   textAlign,
-  editable,
 }: {
   badge: BadgePrintPayload;
   textAlign: string;
   editable?: boolean;
 }) {
   const { config } = badge;
-  const label = badge.categoryName?.trim() || "Category";
-  const isPlaceholder = !badge.categoryName?.trim();
+  const label = badge.categoryName?.trim();
+  if (!label) return null;
   const fontSize = config.categorySize > 0 ? config.categorySize : 10;
 
   if (config.categoryStyle === "pill") {
     return (
       <span
-        className={cn(
-          "inline-block max-w-[85mm] whitespace-nowrap rounded-full px-2.5 py-0.5 font-semibold shadow-sm ring-1 ring-white/70",
-          isPlaceholder && editable && "opacity-80",
-        )}
+        className="inline-block max-w-[85mm] whitespace-nowrap rounded-full px-2.5 py-0.5 font-semibold shadow-sm ring-1 ring-white/70"
         style={{
           ...categoryAccentStyle(label),
           fontSize,
@@ -242,11 +238,7 @@ function CategoryBadge({
 
   return (
     <p
-      className={cn(
-        "max-w-[85mm] font-semibold drop-shadow-sm",
-        textAlign,
-        isPlaceholder && editable && "opacity-80",
-      )}
+      className={cn("max-w-[85mm] font-semibold drop-shadow-sm", textAlign)}
       style={{
         fontSize,
         fontFamily: BADGE_FONT_CSS[config.categoryFont ?? "inter"],
@@ -500,18 +492,14 @@ export function BadgeCard({
         </>
       )}
 
-      {showCategory ? (
+      {showCategory && badge.categoryName?.trim() ? (
         <PoseShell
           id="category"
           {...shell}
           selected={selectedElement === "category"}
           className={editable ? "drop-shadow-md" : undefined}
         >
-          <CategoryBadge
-            badge={badge}
-            textAlign={textAlign}
-            editable={editable}
-          />
+          <CategoryBadge badge={badge} textAlign={textAlign} />
         </PoseShell>
       ) : null}
 

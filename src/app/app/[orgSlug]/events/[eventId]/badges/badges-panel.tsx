@@ -211,11 +211,6 @@ export function BadgesPanel({
   }
 
   function invalidate(row: BadgeListRow) {
-    const ok = window.confirm(
-      `Invalidate badge for ${row.firstName} ${row.lastName}?\n\nThe current badge QR will be denied at entrance. They return to the print queue for a replacement.`,
-    );
-    if (!ok) return;
-
     start(async () => {
       const result = await invalidateBadgeAndRequeue(
         orgSlug,
@@ -239,7 +234,6 @@ export function BadgesPanel({
             : r,
         ),
       );
-      setFilter("queued");
     });
   }
 

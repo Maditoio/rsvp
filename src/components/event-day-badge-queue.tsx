@@ -85,12 +85,6 @@ export function EventDayBadgeQueue({
   }
 
   function invalidate(row: BadgeQueueRow) {
-    const nextNumber = (row.activePrintNumber ?? 0) + 1;
-    const ok = window.confirm(
-      `Invalidate badge for ${row.firstName} ${row.lastName}?\n\nThe current badge QR will be denied at entrance. They will return to the print queue for Badge #${nextNumber}.`,
-    );
-    if (!ok) return;
-
     start(async () => {
       const result = await invalidateBadgeAndRequeue(
         orgSlug,
@@ -116,7 +110,6 @@ export function EventDayBadgeQueue({
             : r,
         ),
       );
-      setFilter("queued");
       router.refresh();
     });
   }
