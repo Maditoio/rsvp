@@ -257,14 +257,21 @@ async function applyMeetingRequestDecision(input: {
   });
 
   if (!request) {
-    const alreadyAccepted = await prisma.meetingRequest.findFirst({
+    const existing = await prisma.meetingRequest.findFirst({
       where: {
         id: input.requestId,
         eventId: input.eventId,
-        status: "ACCEPTED",
       },
+      select: { status: true },
     });
-    if (alreadyAccepted) {
+    // Idempotent: a second accept/decline after success should not look like a failure.
+    if (existing?.status === "ACCEPTED" && input.decision === "accept") {
+      return actionOk({});
+    }
+    if (existing?.status === "DECLINED" && input.decision === "decline") {
+      return actionOk({});
+    }
+    if (existing?.status === "ACCEPTED") {
       return actionFail(
         "This request was already accepted. Open Meetings to view or reschedule it.",
       );
@@ -277,11 +284,15 @@ async function applyMeetingRequestDecision(input: {
       where: { id: request.id },
       data: { status: "DECLINED", responseTokenHash: null },
     });
-    await refreshMatchScoresForPair(
-      input.eventId,
-      request.requesterId,
-      request.targetId,
-    );
+    try {
+      await refreshMatchScoresForPair(
+        input.eventId,
+        request.requesterId,
+        request.targetId,
+      );
+    } catch (error) {
+      console.error("refreshMatchScoresForPair after decline failed", error);
+    }
     revalidatePath(`/me/events/${input.eventId}/meetings`);
     revalidatePath(`/me/events/${input.eventId}/directory`);
     return actionOk({});
@@ -358,11 +369,16 @@ async function applyMeetingRequestDecision(input: {
     calendarWarning = await scheduleMeetingCalendars(meeting.id);
   }
 
-  await refreshMatchScoresForPair(
-    input.eventId,
-    request.requesterId,
-    request.targetId,
-  );
+  // Meeting is already committed — never fail the accept because of side effects.
+  try {
+    await refreshMatchScoresForPair(
+      input.eventId,
+      request.requesterId,
+      request.targetId,
+    );
+  } catch (error) {
+    console.error("refreshMatchScoresForPair after accept failed", error);
+  }
 
   revalidatePath(`/me/events/${input.eventId}/meetings`);
   revalidatePath(`/me/events/${input.eventId}/directory`);
@@ -420,6 +436,13 @@ export async function respondToMeetingByToken(
       return actionFail("This response link is not valid or has already been used.");
     }
     if (request.status !== "PENDING") {
+      // Same decision again → treat as success so the email link can redirect to Meetings.
+      if (
+        (request.status === "ACCEPTED" && decision === "accept") ||
+        (request.status === "DECLINED" && decision === "decline")
+      ) {
+        return { ...actionOk({}), eventId: request.eventId };
+      }
       return actionFail("This connection request has already been answered.");
     }
 
@@ -432,13 +455,17 @@ export async function respondToMeetingByToken(
     });
 
     if (result.ok && decision === "accept" && request.requester.userId) {
-      await createNotification({
-        organisationId: request.organisationId,
-        eventId: request.eventId,
-        userId: request.requester.userId,
-        title: "Connection accepted",
-        body: `${displayName(request.target)} accepted your connection request. A meeting has been created — open Meetings to view or reschedule it.`,
-      });
+      try {
+        await createNotification({
+          organisationId: request.organisationId,
+          eventId: request.eventId,
+          userId: request.requester.userId,
+          title: "Connection accepted",
+          body: `${displayName(request.target)} accepted your connection request. A meeting has been created — open Meetings to view or reschedule it.`,
+        });
+      } catch (error) {
+        console.error("connection accepted notification failed", error);
+      }
     }
 
     return { ...result, eventId: request.eventId };
