@@ -46,7 +46,12 @@ export async function findAvailableSlots(
   eventId: string,
   attendeeIdA: string,
   attendeeIdB: string,
-  options?: { durationMinutes?: number; excludeMeetingId?: string },
+  options?: {
+    durationMinutes?: number;
+    excludeMeetingId?: string;
+    /** Override "now" for tests; production uses the current time. */
+    now?: Date;
+  },
 ): Promise<SlotResult[]> {
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -56,6 +61,7 @@ export async function findAvailableSlots(
 
   const attendeeIds = [attendeeIdA, attendeeIdB];
   const timeZone = event.timezone || "UTC";
+  const now = options?.now ?? new Date();
 
   const googleBusyByAttendee = await loadGoogleBusyByAttendee(
     attendeeIds,
@@ -175,6 +181,12 @@ export async function findAvailableSlots(
       const slotEnd = addMinutes(slotStart, durationMinutes);
       if (slotEnd.getTime() > eventEnd.getTime()) break;
 
+      // Never auto-book a slot that has already started (multi-day events).
+      if (slotStart.getTime() < now.getTime()) {
+        slotStart = addMinutes(slotStart, BUFFER_MINUTES + durationMinutes);
+        continue;
+      }
+
       const candidate: TimeBlock = { start: slotStart, end: slotEnd };
 
       const aFree = !busyBlocksA.some((b) => blocksOverlap(candidate, b));
@@ -250,7 +262,7 @@ export async function autoScheduleMeeting(
 
   if (slots.length === 0) {
     throw new AutoScheduleError(
-      "No available slots found. Check meeting rooms, event hours, existing meetings, agenda sessions, and Google Calendar availability.",
+      "No available future slots found. Check meeting rooms, remaining event hours, existing meetings, agenda sessions, and Google Calendar availability.",
     );
   }
 
@@ -271,6 +283,7 @@ export async function pickFirstAvailableSlot(
   eventId: string,
   attendeeIdA: string,
   attendeeIdB: string,
+  options?: { now?: Date },
 ): Promise<SlotResult> {
   const event = await prisma.event.findUnique({
     where: { id: eventId },
@@ -289,10 +302,12 @@ export async function pickFirstAvailableSlot(
     );
   }
 
-  const slots = await findAvailableSlots(eventId, attendeeIdA, attendeeIdB);
+  const slots = await findAvailableSlots(eventId, attendeeIdA, attendeeIdB, {
+    now: options?.now,
+  });
   if (slots.length === 0) {
     throw new AutoScheduleError(
-      "No available slots found. Check meeting rooms, event hours, existing meetings, agenda sessions, and Google Calendar availability.",
+      "No available future slots found. Check meeting rooms, remaining event hours, existing meetings, agenda sessions, and Google Calendar availability.",
     );
   }
 
