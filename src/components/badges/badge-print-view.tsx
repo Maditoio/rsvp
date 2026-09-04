@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { BadgePrintPayload } from "@/modules/badges/print-payload";
+import {
+  chunkForPages,
+  computeA4SheetLayout,
+} from "@/modules/badges/a4-sheet";
 import { BadgeCard } from "@/components/badges/badge-card";
 import { Button } from "@/components/ui/button";
 
@@ -34,9 +38,19 @@ export function BadgePrintView({
   badges: BadgePrintPayload[];
   autoPrint?: boolean;
 }) {
-  const pageSize = badges[0]?.template.pageSize ?? "101.6mm 76.2mm";
-  const widthMm = badges[0]?.template.widthMm ?? 101.6;
-  const heightMm = badges[0]?.template.heightMm ?? 76.2;
+  const template = badges[0]?.template;
+  const widthMm = template?.widthMm ?? 101.6;
+  const heightMm = template?.heightMm ?? 76.2;
+  const printSheet = badges[0]?.config.printSheet ?? "label";
+  const a4 = useMemo(
+    () => (printSheet === "a4" ? computeA4SheetLayout(widthMm, heightMm) : null),
+    [printSheet, widthMm, heightMm],
+  );
+  const pages = useMemo(() => {
+    if (!a4) return null;
+    return chunkForPages(badges, a4.perPage);
+  }, [a4, badges]);
+  const pageSize = a4 ? "A4" : (template?.pageSize ?? "101.6mm 76.2mm");
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,29 +85,70 @@ export function BadgePrintView({
     );
   }
 
+  const sheetSummary = a4
+    ? `A4 sheet · ${a4.cols}×${a4.rows} (${a4.perPage} per page)`
+    : "One badge per page";
+
   return (
     <div ref={rootRef} className="badge-print-view mx-auto max-w-3xl px-4 py-8">
       <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-600">
           {badges.length} badge{badges.length === 1 ? "" : "s"} ·{" "}
-          {badges[0]!.template.name}
+          {template?.name} · {sheetSummary}
         </p>
         <Button type="button" onClick={() => window.print()}>
           Print
         </Button>
       </div>
 
-      <div className="badge-print-sheets flex flex-col items-center gap-4">
-        {badges.map((badge) => (
-          <div
-            key={badge.attendeeId}
-            className="badge-print-sheet"
-            style={{ width: `${widthMm}mm`, height: `${heightMm}mm` }}
-          >
-            <BadgeCard badge={badge} />
-          </div>
-        ))}
-      </div>
+      {a4 && pages ? (
+        <div className="badge-print-sheets flex flex-col items-center gap-6">
+          {pages.map((pageBadges, pageIndex) => (
+            <div
+              key={`page-${pageIndex}`}
+              className="badge-print-a4-page"
+              style={{
+                width: "210mm",
+                minHeight: "297mm",
+                padding: `${a4.marginMm}mm`,
+                boxSizing: "border-box",
+                display: "grid",
+                gridTemplateColumns: `repeat(${a4.cols}, ${a4.badgeWidthMm}mm)`,
+                gridAutoRows: `${a4.badgeHeightMm}mm`,
+                gap: `${a4.gapMm}mm`,
+                justifyContent: "center",
+                alignContent: "start",
+                background: "white",
+              }}
+            >
+              {pageBadges.map((badge) => (
+                <div
+                  key={badge.attendeeId}
+                  className="badge-print-cell"
+                  style={{
+                    width: `${a4.badgeWidthMm}mm`,
+                    height: `${a4.badgeHeightMm}mm`,
+                  }}
+                >
+                  <BadgeCard badge={badge} />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="badge-print-sheets flex flex-col items-center gap-4">
+          {badges.map((badge) => (
+            <div
+              key={badge.attendeeId}
+              className="badge-print-sheet"
+              style={{ width: `${widthMm}mm`, height: `${heightMm}mm` }}
+            >
+              <BadgeCard badge={badge} />
+            </div>
+          ))}
+        </div>
+      )}
 
       <style jsx global>{`
         @page {
@@ -145,6 +200,20 @@ export function BadgePrintView({
           }
 
           .badge-print-sheet:last-child {
+            page-break-after: auto;
+            break-after: auto;
+          }
+
+          .badge-print-a4-page {
+            width: 210mm !important;
+            min-height: 297mm !important;
+            height: 297mm !important;
+            page-break-after: always;
+            break-after: page;
+            box-shadow: none !important;
+          }
+
+          .badge-print-a4-page:last-child {
             page-break-after: auto;
             break-after: auto;
           }

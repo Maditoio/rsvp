@@ -7,6 +7,7 @@ export const BADGE_TEMPLATE_IDS = [
   "brother_dk11201",
   "avery_5392",
   "cr80_lanyard",
+  "cr80_portrait",
 ] as const;
 
 export type BadgeTemplateId = (typeof BADGE_TEMPLATE_IDS)[number];
@@ -20,7 +21,7 @@ export type BadgeTemplate = {
   heightMm: number;
   widthIn: number;
   heightIn: number;
-  /** CSS @page size */
+  /** CSS @page size when printing one badge per sheet */
   pageSize: string;
   /** Layout density */
   layout: "horizontal" | "vertical";
@@ -95,14 +96,25 @@ export const BADGE_TEMPLATES: Record<BadgeTemplateId, BadgeTemplate> = {
   },
   cr80_lanyard: {
     id: "cr80_lanyard",
-    name: "CR80 lanyard card",
-    printerHint: "PVC card printers — 85.6×54 mm (ISO/IEC 7810 ID-1)",
+    name: "CR80 landscape",
+    printerHint: "85.6×54 mm (ISO ID-1) — landscape",
     widthMm: 85.6,
     heightMm: 54,
     widthIn: 3.375,
     heightIn: 2.125,
     pageSize: "85.6mm 54mm",
     layout: "horizontal",
+  },
+  cr80_portrait: {
+    id: "cr80_portrait",
+    name: "CR80 portrait",
+    printerHint: "54×85.6 mm (ISO ID-1) — portrait / A4 cut-out",
+    widthMm: 54,
+    heightMm: 85.6,
+    widthIn: 2.125,
+    heightIn: 3.375,
+    pageSize: "54mm 85.6mm",
+    layout: "vertical",
   },
 };
 

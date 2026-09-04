@@ -14,6 +14,10 @@ import {
 } from "@/modules/badges/actions";
 import { listBadgeTemplates, getBadgeTemplate } from "@/modules/badges/templates";
 import {
+  computeA4SheetLayout,
+  type BadgePrintSheet,
+} from "@/modules/badges/a4-sheet";
+import {
   listBadgeDesigns,
   getBadgeDesign,
   type BadgeDesignId,
@@ -104,6 +108,9 @@ export function BadgeSettingsForm({
   const [designId, setDesignId] = useState<BadgeDesignId>(config.designId);
   const [applyPreset, setApplyPreset] = useState(true);
   const [templateId, setTemplateId] = useState(config.templateId);
+  const [printSheet, setPrintSheet] = useState<BadgePrintSheet>(
+    config.printSheet ?? "label",
+  );
   const [layout, setLayout] = useState<BadgeLayout>(
     () => config.layout ?? getLayoutPreset(config.designId),
   );
@@ -189,6 +196,11 @@ export function BadgeSettingsForm({
   );
 
   const templates = listBadgeTemplates();
+  const selectedTemplate = getBadgeTemplate(templateId);
+  const a4Preview =
+    printSheet === "a4"
+      ? computeA4SheetLayout(selectedTemplate.widthMm, selectedTemplate.heightMm)
+      : null;
   const designs = listBadgeDesigns();
   const effectiveLogoUrl = draftLogoUrl ?? logoUrl;
   const effectiveBgUrl = draftBgUrl ?? (config.badgeBgImageUrl || null);
@@ -224,6 +236,7 @@ export function BadgeSettingsForm({
     return {
       ...config,
       templateId,
+      printSheet,
       designId,
       layout,
       showEventLogo,
@@ -285,6 +298,7 @@ export function BadgeSettingsForm({
   }, [
     config,
     templateId,
+    printSheet,
     designId,
     layout,
     showEventLogo,
@@ -377,6 +391,7 @@ export function BadgeSettingsForm({
     setError(null);
     const formData = new FormData();
     formData.set("templateId", templateId);
+    formData.set("printSheet", printSheet);
     formData.set("designId", designId);
     formData.set("layout", serializeLayout(layout));
     formData.set("textAlign", textAlign);
@@ -471,7 +486,7 @@ export function BadgeSettingsForm({
           defaultOpen
         >
           <div>
-            <Label htmlFor="templateId">Printer label size</Label>
+            <Label htmlFor="templateId">Badge size & orientation</Label>
             <Select
               id="templateId"
               value={templateId}
@@ -486,6 +501,40 @@ export function BadgeSettingsForm({
                 </option>
               ))}
             </Select>
+            <p className="mt-1.5 text-xs text-slate-500">
+              Choose CR80 portrait (54×85.6 mm) for vertical cut-out cards, or
+              CR80 landscape for horizontal.
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="printSheet">Print layout</Label>
+            <Select
+              id="printSheet"
+              value={printSheet}
+              onChange={(e) =>
+                setPrintSheet(e.target.value as BadgePrintSheet)
+              }
+              className="mt-1.5"
+            >
+              <option value="label">
+                One badge per page (label / badge printer)
+              </option>
+              <option value="a4">
+                Multiple badges on A4 (print & cut out)
+              </option>
+            </Select>
+            {a4Preview ? (
+              <p className="mt-1.5 text-xs text-slate-500">
+                About {a4Preview.perPage} badges per A4 page (
+                {a4Preview.cols}×{a4Preview.rows} grid) at{" "}
+                {selectedTemplate.widthMm}×{selectedTemplate.heightMm} mm.
+              </p>
+            ) : (
+              <p className="mt-1.5 text-xs text-slate-500">
+                Each badge prints on its own page sized to the label.
+              </p>
+            )}
           </div>
 
           <div>

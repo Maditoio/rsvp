@@ -3,6 +3,10 @@ import "server-only";
 import { prisma } from "@/lib/db/prisma";
 import { writeAudit } from "@/modules/audit/log";
 import { rotateBadgeCredential } from "./credentials";
+import { classifyPreprintCandidate } from "./preprint";
+
+export { classifyPreprintCandidate } from "./preprint";
+export type { PreprintCandidateAction } from "./preprint";
 
 export type BadgeQueueInfo = {
   queued: boolean;
@@ -266,4 +270,156 @@ export async function invalidateAndRequeueBadge(input: {
   });
 
   return { printNumber: issued.printNumber };
+}
+
+export type PreprintEnqueueResult = {
+  queued: number;
+  alreadyQueued: number;
+  skippedPrinted: number;
+  skippedNoQr: number;
+  attendeeIds: string[];
+};
+
+/**
+ * Put registered attendees on the badge print queue without check-in
+ * (pre-print / cut-out sheets). Skips already-printed badges and people
+ * without a desk QR token.
+ */
+export async function enqueueAttendeesForPreprint(input: {
+  organisationId: string;
+  eventId: string;
+  attendeeIds: string[];
+  userId?: string | null;
+}): Promise<PreprintEnqueueResult> {
+  const uniqueIds = [...new Set(input.attendeeIds.filter(Boolean))];
+  if (uniqueIds.length === 0) {
+    return {
+      queued: 0,
+      alreadyQueued: 0,
+      skippedPrinted: 0,
+      skippedNoQr: 0,
+      attendeeIds: [],
+    };
+  }
+
+  const [attendees, existingBadges] = await Promise.all([
+    prisma.attendee.findMany({
+      where: {
+        organisationId: input.organisationId,
+        eventId: input.eventId,
+        id: { in: uniqueIds },
+      },
+      select: { id: true, attendanceTokenEnc: true },
+    }),
+    prisma.badge.findMany({
+      where: {
+        organisationId: input.organisationId,
+        eventId: input.eventId,
+        attendeeId: { in: uniqueIds },
+      },
+      select: { id: true, attendeeId: true, status: true },
+    }),
+  ]);
+
+  const badgeByAttendee = new Map(
+    existingBadges.map((b) => [b.attendeeId, b] as const),
+  );
+
+  let queued = 0;
+  let alreadyQueued = 0;
+  let skippedPrinted = 0;
+  let skippedNoQr = 0;
+  const queuedIds: string[] = [];
+  const now = new Date();
+
+  for (const attendee of attendees) {
+    const existing = badgeByAttendee.get(attendee.id);
+    const action = classifyPreprintCandidate(
+      Boolean(attendee.attendanceTokenEnc),
+      existing?.status,
+    );
+
+    if (action === "no_qr") {
+      skippedNoQr++;
+      continue;
+    }
+    if (action === "printed") {
+      skippedPrinted++;
+      continue;
+    }
+    if (action === "already_queued") {
+      alreadyQueued++;
+      queuedIds.push(attendee.id);
+      continue;
+    }
+
+    if (existing) {
+      await prisma.badge.update({
+        where: { id: existing.id },
+        data: { status: "QUEUED", queuedAt: now },
+      });
+    } else {
+      await prisma.badge.create({
+        data: {
+          organisationId: input.organisationId,
+          eventId: input.eventId,
+          attendeeId: attendee.id,
+          status: "QUEUED",
+          queuedAt: now,
+        },
+      });
+    }
+    queued++;
+    queuedIds.push(attendee.id);
+  }
+
+  if (queued > 0) {
+    await writeAudit({
+      organisationId: input.organisationId,
+      eventId: input.eventId,
+      userId: input.userId ?? null,
+      action: "badge.preprint_queue",
+      resource: "event",
+      resourceId: input.eventId,
+      metadata: {
+        queued,
+        alreadyQueued,
+        skippedPrinted,
+        skippedNoQr,
+        requested: uniqueIds.length,
+      },
+    });
+  }
+
+  return {
+    queued,
+    alreadyQueued,
+    skippedPrinted,
+    skippedNoQr,
+    attendeeIds: queuedIds,
+  };
+}
+
+/** All attendees with a desk QR who are not already printed. */
+export async function listEligiblePreprintAttendeeIds(
+  organisationId: string,
+  eventId: string,
+): Promise<string[]> {
+  const [attendees, printed] = await Promise.all([
+    prisma.attendee.findMany({
+      where: {
+        organisationId,
+        eventId,
+        attendanceTokenEnc: { not: null },
+      },
+      select: { id: true },
+    }),
+    prisma.badge.findMany({
+      where: { organisationId, eventId, status: "PRINTED" },
+      select: { attendeeId: true },
+    }),
+  ]);
+
+  const printedSet = new Set(printed.map((b) => b.attendeeId));
+  return attendees.filter((a) => !printedSet.has(a.id)).map((a) => a.id);
 }

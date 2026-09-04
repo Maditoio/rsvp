@@ -30,6 +30,7 @@ import {
 import { parseGradientAngle } from "./colors";
 import { BADGE_TEMPLATE_IDS } from "./templates";
 import { BADGE_DESIGN_IDS } from "./designs";
+import { parseBadgePrintSheet } from "./a4-sheet";
 import { ensureBadgeRecord, loadBadgePrintPayload } from "./service";
 import { prisma } from "@/lib/db/prisma";
 import type { Prisma } from "@prisma/client";
@@ -101,6 +102,10 @@ function parseSettingsForm(formData: FormData, existing: BadgeConfig): BadgeConf
     templateId: String(
       formData.get("templateId") ?? existing.templateId,
     ) as BadgeConfig["templateId"],
+    printSheet: parseBadgePrintSheet(
+      formData.get("printSheet") ?? existing.printSheet,
+      existing.printSheet,
+    ),
     designId,
     showCompany: formData.get("showCompany") === "on",
     showJobTitle: formData.get("showJobTitle") === "on",
@@ -639,4 +644,74 @@ export async function invalidateBadgeAndRequeue(
 
     return result;
   }, "Could not invalidate badge.");
+}
+
+const preprintIdsSchema = z.object({
+  attendeeIds: z.array(z.string().min(1)).min(1).max(500),
+});
+
+/** Queue selected attendees for pre-print (no check-in required). */
+export async function enqueueBadgesForPreprint(
+  orgSlug: string,
+  eventId: string,
+  attendeeIds: string[],
+) {
+  return runAction(async () => {
+    const ctx = await requireEvent(orgSlug, eventId, "checkin.perform");
+    const parsed = preprintIdsSchema.parse({ attendeeIds });
+    const { enqueueAttendeesForPreprint } = await import("./queue");
+    const result = await enqueueAttendeesForPreprint({
+      organisationId: ctx.organisation.id,
+      eventId,
+      attendeeIds: parsed.attendeeIds,
+      userId: ctx.user.id,
+    });
+
+    for (const path of badgePaths(orgSlug, eventId)) {
+      revalidatePath(path);
+    }
+
+    return result;
+  }, "Could not queue badges for pre-print.");
+}
+
+/** Queue every registered attendee with a desk QR who is not already printed. */
+export async function enqueueAllEligibleBadgesForPreprint(
+  orgSlug: string,
+  eventId: string,
+) {
+  return runAction(async () => {
+    const ctx = await requireEvent(orgSlug, eventId, "checkin.perform");
+    const {
+      enqueueAttendeesForPreprint,
+      listEligiblePreprintAttendeeIds,
+    } = await import("./queue");
+
+    const attendeeIds = await listEligiblePreprintAttendeeIds(
+      ctx.organisation.id,
+      eventId,
+    );
+    if (attendeeIds.length === 0) {
+      return {
+        queued: 0,
+        alreadyQueued: 0,
+        skippedPrinted: 0,
+        skippedNoQr: 0,
+        attendeeIds: [] as string[],
+      };
+    }
+
+    const result = await enqueueAttendeesForPreprint({
+      organisationId: ctx.organisation.id,
+      eventId,
+      attendeeIds,
+      userId: ctx.user.id,
+    });
+
+    for (const path of badgePaths(orgSlug, eventId)) {
+      revalidatePath(path);
+    }
+
+    return result;
+  }, "Could not queue badges for pre-print.");
 }
