@@ -12,7 +12,7 @@ import {
   removeMeetingCalendarsWithWarning,
   syncMeetingCalendarsWithWarning,
 } from "@/modules/calendar/sync";
-import { autoScheduleMeeting, AutoScheduleError, pickFirstAvailableSlot } from "@/modules/meetings/scheduler";
+import { autoScheduleMeeting, AutoScheduleError } from "@/modules/meetings/scheduler";
 import {
   type ActionResult,
   actionFail,
@@ -23,27 +23,18 @@ import { generateOpaqueToken } from "@/lib/crypto/tokens";
 import { sendMeetingRequestEmail } from "@/modules/communications/email";
 import { meetingMessageSchema } from "@/lib/validation";
 import { createNotification } from "@/modules/notifications/service";
-import { recomputeMatchScoresForAttendee } from "@/modules/matchmaking/score";
 import { getAppUrl, displayName } from "@/lib/utils";
-import { loadMeetingRequestByToken } from "@/modules/meetings/respond-token";
+import {
+  applyMeetingRequestDecision,
+  type MeetingActionResult,
+} from "@/modules/meetings/decisions";
 import {
   parseOperationsConfig,
   categoryAutoAccepts,
   maxConcurrentForCategory,
 } from "@/modules/events/operations-config";
 
-export type MeetingActionResult = ActionResult<{ calendarWarning?: string }>;
-
-async function refreshMatchScoresForPair(
-  eventId: string,
-  requesterId: string,
-  targetId: string,
-) {
-  await Promise.all([
-    recomputeMatchScoresForAttendee(eventId, requesterId),
-    recomputeMatchScoresForAttendee(eventId, targetId),
-  ]);
-}
+export type { MeetingActionResult };
 
 async function myAttendee(eventId: string) {
   const user = await requireUser();
@@ -238,153 +229,6 @@ export async function requestMeeting(
   }
 }
 
-async function applyMeetingRequestDecision(input: {
-  requestId: string;
-  eventId: string;
-  organisationId: string;
-  decision: "accept" | "decline";
-  roomId?: string | null;
-  startsAt?: Date | null;
-  endsAt?: Date | null;
-  autoSchedule?: boolean;
-}): Promise<MeetingActionResult> {
-  const request = await prisma.meetingRequest.findFirst({
-    where: {
-      id: input.requestId,
-      eventId: input.eventId,
-      status: "PENDING",
-    },
-  });
-
-  if (!request) {
-    const existing = await prisma.meetingRequest.findFirst({
-      where: {
-        id: input.requestId,
-        eventId: input.eventId,
-      },
-      select: { status: true },
-    });
-    // Idempotent: a second accept/decline after success should not look like a failure.
-    if (existing?.status === "ACCEPTED" && input.decision === "accept") {
-      return actionOk({});
-    }
-    if (existing?.status === "DECLINED" && input.decision === "decline") {
-      return actionOk({});
-    }
-    if (existing?.status === "ACCEPTED") {
-      return actionFail(
-        "This request was already accepted. Open Meetings to view or reschedule it.",
-      );
-    }
-    return actionFail("Meeting request not found or no longer pending.");
-  }
-
-  if (input.decision === "decline") {
-    await prisma.meetingRequest.update({
-      where: { id: request.id },
-      data: { status: "DECLINED", responseTokenHash: null },
-    });
-    try {
-      await refreshMatchScoresForPair(
-        input.eventId,
-        request.requesterId,
-        request.targetId,
-      );
-    } catch (error) {
-      console.error("refreshMatchScoresForPair after decline failed", error);
-    }
-    revalidatePath(`/me/events/${input.eventId}/meetings`);
-    revalidatePath(`/me/events/${input.eventId}/directory`);
-    return actionOk({});
-  }
-
-  const roomId = input.roomId ?? null;
-  const startsAt = input.startsAt ?? null;
-  const endsAt = input.endsAt ?? null;
-  const participantIds = [request.requesterId, request.targetId];
-  const shouldAutoSchedule = input.autoSchedule ?? (!startsAt && !endsAt);
-
-  let autoSlot: Awaited<ReturnType<typeof pickFirstAvailableSlot>> | null = null;
-  if (shouldAutoSchedule) {
-    try {
-      autoSlot = await pickFirstAvailableSlot(
-        input.eventId,
-        request.requesterId,
-        request.targetId,
-      );
-    } catch (error) {
-      if (error instanceof AutoScheduleError) {
-        return actionFail(error.message);
-      }
-      return actionFail("Could not auto-schedule this meeting.");
-    }
-  } else if (startsAt && endsAt) {
-    try {
-      await validateMeetingSlot(input.eventId, participantIds, startsAt, endsAt, { roomId });
-    } catch (error) {
-      return actionFail(publicActionError(error, "Could not schedule this meeting."));
-    }
-  }
-
-  const resolvedStartsAt = autoSlot?.startsAt ?? startsAt;
-  const resolvedEndsAt = autoSlot?.endsAt ?? endsAt;
-  const resolvedRoomId = autoSlot?.roomId ?? roomId;
-
-  const meeting = await prisma.$transaction(async (tx) => {
-    await tx.meetingRequest.update({
-      where: { id: request.id },
-      data: { status: "ACCEPTED", responseTokenHash: null },
-    });
-    const m = await tx.meeting.create({
-      data: {
-        organisationId: input.organisationId,
-        eventId: input.eventId,
-        roomId: resolvedRoomId,
-        startsAt: resolvedStartsAt,
-        endsAt: resolvedEndsAt,
-        status: "SCHEDULED",
-      },
-    });
-    await tx.meetingParticipant.createMany({
-      data: [
-        {
-          organisationId: input.organisationId,
-          eventId: input.eventId,
-          meetingId: m.id,
-          attendeeId: request.requesterId,
-        },
-        {
-          organisationId: input.organisationId,
-          eventId: input.eventId,
-          meetingId: m.id,
-          attendeeId: request.targetId,
-        },
-      ],
-    });
-    return m;
-  });
-
-  let calendarWarning: string | undefined;
-  if (resolvedStartsAt && resolvedEndsAt) {
-    calendarWarning = await scheduleMeetingCalendars(meeting.id);
-  }
-
-  // Meeting is already committed — never fail the accept because of side effects.
-  try {
-    await refreshMatchScoresForPair(
-      input.eventId,
-      request.requesterId,
-      request.targetId,
-    );
-  } catch (error) {
-    console.error("refreshMatchScoresForPair after accept failed", error);
-  }
-
-  revalidatePath(`/me/events/${input.eventId}/meetings`);
-  revalidatePath(`/me/events/${input.eventId}/directory`);
-  return actionOk({ calendarWarning });
-}
-
 export async function respondToMeeting(
   eventId: string,
   formData: FormData,
@@ -423,54 +267,6 @@ export async function respondToMeeting(
     });
   } catch (error) {
     return actionFail(publicActionError(error, "Could not update meeting request."));
-  }
-}
-
-export async function respondToMeetingByToken(
-  rawToken: string,
-  decision: "accept" | "decline",
-): Promise<MeetingActionResult & { eventId?: string }> {
-  try {
-    const request = await loadMeetingRequestByToken(rawToken);
-    if (!request) {
-      return actionFail("This response link is not valid or has already been used.");
-    }
-    if (request.status !== "PENDING") {
-      // Same decision again → treat as success so the email link can redirect to Meetings.
-      if (
-        (request.status === "ACCEPTED" && decision === "accept") ||
-        (request.status === "DECLINED" && decision === "decline")
-      ) {
-        return { ...actionOk({}), eventId: request.eventId };
-      }
-      return actionFail("This connection request has already been answered.");
-    }
-
-    const result = await applyMeetingRequestDecision({
-      requestId: request.id,
-      eventId: request.eventId,
-      organisationId: request.organisationId,
-      decision,
-      autoSchedule: decision === "accept",
-    });
-
-    if (result.ok && decision === "accept" && request.requester.userId) {
-      try {
-        await createNotification({
-          organisationId: request.organisationId,
-          eventId: request.eventId,
-          userId: request.requester.userId,
-          title: "Connection accepted",
-          body: `${displayName(request.target)} accepted your connection request. A meeting has been created — open Meetings to view or reschedule it.`,
-        });
-      } catch (error) {
-        console.error("connection accepted notification failed", error);
-      }
-    }
-
-    return { ...result, eventId: request.eventId };
-  } catch (error) {
-    return actionFail(publicActionError(error, "Could not respond to connection request."));
   }
 }
 
