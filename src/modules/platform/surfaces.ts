@@ -38,7 +38,8 @@ const ATTENDEE_EVENT_ROUTES = [
   { suffix: "/profile", label: "Profile", description: "Public delegate profile" },
   { suffix: "/privacy", label: "Privacy", description: "Visibility and AI opt-in" },
   { suffix: "/map", label: "Venue map", description: "Floor plan and wayfinding" },
-  { suffix: "/qr", label: "Check-in QR", description: "Personal check-in code" },
+  { suffix: "/qr", label: "Check-in QR", description: "Personal desk check-in code" },
+  { suffix: "/badge", label: "Digital badge", description: "Entrance pass after check-in" },
 ] as const;
 
 function globalWorkspaceLinks(): PlatformSurfaceLink[] {

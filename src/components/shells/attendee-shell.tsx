@@ -23,7 +23,18 @@ export function AttendeeShell({
       <header className="bg-white shadow-[0_1px_0_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.03)]">
         <div className="mx-auto flex h-[60px] max-w-6xl items-center justify-between gap-4 px-6">
           <div className="min-w-0">
-            <BrandLogo href="/me" size={32} wordmarkClassName="text-2xl font-bold tracking-[-0.02em] text-slate-900" />
+            <BrandLogo
+              href="/me"
+              size={32}
+              withWordmark={false}
+              className="sm:hidden"
+            />
+            <BrandLogo
+              href="/me"
+              size={32}
+              className="hidden sm:inline-flex"
+              wordmarkClassName="text-2xl font-bold tracking-[-0.02em] text-slate-900"
+            />
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <WorkspaceSwitcher workspaces={workspaces} compact />

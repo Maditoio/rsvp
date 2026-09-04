@@ -14,6 +14,10 @@ import {
 } from "@/modules/badges/actions";
 import { listBadgeTemplates, getBadgeTemplate } from "@/modules/badges/templates";
 import {
+  computeA4SheetLayout,
+  type BadgePrintSheet,
+} from "@/modules/badges/a4-sheet";
+import {
   listBadgeDesigns,
   getBadgeDesign,
   type BadgeDesignId,
@@ -38,7 +42,6 @@ import {
   type BadgeTextFill,
   type BadgeSponsor,
 } from "@/modules/badges/config";
-import { poseFromSnap, poseLeftEdge, snapElementPose } from "@/modules/badges/layout";
 import {
   BADGE_PREVIEW_SAMPLE,
   type BadgePrintPayload,
@@ -105,6 +108,9 @@ export function BadgeSettingsForm({
   const [designId, setDesignId] = useState<BadgeDesignId>(config.designId);
   const [applyPreset, setApplyPreset] = useState(true);
   const [templateId, setTemplateId] = useState(config.templateId);
+  const [printSheet, setPrintSheet] = useState<BadgePrintSheet>(
+    config.printSheet ?? "label",
+  );
   const [layout, setLayout] = useState<BadgeLayout>(
     () => config.layout ?? getLayoutPreset(config.designId),
   );
@@ -190,6 +196,11 @@ export function BadgeSettingsForm({
   );
 
   const templates = listBadgeTemplates();
+  const selectedTemplate = getBadgeTemplate(templateId);
+  const a4Preview =
+    printSheet === "a4"
+      ? computeA4SheetLayout(selectedTemplate.widthMm, selectedTemplate.heightMm)
+      : null;
   const designs = listBadgeDesigns();
   const effectiveLogoUrl = draftLogoUrl ?? logoUrl;
   const effectiveBgUrl = draftBgUrl ?? (config.badgeBgImageUrl || null);
@@ -225,6 +236,7 @@ export function BadgeSettingsForm({
     return {
       ...config,
       templateId,
+      printSheet,
       designId,
       layout,
       showEventLogo,
@@ -286,6 +298,7 @@ export function BadgeSettingsForm({
   }, [
     config,
     templateId,
+    printSheet,
     designId,
     layout,
     showEventLogo,
@@ -378,6 +391,7 @@ export function BadgeSettingsForm({
     setError(null);
     const formData = new FormData();
     formData.set("templateId", templateId);
+    formData.set("printSheet", printSheet);
     formData.set("designId", designId);
     formData.set("layout", serializeLayout(layout));
     formData.set("textAlign", textAlign);
@@ -472,7 +486,7 @@ export function BadgeSettingsForm({
           defaultOpen
         >
           <div>
-            <Label htmlFor="templateId">Printer label size</Label>
+            <Label htmlFor="templateId">Badge size & orientation</Label>
             <Select
               id="templateId"
               value={templateId}
@@ -487,6 +501,40 @@ export function BadgeSettingsForm({
                 </option>
               ))}
             </Select>
+            <p className="mt-1.5 text-xs text-slate-500">
+              Choose CR80 portrait (54×85.6 mm) for vertical cut-out cards, or
+              CR80 landscape for horizontal.
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="printSheet">Print layout</Label>
+            <Select
+              id="printSheet"
+              value={printSheet}
+              onChange={(e) =>
+                setPrintSheet(e.target.value as BadgePrintSheet)
+              }
+              className="mt-1.5"
+            >
+              <option value="label">
+                One badge per page (label / badge printer)
+              </option>
+              <option value="a4">
+                Multiple badges on A4 (print & cut out)
+              </option>
+            </Select>
+            {a4Preview ? (
+              <p className="mt-1.5 text-xs text-slate-500">
+                About {a4Preview.perPage} badges per A4 page (
+                {a4Preview.cols}×{a4Preview.rows} grid) at{" "}
+                {selectedTemplate.widthMm}×{selectedTemplate.heightMm} mm.
+              </p>
+            ) : (
+              <p className="mt-1.5 text-xs text-slate-500">
+                Each badge prints on its own page sized to the label.
+              </p>
+            )}
           </div>
 
           <div>
@@ -548,41 +596,20 @@ export function BadgeSettingsForm({
                 Selected:{" "}
                 <strong>{BADGE_ELEMENT_LABELS[selectedElement]}</strong>
                 {" · "}
-                drag to move — snaps to centre
+                drag to move — snaps to guides
               </p>
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
                 onClick={() => {
-                  const el = document.querySelector(
-                    `[data-badge-el="${selectedElement}"]`,
-                  ) as HTMLElement | null;
-                  const parent = el?.offsetParent as HTMLElement | null;
-                  const pose = layout[selectedElement];
-                  let widthPct = 20;
-                  let heightPct = 12;
-                  if (el && parent) {
-                    const er = el.getBoundingClientRect();
-                    const pr = parent.getBoundingClientRect();
-                    widthPct = (er.width / pr.width) * 100;
-                    heightPct = (er.height / pr.height) * 100;
-                  }
-                  const snapped = snapElementPose(
-                    poseLeftEdge(pose, widthPct),
-                    pose.y,
-                    widthPct,
-                    heightPct,
-                    100,
-                  );
-                  const next = poseFromSnap(snapped, widthPct);
                   setLayout((prev) =>
                     moveLayoutElement(
                       prev,
                       selectedElement,
-                      next.x,
-                      next.y,
-                      next.anchorX,
+                      50,
+                      prev[selectedElement].y,
+                      "center",
                     ),
                   );
                 }}
@@ -592,8 +619,8 @@ export function BadgeSettingsForm({
             </div>
           ) : (
             <p className="text-xs text-slate-500">
-              Click an element on the preview, then drag. Guides appear when it
-              snaps to the badge centre.
+              Click an element on the preview, then drag. Guides appear for
+              margins, thirds, quarters, and centre.
             </p>
           )}
         </BadgeSettingsSection>
@@ -1181,9 +1208,10 @@ export function BadgeSettingsForm({
               <p className="text-xs text-indigo-700">
                 Preview shows a sample “Delegate” category. Drag the category
                 pill on the canvas to place it — use Print preview to confirm
-                the exact printed position. When snapped to the horizontal
-                centre, the category stays centred even if the label text is
-                longer on a printed badge.
+                the exact printed position. Guides snap to margins, thirds,
+                quarters, and centre. When snapped to the horizontal centre,
+                the category stays centred even if the label text is longer on
+                a printed badge.
               </p>
               <div>
                 <Label htmlFor="categoryStyle">Category style</Label>
@@ -1205,23 +1233,13 @@ export function BadgeSettingsForm({
                 size="sm"
                 onClick={() => {
                   setSelectedElement("category");
-                  const pose = layout.category;
-                  const widthPct = 28;
-                  const snapped = snapElementPose(
-                    poseLeftEdge(pose, widthPct),
-                    pose.y,
-                    widthPct,
-                    8,
-                    100,
-                  );
-                  const next = poseFromSnap(snapped, widthPct);
                   setLayout((prev) =>
                     moveLayoutElement(
                       prev,
                       "category",
-                      next.x,
-                      next.y,
-                      next.anchorX,
+                      50,
+                      prev.category.y,
+                      "center",
                     ),
                   );
                 }}
@@ -1426,7 +1444,8 @@ export function BadgeSettingsForm({
           <div>
             <p className="text-sm font-semibold text-slate-900">Live canvas</p>
             <p className="mt-1 text-xs text-slate-500">
-              Drag any visible element. Selection ring uses indigo-600.
+              Drag any visible element. Selection ring uses indigo-600. Guides
+              snap to margins, thirds, quarters, and centre.
             </p>
           </div>
 

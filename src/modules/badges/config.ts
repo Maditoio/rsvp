@@ -39,6 +39,7 @@ import {
   type BadgeBgFill,
 } from "./colors";
 import { BADGE_FONT_IDS, parseBadgeFont } from "./fonts";
+import { BADGE_PRINT_SHEETS, parseBadgePrintSheet } from "./a4-sheet";
 
 export {
   BADGE_SIZE_DEFAULTS,
@@ -128,6 +129,8 @@ export type BadgeSponsor = z.infer<typeof badgeSponsorSchema>;
 
 export const badgeConfigSchema = z.object({
   templateId: z.enum(BADGE_TEMPLATE_IDS).default("zebra_4x3"),
+  /** `label` = one badge per printer page; `a4` = multi-up cut-out sheet. */
+  printSheet: z.enum(BADGE_PRINT_SHEETS).default("label"),
   designId: z.enum(BADGE_DESIGN_IDS).default("classic"),
   showCompany: z.boolean().default(true),
   showJobTitle: z.boolean().default(true),
@@ -270,6 +273,7 @@ function migrateSizeFields(
   if (!("nameMaxLines" in next)) {
     next.nameMaxLines = 2;
   }
+  next.printSheet = parseBadgePrintSheet(next.printSheet, "label");
 
   next.nameFont = parseBadgeFont(next.nameFont);
   next.companyFont = parseBadgeFont(next.companyFont);

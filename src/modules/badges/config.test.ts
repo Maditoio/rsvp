@@ -15,6 +15,14 @@ describe("badge templates", () => {
     expect(templates.some((t) => t.id === "zebra_4x3")).toBe(true);
     expect(templates.some((t) => t.id === "dymo_30256")).toBe(true);
     expect(templates.some((t) => t.id === "cr80_lanyard")).toBe(true);
+    expect(templates.some((t) => t.id === "cr80_portrait")).toBe(true);
+  });
+
+  it("exposes CR80 portrait as 54×85.6 mm", () => {
+    const portrait = getBadgeTemplate("cr80_portrait");
+    expect(portrait.widthMm).toBe(54);
+    expect(portrait.heightMm).toBe(85.6);
+    expect(portrait.layout).toBe("vertical");
   });
 
   it("falls back to zebra 4x3 for unknown ids", () => {
@@ -85,6 +93,21 @@ describe("parseBadgeConfig", () => {
       badgeBgImageUrl: "javascript:alert(1)",
     });
     expect(parsed.badgeBgImageUrl).toBe("");
+  });
+
+  it("parses printSheet for A4 multi-up", () => {
+    const parsed = parseBadgeConfig({
+      templateId: "cr80_portrait",
+      printSheet: "a4",
+    });
+    expect(parsed.templateId).toBe("cr80_portrait");
+    expect(parsed.printSheet).toBe("a4");
+  });
+
+  it("defaults printSheet to label", () => {
+    expect(parseBadgeConfig({ templateId: "cr80_lanyard" }).printSheet).toBe(
+      "label",
+    );
   });
 });
 
