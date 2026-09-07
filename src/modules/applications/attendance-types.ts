@@ -1,8 +1,10 @@
 export const PUBLIC_ATTENDANCE_TYPES = [
   { slug: "delegate", name: "Delegate" },
+  { slug: "business-professional", name: "Business / Professional" },
+  { slug: "government", name: "Government" },
   { slug: "media", name: "Media" },
-  { slug: "exhibitor", name: "Exhibitor" },
-  { slug: "other", name: "Other" },
+  { slug: "academic-student", name: "Academic / Student" },
+  { slug: "general-attendee", name: "General Attendee" },
 ] as const;
 
 export type PublicAttendanceSlug =
