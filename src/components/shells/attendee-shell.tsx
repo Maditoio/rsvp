@@ -8,7 +8,7 @@ import { AttendeeNotifications } from "@/components/attendee-notifications";
 import { BrandLogo } from "@/components/brand-logo";
 import { WorkspaceSwitcher } from "@/components/workspace-switcher";
 import type { UserWorkspace } from "@/modules/workspaces/types";
-import { hasClerk } from "@/lib/utils";
+import { hasClerkFrontend } from "@/lib/utils";
 
 export function AttendeeShell({
   children,
@@ -39,7 +39,7 @@ export function AttendeeShell({
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <WorkspaceSwitcher workspaces={workspaces} compact />
             <AttendeeNotifications />
-            {hasClerk() ? (
+            {hasClerkFrontend() ? (
               <UserButton
                 appearance={{
                   elements: {

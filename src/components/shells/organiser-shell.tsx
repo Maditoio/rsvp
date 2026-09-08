@@ -8,7 +8,7 @@ import { EventNavProvider } from "@/components/shells/event-nav-scope";
 import { OrganiserMobileNav } from "@/components/shells/organiser-nav";
 import { OrgRail } from "@/components/shells/org-rail";
 import type { UserWorkspace } from "@/modules/workspaces/types";
-import { hasClerk } from "@/lib/utils";
+import { hasClerkFrontend } from "@/lib/utils";
 import type { Permission } from "@/lib/authz/permissions";
 
 function isBadgePrintPath(pathname: string) {
@@ -83,7 +83,7 @@ export function OrganiserShell({
                 orgRole={orgRole}
                 workspaces={workspaces}
                 trailing={
-                  hasClerk() ? (
+                  hasClerkFrontend() ? (
                     <UserButton />
                   ) : (
                     <span className="text-sm text-slate-600">

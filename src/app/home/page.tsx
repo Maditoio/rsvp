@@ -13,7 +13,7 @@ import {
 import { BrandLogo } from "@/components/brand-logo";
 import { Badge } from "@/components/ui/badge";
 import { getCurrentUser } from "@/lib/authz/require";
-import { hasClerk } from "@/lib/utils";
+import { hasClerkFrontend } from "@/lib/utils";
 import { loadUserWorkspaces } from "@/modules/workspaces/resolve";
 import {
   WORKSPACE_KIND_LABELS,
@@ -50,7 +50,7 @@ function HomeHeader({ email }: { email: string | null }) {
               {email}
             </p>
           ) : null}
-          {hasClerk() ? (
+          {hasClerkFrontend() ? (
             <UserButton
               appearance={{
                 elements: {

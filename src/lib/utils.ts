@@ -62,11 +62,17 @@ export function humanizeEnum(value: string) {
     .join(" ");
 }
 
-export function hasClerk() {
+export function hasClerkFrontend() {
   return Boolean(
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-      process.env.CLERK_SECRET_KEY &&
       !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes("xxxxxxxx"),
+  );
+}
+
+export function hasClerk() {
+  return Boolean(
+    hasClerkFrontend() &&
+      process.env.CLERK_SECRET_KEY,
   );
 }
 

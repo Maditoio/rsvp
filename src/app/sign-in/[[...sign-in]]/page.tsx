@@ -1,10 +1,10 @@
 import { SignIn } from "@clerk/nextjs";
-import { hasClerk } from "@/lib/utils";
+import { hasClerkFrontend } from "@/lib/utils";
 
 export default function SignInPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-      {hasClerk() ? (
+      {hasClerkFrontend() ? (
         <SignIn fallbackRedirectUrl="/home" signUpUrl="/sign-up" />
       ) : (
         <div className="max-w-md rounded-xl bg-white p-8 text-slate-900 shadow-sm">

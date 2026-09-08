@@ -1,5 +1,5 @@
 import { SignUp } from "@clerk/nextjs";
-import { hasClerk, safeAppRedirectPath } from "@/lib/utils";
+import { hasClerkFrontend, safeAppRedirectPath } from "@/lib/utils";
 
 export default async function SignUpPage({
   searchParams,
@@ -14,7 +14,7 @@ export default async function SignUpPage({
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
-      {hasClerk() ? (
+      {hasClerkFrontend() ? (
         <SignUp
           fallbackRedirectUrl={redirectUrl}
           forceRedirectUrl={redirectUrl}
