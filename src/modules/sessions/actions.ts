@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { SessionFormat } from "@prisma/client";
+import { SessionFormat, SessionMeetingPolicy } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent, requireUser } from "@/lib/authz/require";
 import { writeAudit } from "@/modules/audit/log";
 import { AuthzError } from "@/lib/db/tenant";
 import { syncSessionTeamsMeetingIfNeeded } from "@/modules/meetings/session-teams-actions";
 import { parseOptionalDateRange } from "@/lib/validation";
+import { SESSION_MEETING_POLICIES } from "@/modules/meetings/meeting-policy";
 
 const sessionSchema = z.object({
   sessionId: z.string().optional(),
@@ -19,6 +20,7 @@ const sessionSchema = z.object({
   endsAt: z.string().optional().or(z.literal("")),
   capacity: z.string().optional().or(z.literal("")),
   format: z.enum(["PHYSICAL", "ONLINE", "HYBRID"]).default("PHYSICAL"),
+  meetingPolicy: z.enum(SESSION_MEETING_POLICIES).default("BLOCK_REGISTERED"),
 });
 
 export async function saveSession(orgSlug: string, eventId: string, formData: FormData) {
@@ -38,6 +40,9 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
     endsAt: String(formData.get("endsAt") ?? ""),
     capacity: String(formData.get("capacity") ?? ""),
     format: String(formData.get("format") ?? "PHYSICAL") || "PHYSICAL",
+    meetingPolicy:
+      String(formData.get("meetingPolicy") ?? "BLOCK_REGISTERED") ||
+      "BLOCK_REGISTERED",
   });
 
   const capacityValue = input.capacity
@@ -63,6 +68,7 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
     endsAt: slot.endsAt,
     capacity: capacityValue,
     format: input.format as SessionFormat,
+    meetingPolicy: input.meetingPolicy as SessionMeetingPolicy,
   };
 
   let sessionId = input.sessionId;
@@ -86,6 +92,7 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
         endsAt: data.endsAt,
         capacity: data.capacity,
         format: data.format,
+        meetingPolicy: data.meetingPolicy,
       },
     });
 
@@ -114,6 +121,7 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
     resourceId: sessionId,
   });
   revalidatePath(`/app/${orgSlug}/events/${eventId}/agenda`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/meetings`);
   revalidatePath(`/me/events/${eventId}/agenda`);
   return { sessionId };
 }
@@ -135,6 +143,7 @@ export async function deleteSession(orgSlug: string, eventId: string, formData: 
     resourceId: sessionId,
   });
   revalidatePath(`/app/${orgSlug}/events/${eventId}/agenda`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/meetings`);
   revalidatePath(`/me/events/${eventId}/agenda`);
 }
 

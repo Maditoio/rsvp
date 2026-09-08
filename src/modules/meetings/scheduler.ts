@@ -7,6 +7,7 @@ import {
   loadGoogleBusyByAttendee,
   slotFreeOnGoogleCalendars,
 } from "@/modules/calendar/conflicts";
+import { splitMeetingPolicyBlocks } from "./meeting-policy";
 
 const BUFFER_MINUTES = 5;
 
@@ -33,6 +34,10 @@ interface TimeBlock {
 
 function blocksOverlap(a: TimeBlock, b: TimeBlock): boolean {
   return a.start < b.end && b.start < a.end;
+}
+
+function blockContains(outer: TimeBlock, inner: TimeBlock) {
+  return outer.start <= inner.start && outer.end >= inner.end;
 }
 
 export class AutoScheduleError extends Error {
@@ -80,7 +85,7 @@ export async function findAvailableSlots(
   const dayEndHour = Math.floor(endMinutes / 60);
   const dayEndMinute = endMinutes % 60;
 
-  const [existingMeetings, sessionRegs, rooms] = await Promise.all([
+  const [existingMeetings, sessionRegs, rooms, policySessions] = await Promise.all([
     prisma.meeting.findMany({
       where: {
         eventId,
@@ -99,15 +104,31 @@ export async function findAvailableSlots(
     }),
     prisma.sessionRegistration.findMany({
       where: { eventId, attendeeId: { in: attendeeIds } },
-      include: { session: { select: { startsAt: true, endsAt: true } } },
+      include: {
+        session: {
+          select: { startsAt: true, endsAt: true, meetingPolicy: true },
+        },
+      },
     }),
     prisma.meetingRoom.findMany({
       where: { eventId, organisationId: event.organisationId },
       select: { id: true, name: true },
     }),
+    prisma.session.findMany({
+      where: {
+        eventId,
+        organisationId: event.organisationId,
+        startsAt: { not: null },
+        endsAt: { not: null },
+      },
+      select: { startsAt: true, endsAt: true, meetingPolicy: true, title: true },
+    }),
   ]);
 
   if (rooms.length === 0) return [];
+
+  const { meetingWindows, globalBlocks } = splitMeetingPolicyBlocks(policySessions);
+  const hasMeetingWindows = meetingWindows.length > 0;
 
   const busyBlocksA: TimeBlock[] = [];
   const busyBlocksB: TimeBlock[] = [];
@@ -126,6 +147,7 @@ export async function findAvailableSlots(
 
   for (const sr of sessionRegs) {
     if (!sr.session.startsAt || !sr.session.endsAt) continue;
+    if (sr.session.meetingPolicy === "MEETING_WINDOW") continue;
     const block: TimeBlock = { start: sr.session.startsAt, end: sr.session.endsAt };
     if (sr.attendeeId === attendeeIdA) busyBlocksA.push(block);
     if (sr.attendeeId === attendeeIdB) busyBlocksB.push(block);
@@ -188,6 +210,17 @@ export async function findAvailableSlots(
       }
 
       const candidate: TimeBlock = { start: slotStart, end: slotEnd };
+      if (
+        hasMeetingWindows &&
+        !meetingWindows.some((window) => blockContains(window, candidate))
+      ) {
+        slotStart = addMinutes(slotStart, BUFFER_MINUTES + durationMinutes);
+        continue;
+      }
+      if (globalBlocks.some((block) => blocksOverlap(candidate, block))) {
+        slotStart = addMinutes(slotStart, BUFFER_MINUTES + durationMinutes);
+        continue;
+      }
 
       const aFree = !busyBlocksA.some((b) => blocksOverlap(candidate, b));
       const bFree = !busyBlocksB.some((b) => blocksOverlap(candidate, b));

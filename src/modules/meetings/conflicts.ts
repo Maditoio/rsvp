@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/db/prisma";
 import { displayName } from "@/lib/utils";
 import { loadMeetingCalendarStatuses } from "./calendar-status";
+import { splitMeetingPolicyBlocks } from "./meeting-policy";
 
 export type MeetingConflictKind =
   | "room_double_booked"
   | "session_clash"
+  | "agenda_block"
   | "calendar_sync";
 
 export type MeetingConflictItem = {
@@ -50,8 +52,19 @@ export async function loadMeetingConflicts(
     orderBy: { startsAt: "asc" },
   });
 
+  const agendaSessions = await prisma.session.findMany({
+    where: {
+      eventId,
+      organisationId,
+      startsAt: { not: null },
+      endsAt: { not: null },
+    },
+    select: { title: true, startsAt: true, endsAt: true, meetingPolicy: true },
+  });
+
   const conflicts: MeetingConflictItem[] = [];
   let conflictIndex = 0;
+  const { globalBlocks } = splitMeetingPolicyBlocks(agendaSessions);
 
   const withRoom = meetings.filter((m) => m.roomId && m.startsAt && m.endsAt);
   for (let i = 0; i < withRoom.length; i += 1) {
@@ -100,7 +113,14 @@ export async function loadMeetingConflicts(
       ? await prisma.sessionRegistration.findMany({
           where: { eventId, attendeeId: { in: attendeeIds } },
           include: {
-            session: { select: { title: true, startsAt: true, endsAt: true } },
+            session: {
+              select: {
+                title: true,
+                startsAt: true,
+                endsAt: true,
+                meetingPolicy: true,
+              },
+            },
             attendee: { select: { id: true, firstName: true, lastName: true } },
           },
         })
@@ -115,11 +135,27 @@ export async function loadMeetingConflicts(
 
   for (const meeting of meetings) {
     if (!meeting.startsAt || !meeting.endsAt) continue;
+    for (const block of globalBlocks) {
+      if (!blocksOverlap(meeting.startsAt, meeting.endsAt, block.start, block.end)) continue;
+      conflicts.push({
+        id: `agenda-${meeting.id}-${block.start.toISOString()}`,
+        kind: "agenda_block",
+        meetingId: meeting.id,
+        participants: meeting.participants
+          .map((p) => displayName(p.attendee))
+          .join(" · "),
+        summary: `Overlaps agenda block${block.title ? `: ${block.title}` : ""}`,
+        detail: `This meeting overlaps an agenda item marked as no meetings for everyone.`,
+        when: meeting.startsAt.toLocaleString("en-GB"),
+        room: meeting.room?.name ?? null,
+      });
+    }
     for (const participant of meeting.participants) {
       const regs = regsByAttendee.get(participant.attendee.id) ?? [];
       for (const reg of regs) {
         const session = reg.session;
         if (!session.startsAt || !session.endsAt) continue;
+        if (session.meetingPolicy === "MEETING_WINDOW") continue;
         if (
           !blocksOverlap(
             meeting.startsAt,
