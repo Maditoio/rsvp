@@ -1,12 +1,14 @@
 import { inngest } from "@/modules/jobs/client";
 import { sendInvitationEmail } from "@/modules/communications/email";
 import { runAllEnabledAutomations } from "@/modules/communications/automations";
+import type { ReminderSendEvent } from "@/modules/communications/reminder-queue";
 import {
   runMeetingReminders,
   runUnscheduledMeetingNudges,
   runPostMeetingFollowUps,
   checkSmartBatchTriggers,
 } from "@/modules/communications/meeting-reminders";
+import { sendReminderEmail } from "@/modules/communications/email";
 import { runMatchmakingPipeline } from "@/modules/matchmaking/batch";
 import { prisma } from "@/lib/db/prisma";
 
@@ -53,6 +55,35 @@ export const communicationAutomationsJob = inngest.createFunction(
   async () => {
     const result = await runAllEnabledAutomations();
     return result;
+  },
+);
+
+export const sendReminderJob = inngest.createFunction(
+  {
+    id: "communication-reminder-send",
+    retries: 4,
+    throttle: {
+      key: "event.data.throttleKey",
+      limit: 8,
+      period: "1s",
+      burst: 1,
+    },
+    triggers: [{ event: "communication/reminders.send" }],
+  },
+  async ({ event }: { event: ReminderSendEvent }) => {
+    await sendReminderEmail({
+      organisationId: event.data.organisationId,
+      eventId: event.data.eventId,
+      invitationId: event.data.invitationId,
+      messageId: event.data.messageId,
+      toEmail: event.data.toEmail,
+      toName: event.data.toName,
+      eventName: event.data.eventName,
+      orgName: event.data.orgName,
+      href: event.data.href,
+      kind: event.data.kind,
+    });
+    return { ok: true };
   },
 );
 
@@ -112,6 +143,7 @@ export const smartBatchTriggerJob = inngest.createFunction(
 export const functions = [
   sendInvitationJob,
   communicationAutomationsJob,
+  sendReminderJob,
   matchmakingBatchJob,
   meetingRemindersJob,
   unscheduledNudgeJob,

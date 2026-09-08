@@ -13,6 +13,10 @@ import {
   letterPair,
   p,
 } from "@/modules/communications/email-layout";
+import {
+  reminderEmailSubject,
+  type ReminderEmailKind,
+} from "@/modules/communications/reminder-copy";
 
 /**
  * Transactional email chrome — Aurora v4.
@@ -42,6 +46,8 @@ type OutboundEmail = {
   organisationId: string;
   eventId?: string;
   invitationId?: string;
+  campaignId?: string;
+  messageId?: string;
   toEmail: string;
   subject: string;
   html: string;
@@ -70,16 +76,34 @@ async function deliver(input: OutboundEmail) {
     throw new Error("Outbound email HTML must include an unsubscribe link.");
   }
 
-  const message = await prisma.emailMessage.create({
-    data: {
-      organisationId: input.organisationId,
-      eventId: input.eventId,
-      invitationId: input.invitationId,
-      toEmail: input.toEmail,
-      subject: input.subject,
-      status: "QUEUED",
-    },
-  });
+  const message = input.messageId
+    ? await prisma.emailMessage.findUnique({
+        where: { id: input.messageId },
+        select: { id: true, status: true },
+      })
+    : await prisma.emailMessage.create({
+        data: {
+          organisationId: input.organisationId,
+          eventId: input.eventId,
+          invitationId: input.invitationId,
+          campaignId: input.campaignId,
+          toEmail: input.toEmail,
+          subject: input.subject,
+          status: "QUEUED",
+        },
+        select: { id: true, status: true },
+      });
+
+  if (!message) {
+    throw new Error("Queued email message not found.");
+  }
+  if (
+    message.status === "SENT" ||
+    message.status === "DELIVERED" ||
+    message.status === "OPENED"
+  ) {
+    return { id: message.id, simulated: !process.env.RESEND_API_KEY };
+  }
 
   if (!process.env.RESEND_API_KEY) {
     console.info("[email:dev]", {
@@ -455,19 +479,21 @@ export async function sendReminderEmail(input: {
   organisationId: string;
   eventId: string;
   invitationId?: string;
+  campaignId?: string;
+  messageId?: string;
   toEmail: string;
   toName: string;
   eventName: string;
   orgName: string;
   href: string;
-  kind: "invitation" | "registration" | "event";
+  kind: ReminderEmailKind;
 }) {
   const ctx = await resolveEventMailContext(input.organisationId, input.eventId, input);
 
   const copy =
     input.kind === "invitation"
       ? {
-          subject: `Reminder: your invitation to ${ctx.eventName}`,
+          subject: reminderEmailSubject("invitation", ctx.eventName),
           title: `Please respond to ${ctx.eventName}`,
           eyebrow: "Invitation reminder",
           lead: `${escapeHtml(ctx.orgName)} is still waiting for your response to this invitation.`,
@@ -477,7 +503,7 @@ export async function sendReminderEmail(input: {
         }
       : input.kind === "event"
         ? {
-            subject: `${ctx.eventName} starts soon`,
+            subject: reminderEmailSubject("event", ctx.eventName),
             title: `${ctx.eventName} is coming up`,
             eyebrow: "Event reminder",
             lead: `${escapeHtml(ctx.orgName)} is looking forward to welcoming you.`,
@@ -486,7 +512,7 @@ export async function sendReminderEmail(input: {
               "Review the agenda, meetings, and your check-in QR before you arrive.",
           }
         : {
-            subject: `Reminder: complete registration for ${ctx.eventName}`,
+            subject: reminderEmailSubject("registration", ctx.eventName),
             title: `Please complete registration for ${ctx.eventName}`,
             eyebrow: "Registration reminder",
             lead: `${escapeHtml(ctx.orgName)} is waiting for you to finish registration.`,
@@ -499,6 +525,8 @@ export async function sendReminderEmail(input: {
     organisationId: input.organisationId,
     eventId: input.eventId,
     invitationId: input.invitationId,
+    campaignId: input.campaignId,
+    messageId: input.messageId,
     toEmail: input.toEmail,
     subject: copy.subject,
     html: letter({

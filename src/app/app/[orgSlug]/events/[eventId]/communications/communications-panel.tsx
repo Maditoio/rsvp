@@ -189,7 +189,7 @@ export function CommunicationsPanel({
                             setNotice(
                               result.skipped
                                 ? "Automation skipped (disabled or gated)."
-                                : `Automation sent ${result.sent} message${result.sent === 1 ? "" : "s"}.`,
+                                : `Automation queued ${result.queued} reminder${result.queued === 1 ? "" : "s"} for delivery.`,
                             );
                             router.refresh();
                           } catch (e) {
@@ -253,7 +253,7 @@ export function CommunicationsPanel({
                 const result = await sendEventReminders(orgSlug, eventId, formData);
                 setOpen(false);
                 setNotice(
-                  `Sent ${result.sent} reminder${result.sent === 1 ? "" : "s"}.`,
+                  `${result.queued} reminder${result.queued === 1 ? "" : "s"} queued for delivery.`,
                 );
                 router.refresh();
               } catch (e) {
