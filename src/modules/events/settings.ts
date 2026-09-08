@@ -5,10 +5,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { writeAudit } from "@/modules/audit/log";
-import { generateOpaqueToken } from "@/lib/crypto/tokens";
 import { rateLimit } from "@/lib/rate-limit";
-import { getAppUrl } from "@/lib/utils";
-import { sendReminderEmail } from "@/modules/communications/email";
+import { queueManualReminderCampaign } from "@/modules/communications/reminder-queue";
 
 export async function sendEventReminders(
   orgSlug: string,
@@ -41,28 +39,15 @@ export async function sendEventReminders(
   });
   if (!event) throw new Error("Event not found");
 
-  let sent = 0;
-  for (const invitation of invitations) {
-    if (audience === "unregistered" && invitation.attendees.length > 0) continue;
-    const token = generateOpaqueToken();
-    await prisma.invitation.update({
-      where: { id: invitation.id },
-      data: { tokenHash: token.hash },
-    });
-    const href = `${getAppUrl()}/i/${token.raw}${audience === "unregistered" ? "/register" : ""}`;
-    await sendReminderEmail({
+  const queued = (
+    await queueManualReminderCampaign({
       organisationId: ctx.organisation.id,
       eventId,
-      invitationId: invitation.id,
-      toEmail: invitation.contact.email,
-      toName: `${invitation.contact.firstName} ${invitation.contact.lastName}`,
       eventName: event.name,
       orgName: ctx.organisation.name,
-      href,
-      kind: audience === "unaccepted" ? "invitation" : "registration",
-    });
-    sent += 1;
-  }
+      audience,
+    })
+  ).queued;
 
   await writeAudit({
     organisationId: ctx.organisation.id,
@@ -70,8 +55,8 @@ export async function sendEventReminders(
     userId: ctx.user.id,
     action: "communications.reminder",
     resource: "invitation",
-    metadata: { audience, sent },
+    metadata: { audience, queued, candidates: invitations.length },
   });
   revalidatePath(`/app/${orgSlug}/events/${eventId}/communications`);
-  return { sent };
+  return { queued };
 }

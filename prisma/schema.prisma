@@ -1121,6 +1121,7 @@ model EmailMessage {
   invitationId   String?
   campaignId     String?
   templateId     String?
+  dedupeKey      String?            @unique
   toEmail        String
   subject        String
   providerId     String?
