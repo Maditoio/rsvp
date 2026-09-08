@@ -15,6 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { parseOptionalDateRange } from "@/lib/validation";
 import { toDatetimeLocalValue } from "@/lib/timezone";
+import {
+  sessionMeetingPolicyHelp,
+  sessionMeetingPolicyLabel,
+  sessionMeetingPolicyTone,
+  type SessionMeetingPolicyValue,
+} from "@/modules/meetings/meeting-policy";
 import { AgendaImport } from "./agenda-import";
 import {
   SessionOnlineControls,
@@ -28,6 +34,7 @@ type SessionRow = {
   description: string | null;
   location: string | null;
   format: "PHYSICAL" | "ONLINE" | "HYBRID";
+  meetingPolicy: SessionMeetingPolicyValue;
   dateLabel: string;
   timeLabel: string | null;
   startsAtValue: string;
@@ -138,6 +145,12 @@ function SessionListRow({
             {formatLabel(row.format)}
           </Badge>
         ) : null}
+        <Badge
+          tone={sessionMeetingPolicyTone(row.meetingPolicy)}
+          className="hidden sm:inline-flex"
+        >
+          {sessionMeetingPolicyLabel(row.meetingPolicy)}
+        </Badge>
         {canManage && row.format !== "PHYSICAL" ? (
           <SessionProviderIcons
             format={row.format}
@@ -197,6 +210,8 @@ export function AgendaPanel({
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<SessionRow | null>(null);
   const [format, setFormat] = useState<SessionRow["format"]>("PHYSICAL");
+  const [meetingPolicy, setMeetingPolicy] =
+    useState<SessionMeetingPolicyValue>("BLOCK_REGISTERED");
   const [focusOnline, setFocusOnline] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -210,6 +225,7 @@ export function AgendaPanel({
     if (!row) return;
     setEditing(row);
     setFormat(row.format);
+    setMeetingPolicy(row.meetingPolicy);
     setError(null);
     setOpen(true);
   }, [focusSessionId, sessions, canManage]);
@@ -229,6 +245,7 @@ export function AgendaPanel({
   function openCreate() {
     setEditing(null);
     setFormat("PHYSICAL");
+    setMeetingPolicy("BLOCK_REGISTERED");
     setFocusOnline(false);
     setError(null);
     setOpen(true);
@@ -237,6 +254,7 @@ export function AgendaPanel({
   function openEdit(row: SessionRow) {
     setEditing(row);
     setFormat(row.format);
+    setMeetingPolicy(row.meetingPolicy);
     setFocusOnline(false);
     setError(null);
     setOpen(true);
@@ -245,6 +263,7 @@ export function AgendaPanel({
   function openEditOnline(row: SessionRow) {
     setEditing(row);
     setFormat(row.format);
+    setMeetingPolicy(row.meetingPolicy);
     setFocusOnline(true);
     setError(null);
     setOpen(true);
@@ -267,7 +286,9 @@ export function AgendaPanel({
             You can also add or edit sessions one at a time.
             {canManage ? (
               <span className="mt-2 block text-xs text-slate-500">
-                Times shown in {timezone.replace(/_/g, " ")}
+                Times shown in {timezone.replace(/_/g, " ")}. Mark agenda items
+                as meeting windows or no-meeting blocks to guide
+                auto-scheduling visually.
               </span>
             ) : null}
           </>
@@ -287,17 +308,41 @@ export function AgendaPanel({
       {sessions.length === 0 ? (
         <p className="text-sm text-slate-700">No sessions yet.</p>
       ) : (
-        <div className="divide-y divide-slate-100 rounded-xl bg-white shadow-sm">
-          {sessions.map((row) => (
-            <SessionListRow
-              key={row.id}
-              row={row}
-              canManage={canManage}
-              onEdit={() => openEdit(row)}
-              onEditOnline={() => openEditOnline(row)}
-            />
-          ))}
-        </div>
+        <>
+          {canManage ? (
+            <div className="rounded-xl bg-white p-4 shadow-sm">
+              <p className="text-sm font-semibold text-slate-900">
+                Meeting scheduling uses the agenda
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Badge tone="success">
+                  {sessionMeetingPolicyLabel("MEETING_WINDOW")}
+                </Badge>
+                <Badge tone="warning">
+                  {sessionMeetingPolicyLabel("BLOCK_ALL")}
+                </Badge>
+                <Badge tone="muted">
+                  {sessionMeetingPolicyLabel("BLOCK_REGISTERED")}
+                </Badge>
+              </div>
+              <p className="mt-3 text-sm text-slate-600">
+                If you add at least one meeting window, auto-scheduling will
+                only place meetings inside those agenda slots.
+              </p>
+            </div>
+          ) : null}
+          <div className="divide-y divide-slate-100 rounded-xl bg-white shadow-sm">
+            {sessions.map((row) => (
+              <SessionListRow
+                key={row.id}
+                row={row}
+                canManage={canManage}
+                onEdit={() => openEdit(row)}
+                onEditOnline={() => openEditOnline(row)}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       <Drawer
@@ -327,6 +372,7 @@ export function AgendaPanel({
             }
             start(async () => {
               try {
+                formData.set("meetingPolicy", meetingPolicy);
                 await saveSession(orgSlug, eventId, formData);
                 setOpen(false);
                 router.refresh();
@@ -386,6 +432,46 @@ export function AgendaPanel({
                   onChange={() => setFormat(value)}
                 />
                 {label}
+              </label>
+            ))}
+          </fieldset>
+
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium text-slate-700">
+              Meeting scheduling
+            </legend>
+            {(
+              [
+                "BLOCK_REGISTERED",
+                "BLOCK_ALL",
+                "MEETING_WINDOW",
+              ] as const
+            ).map((value) => (
+              <label
+                key={value}
+                className={cn(
+                  "block cursor-pointer rounded-md border px-3 py-2 text-sm",
+                  meetingPolicy === value
+                    ? "border-indigo-600 bg-indigo-50"
+                    : "border-slate-200",
+                )}
+              >
+                <div className="flex items-start gap-2 rounded-md">
+                  <Radio
+                    name="meetingPolicy"
+                    value={value}
+                    checked={meetingPolicy === value}
+                    onChange={() => setMeetingPolicy(value)}
+                  />
+                  <div>
+                    <span className="font-medium text-slate-900">
+                      {sessionMeetingPolicyLabel(value)}
+                    </span>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {sessionMeetingPolicyHelp(value)}
+                    </p>
+                  </div>
+                </div>
               </label>
             ))}
           </fieldset>

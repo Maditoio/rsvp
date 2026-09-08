@@ -114,6 +114,12 @@ enum SessionFormat {
   HYBRID
 }
 
+enum SessionMeetingPolicy {
+  BLOCK_REGISTERED
+  BLOCK_ALL
+  MEETING_WINDOW
+}
+
 enum OnlineMeetingProvider {
   TEAMS
   ZOOM
@@ -732,6 +738,7 @@ model Session {
   location       String?
   capacity       Int?
   format         SessionFormat @default(PHYSICAL)
+  meetingPolicy  SessionMeetingPolicy @default(BLOCK_REGISTERED)
 
   organisation   Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event          Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)

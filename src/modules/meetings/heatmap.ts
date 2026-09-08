@@ -3,6 +3,7 @@ import {
   eachCalendarDayInRange,
   utcFromZonedDateTime,
 } from "@/lib/timezone";
+import { splitMeetingPolicyBlocks } from "./meeting-policy";
 
 export type HeatmapCell = {
   dayKey: string;
@@ -44,7 +45,7 @@ export async function computeSlotHeatmap(
   const dayEndHour = Math.floor(endMinutes / 60);
   const timeZone = event.timezone || "UTC";
 
-  const [rooms, meetings, attendeeCount] = await Promise.all([
+  const [rooms, meetings, attendeeCount, sessions] = await Promise.all([
     prisma.meetingRoom.count({ where: { eventId, organisationId } }),
     prisma.meeting.findMany({
       where: {
@@ -57,7 +58,19 @@ export async function computeSlotHeatmap(
       select: { startsAt: true, endsAt: true },
     }),
     prisma.attendee.count({ where: { eventId, organisationId } }),
+    prisma.session.findMany({
+      where: {
+        eventId,
+        organisationId,
+        startsAt: { not: null },
+        endsAt: { not: null },
+      },
+      select: { startsAt: true, endsAt: true, meetingPolicy: true, title: true },
+    }),
   ]);
+
+  const { meetingWindows, globalBlocks } = splitMeetingPolicyBlocks(sessions);
+  const hasMeetingWindows = meetingWindows.length > 0;
 
   const pairCount = Math.max(1, Math.floor((attendeeCount * (attendeeCount - 1)) / 2));
   const demandScale = Math.max(1, Math.ceil(pairCount / 40));
@@ -96,6 +109,16 @@ export async function computeSlotHeatmap(
     while (addMinutes(slotStart, durationMinutes).getTime() <= dayEnd.getTime()) {
       const slotEnd = addMinutes(slotStart, durationMinutes);
       if (slotEnd.getTime() > event.endsAt.getTime()) break;
+      const inMeetingWindow = meetingWindows.some(
+        (window) => window.start <= slotStart && window.end >= slotEnd,
+      );
+      const overlapsGlobalBlock = globalBlocks.some(
+        (block) => block.start < slotEnd && block.end > slotStart,
+      );
+      if ((hasMeetingWindows && !inMeetingWindow) || overlapsGlobalBlock) {
+        slotStart = addMinutes(slotStart, durationMinutes + 5);
+        continue;
+      }
 
       const hour = new Intl.DateTimeFormat("en-GB", {
         hour: "numeric",

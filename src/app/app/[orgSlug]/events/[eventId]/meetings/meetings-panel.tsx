@@ -105,6 +105,8 @@ function conflictKindLabel(kind: MeetingConflictItem["kind"]) {
   switch (kind) {
     case "room_double_booked":
       return "Room conflict";
+    case "agenda_block":
+      return "Agenda block";
     case "session_clash":
       return "Session clash";
     case "calendar_sync":
@@ -118,6 +120,8 @@ function conflictKindTone(kind: MeetingConflictItem["kind"]) {
   switch (kind) {
     case "room_double_booked":
       return "bg-danger-bg text-danger";
+    case "agenda_block":
+      return "bg-warning-bg text-warning";
     case "session_clash":
       return "bg-amber-500/15 text-amber-800";
     case "calendar_sync":

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     event: { findUnique: vi.fn() },
+    session: { findMany: vi.fn() },
     meeting: { findMany: vi.fn() },
     sessionRegistration: { findMany: vi.fn() },
     meetingRoom: { findMany: vi.fn(), count: vi.fn() },
@@ -40,6 +41,7 @@ describe("findAvailableSlots", () => {
     } as never);
 
     vi.mocked(prisma.meeting.findMany).mockResolvedValue([]);
+    vi.mocked(prisma.session.findMany).mockResolvedValue([]);
     vi.mocked(prisma.sessionRegistration.findMany).mockResolvedValue([]);
     vi.mocked(prisma.meetingRoom.findMany).mockResolvedValue([
       { id: "room-1", name: "Room A" },
@@ -67,5 +69,37 @@ describe("findAvailableSlots", () => {
     const now = new Date("2026-09-04T08:00:00.000Z");
     const slot = await pickFirstAvailableSlot(eventId, attendeeA, attendeeB, { now });
     expect(slot.startsAt.toISOString()).toBe("2026-09-04T09:00:00.000Z");
+  });
+
+  it("uses agenda meeting windows when they exist", async () => {
+    vi.mocked(prisma.session.findMany).mockResolvedValue([
+      {
+        title: "Networking block",
+        startsAt: new Date("2026-09-04T11:00:00.000Z"),
+        endsAt: new Date("2026-09-04T12:00:00.000Z"),
+        meetingPolicy: "MEETING_WINDOW",
+      },
+    ] as never);
+
+    const now = new Date("2026-09-04T09:30:00.000Z");
+    const slot = await pickFirstAvailableSlot(eventId, attendeeA, attendeeB, { now });
+
+    expect(slot.startsAt.toISOString()).toBe("2026-09-04T11:00:00.000Z");
+  });
+
+  it("skips global no-meeting agenda blocks", async () => {
+    vi.mocked(prisma.session.findMany).mockResolvedValue([
+      {
+        title: "Opening keynote",
+        startsAt: new Date("2026-09-04T09:00:00.000Z"),
+        endsAt: new Date("2026-09-04T10:00:00.000Z"),
+        meetingPolicy: "BLOCK_ALL",
+      },
+    ] as never);
+
+    const now = new Date("2026-09-04T09:00:00.000Z");
+    const slot = await pickFirstAvailableSlot(eventId, attendeeA, attendeeB, { now });
+
+    expect(slot.startsAt.toISOString()).toBe("2026-09-04T10:00:00.000Z");
   });
 });

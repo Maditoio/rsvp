@@ -61,6 +61,7 @@ export default async function AgendaPage({
               description: row.description,
               location: row.location,
               format: row.format,
+              meetingPolicy: row.meetingPolicy,
               dateLabel: schedule.dateLabel,
               timeLabel: schedule.timeLabel,
               startsAtValue: row.startsAt?.toISOString() ?? "",
