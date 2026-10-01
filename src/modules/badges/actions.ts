@@ -10,6 +10,7 @@ import {
   removeEventLogo,
   uploadEventAssetImage,
 } from "@/modules/files/upload-event-logo";
+import { invalidateEventMailContextCache } from "@/modules/communications/email-mail-context";
 import {
   badgeConfigSchema,
   parseBadgeConfig,
@@ -368,6 +369,8 @@ export async function uploadEventLogoAction(
       file,
     });
 
+    invalidateEventMailContextCache(ctx.organisation.id, eventId);
+
     await writeAudit({
       organisationId: ctx.organisation.id,
       eventId,
@@ -389,6 +392,7 @@ export async function removeEventLogoAction(orgSlug: string, eventId: string) {
   return runAction(async () => {
     const ctx = await requireEvent(orgSlug, eventId, "event.update");
     await removeEventLogo(ctx.organisation.id, eventId);
+    invalidateEventMailContextCache(ctx.organisation.id, eventId);
 
     await writeAudit({
       organisationId: ctx.organisation.id,

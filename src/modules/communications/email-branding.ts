@@ -2,6 +2,7 @@ const HEX_RE = /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/;
 
 export type EmailBranding = {
   logoUrl: string | null;
+  bannerUrl: string | null;
   accentColor: string;
   accentSoft: string;
   accentBorder: string;
@@ -51,13 +52,18 @@ function mixWithWhite(hex: string, whiteRatio: number, fallback: string): string
 }
 
 /** Email clients often fail on SVG; only use raster/public URLs. */
-export function emailSafeLogoUrl(url: string | null | undefined): string | null {
+export function emailSafeImageUrl(url: string | null | undefined): string | null {
   if (!url?.trim()) return null;
   const trimmed = url.trim();
   if (!/^https?:\/\//i.test(trimmed)) return null;
   if (/\.svg(\?|#|$)/i.test(trimmed)) return null;
   if (trimmed.toLowerCase().includes("image/svg")) return null;
   return trimmed;
+}
+
+/** @deprecated Prefer emailSafeImageUrl — kept for existing imports/tests. */
+export function emailSafeLogoUrl(url: string | null | undefined): string | null {
+  return emailSafeImageUrl(url);
 }
 
 export function accentFromWebsiteConfig(raw: unknown): string | null {
@@ -71,6 +77,7 @@ export function accentFromWebsiteConfig(raw: unknown): string | null {
 
 export function resolveEmailBranding(input: {
   logoUrl?: string | null;
+  bannerUrl?: string | null;
   emailAccentColor?: string | null;
   websiteConfig?: unknown;
 }): EmailBranding {
@@ -83,7 +90,8 @@ export function resolveEmailBranding(input: {
   const isDefault = accentColor === DEFAULT_EMAIL_ACCENT;
 
   return {
-    logoUrl: emailSafeLogoUrl(input.logoUrl),
+    logoUrl: emailSafeImageUrl(input.logoUrl),
+    bannerUrl: emailSafeImageUrl(input.bannerUrl),
     accentColor,
     accentSoft: isDefault
       ? DEFAULT_EMAIL_ACCENT_SOFT

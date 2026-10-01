@@ -14,9 +14,13 @@ import {
   p,
 } from "@/modules/communications/email-layout";
 import {
-  resolveEmailBranding,
   type EmailBranding,
 } from "@/modules/communications/email-branding";
+import {
+  resolveEventMailContext,
+  type EventMailContext,
+  type EventMailSnapshot,
+} from "@/modules/communications/email-mail-context";
 import {
   reminderEmailSubject,
   type ReminderEmailKind,
@@ -36,16 +40,7 @@ type EmailAttachment = {
   contentType?: string;
 };
 
-type EventMailContext = {
-  eventName: string;
-  orgName: string;
-  venue: string | null;
-  timezone: string;
-  startsAt: Date | null;
-  endsAt: Date | null;
-  description: string | null;
-  branding: EmailBranding;
-};
+export type { EventMailContext, EventMailSnapshot, EmailBranding };
 
 type OutboundEmail = {
   organisationId: string;
@@ -160,70 +155,6 @@ function truncateText(value: string, max = 220) {
   return `${trimmed.slice(0, max - 1).trimEnd()}…`;
 }
 
-async function resolveEventMailContext(
-  organisationId: string,
-  eventId: string | undefined,
-  partial: Partial<EventMailContext> & {
-    eventName?: string;
-    orgName?: string;
-  },
-): Promise<EventMailContext> {
-  let loaded: {
-    name: string;
-    venue: string | null;
-    timezone: string;
-    startsAt: Date | null;
-    endsAt: Date | null;
-    description: string | null;
-    logoUrl: string | null;
-    organisation: { name: string };
-    settings: {
-      emailAccentColor: string | null;
-      websiteConfig: unknown;
-    } | null;
-  } | null = null;
-
-  if (eventId) {
-    loaded = await prisma.event.findFirst({
-      where: { id: eventId, organisationId },
-      select: {
-        name: true,
-        venue: true,
-        timezone: true,
-        startsAt: true,
-        endsAt: true,
-        description: true,
-        logoUrl: true,
-        organisation: { select: { name: true } },
-        settings: {
-          select: { emailAccentColor: true, websiteConfig: true },
-        },
-      },
-    });
-  }
-
-  return {
-    eventName: partial.eventName ?? loaded?.name ?? "your event",
-    orgName: partial.orgName ?? loaded?.organisation.name ?? "the organiser",
-    venue: partial.venue !== undefined ? partial.venue : (loaded?.venue ?? null),
-    timezone: partial.timezone ?? loaded?.timezone ?? "UTC",
-    startsAt:
-      partial.startsAt !== undefined ? partial.startsAt : (loaded?.startsAt ?? null),
-    endsAt: partial.endsAt !== undefined ? partial.endsAt : (loaded?.endsAt ?? null),
-    description:
-      partial.description !== undefined
-        ? partial.description
-        : (loaded?.description ?? null),
-    branding:
-      partial.branding ??
-      resolveEmailBranding({
-        logoUrl: loaded?.logoUrl,
-        emailAccentColor: loaded?.settings?.emailAccentColor,
-        websiteConfig: loaded?.settings?.websiteConfig,
-      }),
-  };
-}
-
 function eventFactsBlock(ctx: EventMailContext) {
   const when = formatEventWindow(ctx.startsAt, ctx.endsAt, ctx.timezone);
   const where = ctx.venue?.trim() || "Location to be confirmed";
@@ -263,6 +194,8 @@ export async function sendInvitationEmail(input: {
   startsAt?: Date | null;
   endsAt?: Date | null;
   description?: string | null;
+  branding?: EmailBranding;
+  mail?: EventMailSnapshot;
 }) {
   const ctx = await resolveEventMailContext(input.organisationId, input.eventId, input);
   return deliver({
@@ -511,6 +444,7 @@ export async function sendReminderEmail(input: {
   orgName: string;
   href: string;
   kind: ReminderEmailKind;
+  mail?: EventMailSnapshot;
 }) {
   const ctx = await resolveEventMailContext(input.organisationId, input.eventId, input);
 

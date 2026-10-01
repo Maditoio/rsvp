@@ -2,6 +2,7 @@ import { inngest } from "@/modules/jobs/client";
 import { sendInvitationEmail } from "@/modules/communications/email";
 import { runAllEnabledAutomations } from "@/modules/communications/automations";
 import type { ReminderSendEvent } from "@/modules/communications/reminder-queue";
+import type { EventMailSnapshot } from "@/modules/communications/email-mail-context";
 import {
   runMeetingReminders,
   runUnscheduledMeetingNudges,
@@ -23,6 +24,7 @@ type InvitationSendEvent = {
     eventName: string;
     acceptUrl: string;
     orgName: string;
+    mail?: EventMailSnapshot;
   };
 };
 
@@ -82,6 +84,7 @@ export const sendReminderJob = inngest.createFunction(
       orgName: event.data.orgName,
       href: event.data.href,
       kind: event.data.kind,
+      mail: event.data.mail,
     });
     return { ok: true };
   },

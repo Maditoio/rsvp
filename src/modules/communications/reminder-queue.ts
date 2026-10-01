@@ -5,6 +5,10 @@ import { getAppUrl } from "@/lib/utils";
 import { inngest } from "@/modules/jobs/client";
 import { sendReminderEmail } from "@/modules/communications/email";
 import {
+  loadEventMailSnapshot,
+  type EventMailSnapshot,
+} from "@/modules/communications/email-mail-context";
+import {
   reminderEmailSubject,
   type ReminderEmailKind,
 } from "@/modules/communications/reminder-copy";
@@ -25,6 +29,8 @@ export type ReminderSendEvent = {
     href: string;
     kind: ReminderEmailKind;
     throttleKey: string;
+    /** Branding + event facts loaded once at queue time — workers must not re-fetch. */
+    mail: EventMailSnapshot;
   };
 };
 
@@ -74,6 +80,7 @@ async function dispatchReminderEvents(events: ReminderSendEvent["data"][]) {
       orgName: data.orgName,
       href: data.href,
       kind: data.kind,
+      mail: data.mail,
     });
   }
 }
@@ -183,6 +190,8 @@ async function queueInvitationReminderMessages(input: {
   const pending = eligible.filter((invitation) => !queuedInvitationIds.has(invitation.id));
   if (pending.length === 0) return { queued: 0, events: [] as ReminderSendEvent["data"][] };
 
+  const mail = await loadEventMailSnapshot(input.organisationId, input.eventId);
+
   const campaign = await prisma.emailCampaign.create({
     data: {
       organisationId: input.organisationId,
@@ -226,6 +235,7 @@ async function queueInvitationReminderMessages(input: {
         href: reminderHref(token.raw, input.audience),
         kind: audienceToKind(input.audience),
         throttleKey: REMINDER_THROTTLE_KEY,
+        mail,
       } satisfies ReminderSendEvent["data"];
     }),
   );
@@ -287,6 +297,8 @@ async function queueEventReminderMessages(input: {
   );
   if (pending.length === 0) return { queued: 0, events: [] as ReminderSendEvent["data"][] };
 
+  const mail = await loadEventMailSnapshot(input.organisationId, input.eventId);
+
   const campaign = await prisma.emailCampaign.create({
     data: {
       organisationId: input.organisationId,
@@ -322,6 +334,7 @@ async function queueEventReminderMessages(input: {
         href: `${getAppUrl()}/me/events/${input.eventId}`,
         kind: "event" as const,
         throttleKey: REMINDER_THROTTLE_KEY,
+        mail,
       } satisfies ReminderSendEvent["data"];
     }),
   );

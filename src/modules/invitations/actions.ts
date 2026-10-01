@@ -10,6 +10,10 @@ import { writeAudit } from "@/modules/audit/log";
 import { getAppUrl } from "@/lib/utils";
 import { rateLimit } from "@/lib/rate-limit";
 import { sendInvitationEmail } from "@/modules/communications/email";
+import {
+  loadEventMailSnapshot,
+  type EventMailSnapshot,
+} from "@/modules/communications/email-mail-context";
 import { canTransition, invitationUsable } from "@/modules/invitations/lifecycle";
 import {
   loadInvitationByToken,
@@ -100,6 +104,7 @@ async function rotateTokenAndDeliver(input: {
   toName: string;
   eventName: string;
   orgName: string;
+  mail?: EventMailSnapshot;
 }) {
   const token = generateOpaqueToken();
   const markSent =
@@ -117,6 +122,9 @@ async function rotateTokenAndDeliver(input: {
   });
 
   const acceptUrl = `${getAppUrl()}/i/${token.raw}`;
+  const mail =
+    input.mail ??
+    (await loadEventMailSnapshot(input.organisationId, input.eventId));
 
   if (process.env.INNGEST_EVENT_KEY) {
     await inngest.send({
@@ -130,6 +138,7 @@ async function rotateTokenAndDeliver(input: {
         eventName: input.eventName,
         orgName: input.orgName,
         acceptUrl,
+        mail,
       },
     });
   } else {
@@ -142,6 +151,7 @@ async function rotateTokenAndDeliver(input: {
       eventName: input.eventName,
       orgName: input.orgName,
       acceptUrl,
+      mail,
     });
   }
 }
@@ -165,6 +175,8 @@ export async function sendInvitations(
     where: { id: eventId, organisationId: ctx.organisation.id },
   });
   if (!event) throw new Error("Event not found");
+
+  const mail = await loadEventMailSnapshot(ctx.organisation.id, eventId);
 
   let sent = 0;
   for (const id of invitationIds) {
@@ -190,6 +202,7 @@ export async function sendInvitations(
       toName: `${invitation.contact.firstName} ${invitation.contact.lastName}`,
       eventName: event.name,
       orgName: ctx.organisation.name,
+      mail,
     });
     sent += 1;
   }

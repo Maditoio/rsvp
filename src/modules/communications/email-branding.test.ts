@@ -31,7 +31,24 @@ describe("email branding", () => {
       websiteConfig: { theme: { accentColor: "#0D9488" } },
     });
     expect(branding.logoUrl).toBe("https://cdn.example.com/logo.png");
+    expect(branding.bannerUrl).toBeNull();
     expect(branding.accentColor).toBe("#92400E");
     expect(branding.accentSoft).not.toBe("#EEF2FF");
+  });
+
+  it("accepts banner without logo", () => {
+    const branding = resolveEmailBranding({
+      bannerUrl: "https://cdn.example.com/banner.jpg",
+    });
+    expect(branding.logoUrl).toBeNull();
+    expect(branding.bannerUrl).toBe("https://cdn.example.com/banner.jpg");
+  });
+
+  it("rejects SVG banners", () => {
+    expect(
+      resolveEmailBranding({
+        bannerUrl: "https://cdn.example.com/banner.svg",
+      }).bannerUrl,
+    ).toBeNull();
   });
 });

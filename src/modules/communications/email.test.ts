@@ -64,4 +64,36 @@ describe("outbound email templates", () => {
     expect(html).toContain("background:#0D9488");
     expect(html).toContain("Powered by Bizcon RSVP");
   });
+
+  it("renders banner alone or with logo", () => {
+    const bannerOnly = resolveEmailBranding({
+      bannerUrl: "https://cdn.example.com/banner.jpg",
+    });
+    const both = resolveEmailBranding({
+      logoUrl: "https://cdn.example.com/logo.png",
+      bannerUrl: "https://cdn.example.com/banner.jpg",
+    });
+
+    const bannerHtml = letter({
+      title: "Summit",
+      eyebrow: "Invitation",
+      body: "<p>Hi</p>",
+      orgName: "Acme",
+      toEmail: "a@example.com",
+      branding: bannerOnly,
+    });
+    expect(bannerHtml).toContain('src="https://cdn.example.com/banner.jpg"');
+    expect(bannerHtml).not.toContain('src="https://cdn.example.com/logo.png"');
+
+    const bothHtml = letter({
+      title: "Summit",
+      eyebrow: "Invitation",
+      body: "<p>Hi</p>",
+      orgName: "Acme",
+      toEmail: "a@example.com",
+      branding: both,
+    });
+    expect(bothHtml).toContain('src="https://cdn.example.com/banner.jpg"');
+    expect(bothHtml).toContain('src="https://cdn.example.com/logo.png"');
+  });
 });

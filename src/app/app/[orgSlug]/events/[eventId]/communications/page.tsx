@@ -35,6 +35,7 @@ export default async function CommunicationsPage({
           select: {
             automationsEnabled: true,
             emailAccentColor: true,
+            emailBannerUrl: true,
             websiteConfig: true,
           },
         },
@@ -44,6 +45,7 @@ export default async function CommunicationsPage({
 
   const branding = resolveEmailBranding({
     logoUrl: event?.logoUrl,
+    bannerUrl: event?.settings?.emailBannerUrl,
     emailAccentColor: event?.settings?.emailAccentColor,
     websiteConfig: event?.settings?.websiteConfig,
   });
@@ -59,6 +61,7 @@ export default async function CommunicationsPage({
         branding={branding}
         emailAccentColor={event?.settings?.emailAccentColor ?? null}
         logoUrl={event?.logoUrl ?? null}
+        bannerUrl={event?.settings?.emailBannerUrl ?? null}
         messages={messages.map((row) => ({
           id: row.id,
           toEmail: row.toEmail,

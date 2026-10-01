@@ -76,12 +76,21 @@ function trustFooter(orgName: string, toEmail: string, branding: EmailBranding) 
   </div>`;
 }
 
+function brandBanner(branding: EmailBranding) {
+  if (!branding.bannerUrl) return "";
+  return `<img src="${escapeHtml(branding.bannerUrl)}" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto;max-height:180px;object-fit:cover;border:0;outline:none;text-decoration:none" />`;
+}
+
 function brandHeader(branding: EmailBranding) {
   if (branding.logoUrl) {
     return `<div style="margin:0 0 20px">
       <img src="${escapeHtml(branding.logoUrl)}" alt="" width="160" style="display:block;max-width:160px;height:auto;border:0;outline:none;text-decoration:none" />
       <p style="margin:10px 0 0;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:${aurora.muted}">Powered by Bizcon RSVP</p>
     </div>`;
+  }
+
+  if (branding.bannerUrl) {
+    return `<p style="margin:0 0 16px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:${aurora.muted}">Powered by Bizcon RSVP</p>`;
   }
 
   return `<p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:0.02em;color:${branding.accentColor}">Bizcon RSVP</p>`;
@@ -111,6 +120,7 @@ export function letter(opts: {
     <div style="margin:0;padding:0;background:${aurora.canvas};font-family:${aurora.font}">
       <div style="padding:32px 16px">
         <div style="max-width:560px;margin:0 auto;background:${aurora.surface};border-radius:20px;box-shadow:${aurora.shadow};overflow:hidden">
+          ${brandBanner(branding)}
           <div style="padding:32px 28px 28px">
             ${brandHeader(branding)}
             <p style="margin:0 0 20px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:${aurora.muted}">${escapeHtml(opts.eyebrow)}</p>
