@@ -14,6 +14,10 @@ import {
   p,
 } from "@/modules/communications/email-layout";
 import {
+  resolveEmailBranding,
+  type EmailBranding,
+} from "@/modules/communications/email-branding";
+import {
   reminderEmailSubject,
   type ReminderEmailKind,
 } from "@/modules/communications/reminder-copy";
@@ -40,6 +44,7 @@ type EventMailContext = {
   startsAt: Date | null;
   endsAt: Date | null;
   description: string | null;
+  branding: EmailBranding;
 };
 
 type OutboundEmail = {
@@ -170,7 +175,12 @@ async function resolveEventMailContext(
     startsAt: Date | null;
     endsAt: Date | null;
     description: string | null;
+    logoUrl: string | null;
     organisation: { name: string };
+    settings: {
+      emailAccentColor: string | null;
+      websiteConfig: unknown;
+    } | null;
   } | null = null;
 
   if (eventId) {
@@ -183,7 +193,11 @@ async function resolveEventMailContext(
         startsAt: true,
         endsAt: true,
         description: true,
+        logoUrl: true,
         organisation: { select: { name: true } },
+        settings: {
+          select: { emailAccentColor: true, websiteConfig: true },
+        },
       },
     });
   }
@@ -200,6 +214,13 @@ async function resolveEventMailContext(
       partial.description !== undefined
         ? partial.description
         : (loaded?.description ?? null),
+    branding:
+      partial.branding ??
+      resolveEmailBranding({
+        logoUrl: loaded?.logoUrl,
+        emailAccentColor: loaded?.settings?.emailAccentColor,
+        websiteConfig: loaded?.settings?.websiteConfig,
+      }),
   };
 }
 
@@ -255,6 +276,7 @@ export async function sendInvitationEmail(input: {
       eyebrow: "You're invited to attend",
       orgName: ctx.orgName,
       toEmail: input.toEmail,
+      branding: ctx.branding,
       href: input.acceptUrl,
       cta: "View your invitation",
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
@@ -334,7 +356,7 @@ export async function sendRegistrationConfirmationEmail(input: {
         <p style="margin:0;font-weight:600;color:${aurora.text}">${escapeHtml(session.title)}</p>
         ${when ? `<p style="margin:4px 0;color:${aurora.body};font-size:13px">${escapeHtml(when)}</p>` : ""}
         <p style="margin:4px 0;color:${aurora.muted};font-size:12px">Online — Microsoft Teams</p>
-        <p style="margin:8px 0 0"><a href="${escapeHtml(joinUrl)}" style="color:${aurora.indigo};font-weight:600;text-decoration:none">Join Teams meeting</a></p>
+        <p style="margin:8px 0 0"><a href="${escapeHtml(joinUrl)}" style="color:${ctx.branding.accentColor};font-weight:600;text-decoration:none">Join Teams meeting</a></p>
       </div>`;
     })
     .join("");
@@ -362,6 +384,7 @@ export async function sendRegistrationConfirmationEmail(input: {
       eyebrow: "Registration",
       orgName: ctx.orgName,
       toEmail: input.toEmail,
+      branding: ctx.branding,
       href: input.signUpUrl,
       cta: "Create your account",
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
@@ -448,7 +471,7 @@ export async function sendMeetingRequestEmail(input: {
     .join(" · ");
 
   const quote = input.message
-    ? `<blockquote style="margin:16px 0;padding:14px 16px;border-radius:12px;border:1px solid ${aurora.indigoBorder};background:${aurora.indigoSoft};color:${aurora.body};font-size:14px;line-height:1.55">${escapeHtml(input.message)}</blockquote>`
+    ? `<blockquote style="margin:16px 0;padding:14px 16px;border-radius:12px;border:1px solid ${ctx.branding.accentBorder};background:${ctx.branding.accentSoft};color:${aurora.body};font-size:14px;line-height:1.55">${escapeHtml(input.message)}</blockquote>`
     : "";
 
   return deliver({
@@ -461,6 +484,7 @@ export async function sendMeetingRequestEmail(input: {
       eyebrow: "Connection request",
       orgName: ctx.orgName,
       toEmail: input.toEmail,
+      branding: ctx.branding,
       primaryHref: input.acceptUrl,
       primaryCta: "Accept request",
       secondaryHref: input.declineUrl,
@@ -534,6 +558,7 @@ export async function sendReminderEmail(input: {
       eyebrow: copy.eyebrow,
       orgName: ctx.orgName,
       toEmail: input.toEmail,
+      branding: ctx.branding,
       href: input.href,
       cta: copy.cta,
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
@@ -584,6 +609,7 @@ export async function sendEventStaffRoleEmail(input: {
       eyebrow: "Staff access",
       orgName: ctx.orgName,
       toEmail: input.toEmail,
+      branding: ctx.branding,
       href: input.workspaceUrl,
       cta: "Open workspace",
       body,
@@ -625,6 +651,7 @@ export async function sendMeetingReminderEmail(input: {
       eyebrow: "Meeting reminder",
       orgName: ctx.orgName,
       toEmail: input.toEmail,
+      branding: ctx.branding,
       href: input.href,
       cta: "View meeting",
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
@@ -660,6 +687,7 @@ export async function sendUnscheduledMeetingNudgeEmail(input: {
       eyebrow: "Scheduling",
       orgName: ctx.orgName,
       toEmail: input.toEmail,
+      branding: ctx.branding,
       href: input.href,
       cta: "View meetings",
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
@@ -694,6 +722,7 @@ export async function sendPostMeetingFollowUpEmail(input: {
       eyebrow: "Follow-up",
       orgName: ctx.orgName,
       toEmail: input.toEmail,
+      branding: ctx.branding,
       href: input.href,
       cta: "Open poll",
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
@@ -733,6 +762,7 @@ export async function sendApplicationDecisionEmail(input: {
       eyebrow: "Application",
       orgName: ctx.orgName,
       toEmail: input.toEmail,
+      branding: ctx.branding,
       href: input.approved ? input.href : undefined,
       cta: input.approved ? "View invitation" : undefined,
       body: input.approved

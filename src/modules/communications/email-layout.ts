@@ -1,5 +1,13 @@
 import { getAppUrl } from "@/lib/utils";
 import { buildUnsubscribeUrl } from "@/modules/communications/email-unsubscribe";
+import {
+  DEFAULT_EMAIL_ACCENT,
+  DEFAULT_EMAIL_ACCENT_BORDER,
+  DEFAULT_EMAIL_ACCENT_SHADOW,
+  DEFAULT_EMAIL_ACCENT_SOFT,
+  type EmailBranding,
+  resolveEmailBranding,
+} from "@/modules/communications/email-branding";
 
 /**
  * Shared HTML email layout — no server-only imports so compliance tests can run in Vitest.
@@ -13,12 +21,12 @@ export const aurora = {
   text: "#0F172A",
   body: "#475569",
   muted: "#94A3B8",
-  indigo: "#4F46E5",
-  indigoSoft: "#EEF2FF",
-  indigoBorder: "#C7D2FE",
+  indigo: DEFAULT_EMAIL_ACCENT,
+  indigoSoft: DEFAULT_EMAIL_ACCENT_SOFT,
+  indigoBorder: DEFAULT_EMAIL_ACCENT_BORDER,
   font: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
   shadow: "0 1px 2px rgba(15,23,42,0.04), 0 4px 12px rgba(15,23,42,0.05)",
-  shadowAccent: "0 4px 12px rgba(79,70,229,0.28)",
+  shadowAccent: DEFAULT_EMAIL_ACCENT_SHADOW,
 } as const;
 
 export function supportEmail() {
@@ -43,7 +51,11 @@ export function escapeHtml(value: string) {
     .replaceAll('"', "&quot;");
 }
 
-function trustFooter(orgName: string, toEmail: string) {
+export function defaultEmailBranding(): EmailBranding {
+  return resolveEmailBranding({});
+}
+
+function trustFooter(orgName: string, toEmail: string, branding: EmailBranding) {
   const support = supportEmail();
   const appUrl = getAppUrl();
   const privacyUrl = `${appUrl}/privacystatment`;
@@ -52,16 +64,27 @@ function trustFooter(orgName: string, toEmail: string) {
   const email = escapeHtml(toEmail.trim().toLowerCase());
 
   return `<div style="max-width:560px;margin:16px auto 0;font-family:${aurora.font};font-size:11px;line-height:1.55;color:${aurora.muted};text-align:center">
-    <p style="margin:0 0 8px">This message was sent via <strong style="color:${aurora.body}">Bizcon RSVP</strong> on behalf of <strong style="color:${aurora.body}">${escapeHtml(orgName)}</strong>. Questions? Contact <a href="mailto:${escapeHtml(support)}" style="color:${aurora.indigo};text-decoration:none">${escapeHtml(support)}</a></p>
+    <p style="margin:0 0 8px">This message was sent via <strong style="color:${aurora.body}">Bizcon RSVP</strong> on behalf of <strong style="color:${aurora.body}">${escapeHtml(orgName)}</strong>. Questions? Contact <a href="mailto:${escapeHtml(support)}" style="color:${branding.accentColor};text-decoration:none">${escapeHtml(support)}</a></p>
     <p style="margin:0 0 10px;font-size:10px;line-height:1.5;color:${aurora.muted}">We sent this email to ${email} because you signed up for or have recently used Bizcon RSVP. Our service and marketing emails are to provide important updates and reminders about your projects and subscription. You can unsubscribe at any time using the link below.</p>
     <p style="margin:0;font-size:10px">
-      <a href="${privacyUrl}" style="color:${aurora.indigo};text-decoration:none">Privacy</a>
+      <a href="${privacyUrl}" style="color:${branding.accentColor};text-decoration:none">Privacy</a>
       <span style="color:${aurora.border};padding:0 6px">·</span>
-      <a href="${termsUrl}" style="color:${aurora.indigo};text-decoration:none">Terms</a>
+      <a href="${termsUrl}" style="color:${branding.accentColor};text-decoration:none">Terms</a>
       <span style="color:${aurora.border};padding:0 6px">·</span>
-      <a href="${unsubscribeUrl}" style="color:${aurora.indigo};text-decoration:none">Unsubscribe</a>
+      <a href="${unsubscribeUrl}" style="color:${branding.accentColor};text-decoration:none">Unsubscribe</a>
     </p>
   </div>`;
+}
+
+function brandHeader(branding: EmailBranding) {
+  if (branding.logoUrl) {
+    return `<div style="margin:0 0 20px">
+      <img src="${escapeHtml(branding.logoUrl)}" alt="" width="160" style="display:block;max-width:160px;height:auto;border:0;outline:none;text-decoration:none" />
+      <p style="margin:10px 0 0;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:${aurora.muted}">Powered by Bizcon RSVP</p>
+    </div>`;
+  }
+
+  return `<p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:0.02em;color:${branding.accentColor}">Bizcon RSVP</p>`;
 }
 
 export function letter(opts: {
@@ -72,11 +95,13 @@ export function letter(opts: {
   toEmail: string;
   href?: string;
   cta?: string;
+  branding?: EmailBranding;
 }) {
+  const branding = opts.branding ?? defaultEmailBranding();
   const cta =
     opts.href && opts.cta && opts.href !== "#"
       ? `<p style="margin:28px 0 0">
-          <a href="${opts.href}" style="display:inline-block;background:${aurora.indigo};color:#ffffff;padding:12px 22px;border-radius:999px;text-decoration:none;font-family:${aurora.font};font-size:14px;font-weight:600;box-shadow:${aurora.shadowAccent}">
+          <a href="${opts.href}" style="display:inline-block;background:${branding.accentColor};color:#ffffff;padding:12px 22px;border-radius:999px;text-decoration:none;font-family:${aurora.font};font-size:14px;font-weight:600;box-shadow:${branding.accentShadow}">
             ${escapeHtml(opts.cta)}
           </a>
         </p>`
@@ -87,7 +112,7 @@ export function letter(opts: {
       <div style="padding:32px 16px">
         <div style="max-width:560px;margin:0 auto;background:${aurora.surface};border-radius:20px;box-shadow:${aurora.shadow};overflow:hidden">
           <div style="padding:32px 28px 28px">
-            <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:0.02em;color:${aurora.indigo}">Bizcon RSVP</p>
+            ${brandHeader(branding)}
             <p style="margin:0 0 20px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:${aurora.muted}">${escapeHtml(opts.eyebrow)}</p>
             <h1 style="margin:0 0 16px;font-family:${aurora.font};font-size:22px;font-weight:700;line-height:1.3;color:${aurora.text}">${escapeHtml(opts.title)}</h1>
             <div style="font-family:${aurora.font};font-size:14px;line-height:1.55;color:${aurora.body}">
@@ -96,7 +121,7 @@ export function letter(opts: {
             ${cta}
           </div>
         </div>
-        ${trustFooter(opts.orgName, opts.toEmail)}
+        ${trustFooter(opts.orgName, opts.toEmail, branding)}
       </div>
     </div>
   `;
@@ -112,10 +137,12 @@ export function letterPair(opts: {
   primaryCta: string;
   secondaryHref?: string;
   secondaryCta?: string;
+  branding?: EmailBranding;
 }) {
+  const branding = opts.branding ?? defaultEmailBranding();
   const secondary =
     opts.secondaryHref && opts.secondaryCta
-      ? `<p style="margin:16px 0 0;font-size:14px"><a href="${opts.secondaryHref}" style="color:${aurora.indigo};font-weight:600;text-decoration:none">${escapeHtml(opts.secondaryCta)}</a></p>`
+      ? `<p style="margin:16px 0 0;font-size:14px"><a href="${opts.secondaryHref}" style="color:${branding.accentColor};font-weight:600;text-decoration:none">${escapeHtml(opts.secondaryCta)}</a></p>`
       : "";
   return letter({
     title: opts.title,
@@ -125,6 +152,7 @@ export function letterPair(opts: {
     toEmail: opts.toEmail,
     href: opts.primaryHref,
     cta: opts.primaryCta,
+    branding,
   });
 }
 
