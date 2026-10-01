@@ -21,12 +21,19 @@ describe("outbound email templates", () => {
       toEmail,
       href: "https://example.com/invite",
       cta: "Open",
+      footerKind: "invitation",
     });
 
     expect(html).toContain("Unsubscribe");
     expect(html).toContain("Privacy");
     expect(html).toContain("Terms");
-    expect(html).toContain("unsubscribe at any time");
+    expect(html).toContain("You were invited by");
+    expect(html).toContain("Acme Events");
+    expect(html).toContain("Bizcon RSVP");
+    expect(html).toContain("Questions? Contact");
+    expect(html).not.toContain("signed up for or have recently used");
+    expect(html).not.toContain("projects and subscription");
+    expect(html).not.toContain("secure link");
     expect(emailHtmlIncludesUnsubscribe(html, toEmail)).toBe(true);
   });
 

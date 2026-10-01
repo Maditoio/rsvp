@@ -7,6 +7,10 @@ import {
   emailHtmlIncludesUnsubscribe,
 } from "@/modules/communications/email-unsubscribe";
 import {
+  bareEmailAddress,
+  formatOutboundFrom,
+} from "@/modules/communications/email-from";
+import {
   aurora,
   escapeHtml,
   letter,
@@ -25,6 +29,8 @@ import {
   reminderEmailSubject,
   type ReminderEmailKind,
 } from "@/modules/communications/reminder-copy";
+
+export { bareEmailAddress, formatOutboundFrom } from "@/modules/communications/email-from";
 
 /**
  * Transactional email chrome — Aurora v4.
@@ -51,23 +57,25 @@ type OutboundEmail = {
   toEmail: string;
   subject: string;
   html: string;
+  /** Host organisation — used for From display: "{org} via Bizcon RSVP". */
+  orgName?: string;
   attachments?: EmailAttachment[];
   replyTo?: string;
 };
 
 function supportEmail() {
-  return (
+  return bareEmailAddress(
     process.env.RESEND_SUPPORT_EMAIL?.trim() ||
-    process.env.RESEND_REPLY_TO_EMAIL?.trim() ||
-    "support@bizconrsvp.com"
+      process.env.RESEND_REPLY_TO_EMAIL?.trim() ||
+      "support@bizconrsvp.com",
   );
 }
 
 function replyToAddress() {
-  return (
+  return bareEmailAddress(
     process.env.RESEND_REPLY_TO_EMAIL?.trim() ||
-    process.env.RESEND_SUPPORT_EMAIL?.trim() ||
-    supportEmail()
+      process.env.RESEND_SUPPORT_EMAIL?.trim() ||
+      supportEmail(),
   );
 }
 
@@ -105,11 +113,15 @@ async function deliver(input: OutboundEmail) {
     return { id: message.id, simulated: !process.env.RESEND_API_KEY };
   }
 
+  const from = formatOutboundFrom(input.orgName);
+  const replyTo = bareEmailAddress(input.replyTo ?? replyToAddress());
+
   if (!process.env.RESEND_API_KEY) {
     console.info("[email:dev]", {
       to: input.toEmail,
+      from,
       subject: input.subject,
-      replyTo: input.replyTo ?? replyToAddress(),
+      replyTo,
       attachments: input.attachments?.map((a) => a.filename) ?? [],
     });
     await prisma.emailMessage.update({
@@ -120,12 +132,10 @@ async function deliver(input: OutboundEmail) {
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const from =
-    process.env.RESEND_FROM_EMAIL ?? "Bizcon RSVP <invites@bizconrsvp.com>";
   const result = await resend.emails.send({
     from,
     to: input.toEmail,
-    replyTo: input.replyTo ?? replyToAddress(),
+    replyTo,
     subject: input.subject,
     html: input.html,
     headers: buildListUnsubscribeHeaders(input.toEmail),
@@ -203,6 +213,7 @@ export async function sendInvitationEmail(input: {
     eventId: input.eventId,
     invitationId: input.invitationId,
     toEmail: input.toEmail,
+    orgName: ctx.orgName,
     subject: `${ctx.orgName} invites you to ${ctx.eventName}`,
     html: letter({
       title: ctx.eventName,
@@ -210,16 +221,17 @@ export async function sendInvitationEmail(input: {
       orgName: ctx.orgName,
       toEmail: input.toEmail,
       branding: ctx.branding,
+      footerKind: "invitation",
       href: input.acceptUrl,
       cta: "View your invitation",
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
         ${p(`${escapeHtml(ctx.orgName)} is pleased to invite you to attend <strong style="color:${aurora.text}">${escapeHtml(ctx.eventName)}</strong>.`)}
         ${purposeParagraph(
           ctx,
-          "Please use the secure link below to view your invitation and confirm whether you can attend.",
+          "Open the link below to view your invitation and confirm whether you can attend.",
         )}
         ${eventFactsBlock(ctx)}
-        ${p("Your invitation link is unique to you — please do not forward this email.", true)}`,
+        ${p("This link is personal to you.", true)}`,
     }),
   });
 }
@@ -311,6 +323,7 @@ export async function sendRegistrationConfirmationEmail(input: {
     organisationId: input.organisationId,
     eventId: input.eventId,
     toEmail: input.toEmail,
+    orgName: ctx.orgName,
     subject: `Registration confirmed — ${ctx.eventName}`,
     html: letter({
       title: `Your place at ${ctx.eventName} is confirmed`,
@@ -358,6 +371,7 @@ export async function sendOrganizerWelcomeEmail(input: {
   return deliver({
     organisationId: input.organisationId,
     toEmail: input.toEmail,
+    orgName: input.orgName,
     subject: `Welcome to ${input.orgName} on Bizcon RSVP`,
     html: letter({
       title: "Your organiser workspace is ready",
@@ -411,6 +425,7 @@ export async function sendMeetingRequestEmail(input: {
     organisationId: input.organisationId,
     eventId: input.eventId,
     toEmail: input.toEmail,
+    orgName: ctx.orgName,
     subject: `${input.requesterName} would like to meet at ${ctx.eventName}`,
     html: letterPair({
       title: `${input.requesterName} sent a connection request`,
@@ -486,6 +501,7 @@ export async function sendReminderEmail(input: {
     campaignId: input.campaignId,
     messageId: input.messageId,
     toEmail: input.toEmail,
+    orgName: ctx.orgName,
     subject: copy.subject,
     html: letter({
       title: copy.title,
@@ -493,6 +509,10 @@ export async function sendReminderEmail(input: {
       orgName: ctx.orgName,
       toEmail: input.toEmail,
       branding: ctx.branding,
+      footerKind:
+        input.kind === "invitation" || input.kind === "registration"
+          ? "invitation"
+          : "message",
       href: input.href,
       cta: copy.cta,
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
@@ -537,6 +557,7 @@ export async function sendEventStaffRoleEmail(input: {
     organisationId: input.organisationId,
     eventId: input.eventId,
     toEmail: input.toEmail,
+    orgName: ctx.orgName,
     subject,
     html: letter({
       title: changed ? "Your staff role has been updated" : "You have a new staff role",
@@ -579,6 +600,7 @@ export async function sendMeetingReminderEmail(input: {
     organisationId: input.organisationId,
     eventId: input.eventId,
     toEmail: input.toEmail,
+    orgName: ctx.orgName,
     subject,
     html: letter({
       title: subject,
@@ -615,6 +637,7 @@ export async function sendUnscheduledMeetingNudgeEmail(input: {
     organisationId: input.organisationId,
     eventId: input.eventId,
     toEmail: input.toEmail,
+    orgName: ctx.orgName,
     subject: `Unscheduled meeting — ${ctx.eventName}`,
     html: letter({
       title: "Your meeting needs a time slot",
@@ -650,6 +673,7 @@ export async function sendPostMeetingFollowUpEmail(input: {
     organisationId: input.organisationId,
     eventId: input.eventId,
     toEmail: input.toEmail,
+    orgName: ctx.orgName,
     subject: `How was your meeting at ${ctx.eventName}?`,
     html: letter({
       title: "Share quick feedback",
@@ -686,6 +710,7 @@ export async function sendApplicationDecisionEmail(input: {
     organisationId: input.organisationId,
     eventId: input.eventId,
     toEmail: input.toEmail,
+    orgName: ctx.orgName,
     subject: input.approved
       ? `Application approved — ${ctx.eventName}`
       : `Application update — ${ctx.eventName}`,
@@ -697,6 +722,7 @@ export async function sendApplicationDecisionEmail(input: {
       orgName: ctx.orgName,
       toEmail: input.toEmail,
       branding: ctx.branding,
+      footerKind: input.approved ? "invitation" : "message",
       href: input.approved ? input.href : undefined,
       cta: input.approved ? "View invitation" : undefined,
       body: input.approved
@@ -704,10 +730,10 @@ export async function sendApplicationDecisionEmail(input: {
            ${p(`${escapeHtml(ctx.orgName)} has approved your application to <strong style="color:${aurora.text}">${escapeHtml(ctx.eventName)}</strong>.`)}
            ${purposeParagraph(
              ctx,
-             "Use the unique invitation link below to accept and then complete registration.",
+             "Open the link below to accept your invitation and complete registration.",
            )}
            ${eventFactsBlock(ctx)}
-           ${p("Your invitation link is unique to you — please do not forward this email.", true)}`
+           ${p("This link is personal to you.", true)}`
         : `${p(`Hello ${escapeHtml(input.toName)},`)}
            ${p(`${escapeHtml(ctx.orgName)} has reviewed your application to <strong style="color:${aurora.text}">${escapeHtml(ctx.eventName)}</strong> and is unable to offer a place at this time.`)}
            ${eventFactsBlock(ctx)}

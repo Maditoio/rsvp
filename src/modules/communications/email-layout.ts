@@ -55,17 +55,26 @@ export function defaultEmailBranding(): EmailBranding {
   return resolveEmailBranding({});
 }
 
-function trustFooter(orgName: string, toEmail: string, branding: EmailBranding) {
+function trustFooter(
+  orgName: string,
+  toEmail: string,
+  branding: EmailBranding,
+  footerKind: "invitation" | "message" = "message",
+) {
   const support = supportEmail();
   const appUrl = getAppUrl();
   const privacyUrl = `${appUrl}/privacystatment`;
   const termsUrl = `${appUrl}/termsofservice`;
   const unsubscribeUrl = buildUnsubscribeUrl(toEmail);
-  const email = escapeHtml(toEmail.trim().toLowerCase());
+  const org = escapeHtml(orgName);
+  const lead =
+    footerKind === "invitation"
+      ? `You were invited by <strong style="color:${aurora.body}">${org}</strong> through <strong style="color:${aurora.body}">Bizcon RSVP</strong>.`
+      : `This email was sent by <strong style="color:${aurora.body}">Bizcon RSVP</strong> on behalf of <strong style="color:${aurora.body}">${org}</strong>.`;
 
   return `<div style="max-width:560px;margin:16px auto 0;font-family:${aurora.font};font-size:11px;line-height:1.55;color:${aurora.muted};text-align:center">
-    <p style="margin:0 0 8px">This message was sent via <strong style="color:${aurora.body}">Bizcon RSVP</strong> on behalf of <strong style="color:${aurora.body}">${escapeHtml(orgName)}</strong>. Questions? Contact <a href="mailto:${escapeHtml(support)}" style="color:${branding.accentColor};text-decoration:none">${escapeHtml(support)}</a></p>
-    <p style="margin:0 0 10px;font-size:10px;line-height:1.5;color:${aurora.muted}">We sent this email to ${email} because you signed up for or have recently used Bizcon RSVP. Our service and marketing emails are to provide important updates and reminders about your projects and subscription. You can unsubscribe at any time using the link below.</p>
+    <p style="margin:0 0 4px">${lead}</p>
+    <p style="margin:0 0 10px">Questions? Contact <a href="mailto:${escapeHtml(support)}" style="color:${branding.accentColor};text-decoration:none">${escapeHtml(support)}</a></p>
     <p style="margin:0;font-size:10px">
       <a href="${privacyUrl}" style="color:${branding.accentColor};text-decoration:none">Privacy</a>
       <span style="color:${aurora.border};padding:0 6px">·</span>
@@ -105,6 +114,8 @@ export function letter(opts: {
   href?: string;
   cta?: string;
   branding?: EmailBranding;
+  /** Invitation emails use “You were invited by…”; others use on-behalf copy. */
+  footerKind?: "invitation" | "message";
 }) {
   const branding = opts.branding ?? defaultEmailBranding();
   const cta =
@@ -131,7 +142,7 @@ export function letter(opts: {
             ${cta}
           </div>
         </div>
-        ${trustFooter(opts.orgName, opts.toEmail, branding)}
+        ${trustFooter(opts.orgName, opts.toEmail, branding, opts.footerKind ?? "message")}
       </div>
     </div>
   `;
@@ -148,6 +159,7 @@ export function letterPair(opts: {
   secondaryHref?: string;
   secondaryCta?: string;
   branding?: EmailBranding;
+  footerKind?: "invitation" | "message";
 }) {
   const branding = opts.branding ?? defaultEmailBranding();
   const secondary =
@@ -163,6 +175,7 @@ export function letterPair(opts: {
     href: opts.primaryHref,
     cta: opts.primaryCta,
     branding,
+    footerKind: opts.footerKind,
   });
 }
 
