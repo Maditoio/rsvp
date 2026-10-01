@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent, requireOrg } from "@/lib/authz/require";
 import { writeAudit } from "@/modules/audit/log";
-import { toSlug } from "@/lib/utils";
+import { formatEventWindow, toSlug } from "@/lib/utils";
 import { DEFAULT_CATEGORIES } from "@/modules/events/defaults";
 import { ensureDefaultRegistrationForm } from "@/modules/registrations/form";
 import {
@@ -13,7 +13,13 @@ import {
   actionFail,
   actionOk,
   publicActionError,
+  runAction,
 } from "@/lib/action-result";
+import { rateLimit } from "@/lib/rate-limit";
+import {
+  generateEventDescription,
+  improveEventDescription,
+} from "@/modules/events/description-ai";
 import { optionalUrlSchema } from "@/lib/validation";
 import { parseDatetimeLocalValue } from "@/lib/timezone";
 import { isValidIanaTimezone } from "@/lib/timezone-options";
@@ -164,6 +170,95 @@ export async function updateEvent(
   } catch (error) {
     return actionFail(publicActionError(error, "Could not update event."));
   }
+}
+
+function eventDescriptionContextFromForm(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  if (name.length < 2) {
+    throw new Error("Enter an event name before using Con·cierge.");
+  }
+  const timezone = String(formData.get("timezone") ?? "UTC").trim() || "UTC";
+  const startsAtRaw = String(formData.get("startsAt") ?? "").trim();
+  const endsAtRaw = String(formData.get("endsAt") ?? "").trim();
+  const startsAt = startsAtRaw ? parseDate(startsAtRaw, timezone) : null;
+  const endsAt = endsAtRaw ? parseDate(endsAtRaw, timezone) : null;
+  const window =
+    startsAt || endsAt
+      ? formatEventWindow(startsAt, endsAt, timezone)
+      : null;
+
+  return {
+    name,
+    venue: String(formData.get("venue") ?? "").trim() || null,
+    timezone,
+    startsAt: window,
+    endsAt: null as string | null,
+    website: String(formData.get("website") ?? "").trim() || null,
+  };
+}
+
+export async function generateEventDescriptionAction(
+  orgSlug: string,
+  eventId: string,
+  formData: FormData,
+) {
+  return runAction(async () => {
+    const ctx = await requireEvent(orgSlug, eventId, "event.update");
+    const rl = await rateLimit(`event-desc-ai-generate:${ctx.user.id}`, 20, 3600);
+    if (!rl.success) {
+      throw new Error("Rate limit reached. Try again later.");
+    }
+
+    const notes = String(formData.get("notes") ?? "").trim();
+    const result = await generateEventDescription({
+      notes,
+      context: eventDescriptionContextFromForm(formData),
+    });
+
+    await writeAudit({
+      organisationId: ctx.organisation.id,
+      eventId,
+      userId: ctx.user.id,
+      action: "event.description_ai.generate",
+      resource: "event",
+      resourceId: eventId,
+      metadata: { usedAi: result.usedAi },
+    });
+
+    return result;
+  }, "Could not generate an event description.");
+}
+
+export async function improveEventDescriptionAction(
+  orgSlug: string,
+  eventId: string,
+  formData: FormData,
+) {
+  return runAction(async () => {
+    const ctx = await requireEvent(orgSlug, eventId, "event.update");
+    const rl = await rateLimit(`event-desc-ai-improve:${ctx.user.id}`, 20, 3600);
+    if (!rl.success) {
+      throw new Error("Rate limit reached. Try again later.");
+    }
+
+    const notes = String(formData.get("notes") ?? "").trim();
+    const result = await improveEventDescription({
+      notes,
+      context: eventDescriptionContextFromForm(formData),
+    });
+
+    await writeAudit({
+      organisationId: ctx.organisation.id,
+      eventId,
+      userId: ctx.user.id,
+      action: "event.description_ai.improve",
+      resource: "event",
+      resourceId: eventId,
+      metadata: { usedAi: result.usedAi },
+    });
+
+    return result;
+  }, "Could not improve the event description.");
 }
 
 const eventSettingsSchema = z.object({

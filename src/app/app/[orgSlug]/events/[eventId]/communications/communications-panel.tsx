@@ -8,12 +8,6 @@ import {
   saveCommunicationAutomation,
   runCommunicationAutomationNow,
 } from "@/modules/communications/automation-actions";
-import { saveEmailBranding, uploadEmailBanner, removeEmailBanner } from "@/modules/communications/email-branding-actions";
-import {
-  EMAIL_ACCENT_SWATCHES,
-  type EmailBranding,
-} from "@/modules/communications/email-branding";
-import { prepareImageForUpload } from "@/modules/files/prepare-image-upload";
 import type { AutomationRow } from "@/modules/communications/automations";
 import {
   DataTable,
@@ -59,10 +53,6 @@ export function CommunicationsPanel({
   automations,
   automationsEnabled,
   canSend,
-  branding,
-  emailAccentColor,
-  logoUrl,
-  bannerUrl,
 }: {
   orgSlug: string;
   eventId: string;
@@ -70,15 +60,10 @@ export function CommunicationsPanel({
   automations: AutomationRow[];
   automationsEnabled: boolean;
   canSend: boolean;
-  branding: EmailBranding;
-  emailAccentColor: string | null;
-  logoUrl: string | null;
-  bannerUrl: string | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [editAutomation, setEditAutomation] = useState<AutomationRow | null>(null);
-  const [accent, setAccent] = useState(emailAccentColor ?? branding.accentColor);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -142,236 +127,16 @@ export function CommunicationsPanel({
         </p>
       ) : null}
 
-      <section className="rounded-xl bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">Email branding</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Use a logo, a banner, or both on invitation and reminder emails. Brand
-          colour styles buttons and links. The sender remains Bizcon RSVP.
-        </p>
-
-        <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_1fr]">
-          <div className="space-y-4">
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
-                Logo
-              </p>
-              {branding.logoUrl || logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={branding.logoUrl ?? logoUrl ?? ""}
-                  alt="Event logo"
-                  className="mt-3 max-h-16 max-w-full object-contain"
-                />
-              ) : (
-                <p className="mt-3 text-sm text-slate-600">Optional — no logo set.</p>
-              )}
-              <Link
-                href={`/app/${orgSlug}/events/${eventId}/settings?tab=badges`}
-                className="mt-3 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-700"
-              >
-                Manage event logo
-              </Link>
-              {logoUrl && !branding.logoUrl ? (
-                <p className="mt-2 text-xs text-amber-700">
-                  SVG logos are skipped in email. Upload a PNG or JPEG for email
-                  branding.
-                </p>
-              ) : null}
-            </div>
-
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
-                Banner
-              </p>
-              {branding.bannerUrl || bannerUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={branding.bannerUrl ?? bannerUrl ?? ""}
-                  alt="Email banner"
-                  className="mt-3 max-h-24 w-full rounded-lg object-cover"
-                />
-              ) : (
-                <p className="mt-3 text-sm text-slate-600">
-                  Optional — wide header image (~560×160).
-                </p>
-              )}
-              {canSend ? (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <label className="inline-flex cursor-pointer">
-                    <span className="rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700">
-                      {pending ? "Uploading…" : "Upload banner"}
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      className="sr-only"
-                      disabled={pending}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        e.target.value = "";
-                        if (!file) return;
-                        setError(null);
-                        start(async () => {
-                          try {
-                            const prepared = await prepareImageForUpload(
-                              file,
-                              "background",
-                            );
-                            if (!prepared.ok) {
-                              setError(prepared.error);
-                              return;
-                            }
-                            const formData = new FormData();
-                            formData.set("banner", prepared.file);
-                            await uploadEmailBanner(orgSlug, eventId, formData);
-                            setNotice("Email banner uploaded.");
-                            router.refresh();
-                          } catch (err) {
-                            setError(
-                              err instanceof Error
-                                ? err.message
-                                : "Could not upload banner",
-                            );
-                          }
-                        });
-                      }}
-                    />
-                  </label>
-                  {bannerUrl || branding.bannerUrl ? (
-                    <button
-                      type="button"
-                      disabled={pending}
-                      className="text-xs font-medium text-slate-500 hover:text-slate-800"
-                      onClick={() => {
-                        setError(null);
-                        start(async () => {
-                          try {
-                            await removeEmailBanner(orgSlug, eventId);
-                            setNotice("Email banner removed.");
-                            router.refresh();
-                          } catch (err) {
-                            setError(
-                              err instanceof Error
-                                ? err.message
-                                : "Could not remove banner",
-                            );
-                          }
-                        });
-                      }}
-                    >
-                      Remove
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          <form
-            className="space-y-4"
-            action={(formData) => {
-              setError(null);
-              formData.set("emailAccentColor", accent);
-              start(async () => {
-                try {
-                  await saveEmailBranding(orgSlug, eventId, formData);
-                  setNotice("Email branding saved.");
-                  router.refresh();
-                } catch (e) {
-                  setError(
-                    e instanceof Error
-                      ? e.message
-                      : "Could not save email branding",
-                  );
-                }
-              });
-            }}
-          >
-            <div>
-              <Label htmlFor="emailAccentColor">Brand colour</Label>
-              <div className="mt-2 flex flex-wrap items-center gap-3">
-                <input
-                  id="emailAccentColor"
-                  type="color"
-                  value={accent}
-                  onChange={(e) => setAccent(e.target.value.toUpperCase())}
-                  className="h-10 w-14 cursor-pointer rounded-md border border-slate-200 bg-white p-1"
-                />
-                <Input
-                  value={accent}
-                  onChange={(e) => setAccent(e.target.value)}
-                  className="max-w-[8rem] font-mono uppercase"
-                  placeholder="#4F46E5"
-                />
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {EMAIL_ACCENT_SWATCHES.map((swatch) => (
-                  <button
-                    key={swatch.value}
-                    type="button"
-                    title={swatch.label}
-                    onClick={() => setAccent(swatch.value)}
-                    className="size-7 rounded-full border border-slate-200 shadow-sm"
-                    style={{ backgroundColor: swatch.value }}
-                    aria-label={swatch.label}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
-                Preview
-              </p>
-              <div className="mt-3 overflow-hidden rounded-xl bg-white shadow-sm">
-                {branding.bannerUrl || bannerUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={branding.bannerUrl ?? bannerUrl ?? ""}
-                    alt=""
-                    className="h-16 w-full object-cover"
-                  />
-                ) : null}
-                <div className="p-4">
-                  {branding.logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={branding.logoUrl}
-                      alt=""
-                      className="mb-3 max-h-10 max-w-[140px] object-contain"
-                    />
-                  ) : (
-                    <p
-                      className="mb-2 text-[11px] font-bold tracking-[0.02em]"
-                      style={{ color: accent }}
-                    >
-                      Bizcon RSVP
-                    </p>
-                  )}
-                  <p className="text-sm font-semibold text-slate-900">
-                    You&apos;re invited
-                  </p>
-                  <button
-                    type="button"
-                    className="mt-3 inline-flex rounded-full px-4 py-2 text-xs font-semibold text-white"
-                    style={{ backgroundColor: accent }}
-                  >
-                    View invitation
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {canSend ? (
-              <div className="flex justify-end">
-                <Button disabled={pending}>
-                  {pending ? "Saving…" : "Save branding"}
-                </Button>
-              </div>
-            ) : null}
-          </form>
-        </div>
-      </section>
+      <p className="text-sm text-slate-500">
+        Email logo, banner, and colour live under{" "}
+        <Link
+          href={`/app/${orgSlug}/events/${eventId}/branding`}
+          className="font-medium text-indigo-600 hover:text-indigo-700"
+        >
+          Branding
+        </Link>
+        .
+      </p>
 
       <section className="rounded-xl bg-white shadow-sm p-5">
         <h2 className="font-display text-xl text-slate-900">Automations</h2>

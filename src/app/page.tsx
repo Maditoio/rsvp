@@ -98,6 +98,17 @@ const pillar3Bullets = [
   "Communications centre and exportable reports",
 ];
 
+const hostedEvents = [
+  {
+    name: "South African Meter Taxi E-Hailing Conference",
+    type: "Industry conference",
+  },
+  {
+    name: "Coastal & Inland Waterways Tourism Investment Summit",
+    type: "Investment summit",
+  },
+];
+
 const audiences = [
   { icon: Mic2, label: "Summit organisers" },
   { icon: Landmark, label: "Conference directors" },
@@ -153,8 +164,35 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Hosted events */}
+      <section className="border-b border-slate-200 bg-slate-50 py-14 md:py-16">
+        <div className="mx-auto max-w-6xl px-6">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
+            Hosted on Bizcon RSVP
+          </p>
+          <h2 className="mt-3 text-center text-2xl font-semibold text-slate-900 md:text-3xl">
+            Events we have powered
+          </h2>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+            {hostedEvents.map((event) => (
+              <div
+                key={event.name}
+                className="rounded-xl bg-white p-6 shadow-sm"
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">
+                  {event.type}
+                </p>
+                <p className="mt-2 text-lg font-semibold leading-snug text-slate-900">
+                  {event.name}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Journey Visual */}
-      <section className="bg-slate-50 py-20 md:py-28">
+      <section className="border-b border-slate-200 bg-white py-20 md:py-28">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-center text-3xl font-semibold text-slate-900 md:text-4xl">
             The complete delegate journey

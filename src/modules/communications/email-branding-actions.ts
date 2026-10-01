@@ -25,12 +25,18 @@ const brandingSchema = z.object({
     .or(z.literal("")),
 });
 
+function revalidateBrandingPaths(orgSlug: string, eventId: string) {
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/branding`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/communications`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/settings`);
+}
+
 export async function saveEmailBranding(
   orgSlug: string,
   eventId: string,
   formData: FormData,
 ) {
-  const ctx = await requireEvent(orgSlug, eventId, "invitations.write");
+  const ctx = await requireEvent(orgSlug, eventId, "event.update");
   const parsed = brandingSchema.parse({
     emailAccentColor: String(formData.get("emailAccentColor") ?? ""),
   });
@@ -61,8 +67,7 @@ export async function saveEmailBranding(
     metadata: { emailAccentColor },
   });
 
-  revalidatePath(`/app/${orgSlug}/events/${eventId}/communications`);
-  revalidatePath(`/app/${orgSlug}/events/${eventId}/settings`);
+  revalidateBrandingPaths(orgSlug, eventId);
 }
 
 export async function uploadEmailBanner(
@@ -70,7 +75,7 @@ export async function uploadEmailBanner(
   eventId: string,
   formData: FormData,
 ) {
-  const ctx = await requireEvent(orgSlug, eventId, "invitations.write");
+  const ctx = await requireEvent(orgSlug, eventId, "event.update");
   if (!isBlobStorageConfigured()) {
     throw new Error(blobStorageNotConfiguredMessage());
   }
@@ -90,7 +95,9 @@ export async function uploadEmailBanner(
 
   const safeUrl = emailSafeImageUrl(url);
   if (!safeUrl) {
-    throw new Error("Upload a PNG, JPEG, or WebP banner (SVG is not supported in email).");
+    throw new Error(
+      "Upload a PNG, JPEG, or WebP banner (SVG is not supported in email).",
+    );
   }
 
   await prisma.eventSettings.upsert({
@@ -114,12 +121,12 @@ export async function uploadEmailBanner(
     resourceId: eventId,
   });
 
-  revalidatePath(`/app/${orgSlug}/events/${eventId}/communications`);
+  revalidateBrandingPaths(orgSlug, eventId);
   return { url: safeUrl };
 }
 
 export async function removeEmailBanner(orgSlug: string, eventId: string) {
-  const ctx = await requireEvent(orgSlug, eventId, "invitations.write");
+  const ctx = await requireEvent(orgSlug, eventId, "event.update");
 
   await prisma.eventSettings.upsert({
     where: { eventId },
@@ -142,5 +149,5 @@ export async function removeEmailBanner(orgSlug: string, eventId: string) {
     resourceId: eventId,
   });
 
-  revalidatePath(`/app/${orgSlug}/events/${eventId}/communications`);
+  revalidateBrandingPaths(orgSlug, eventId);
 }

@@ -167,7 +167,7 @@ export function QuestionnaireWizard({
   const [answers, setAnswers] = useState<MatchmakingQuestionnaire>(initialQuestionnaire);
   const [profileVisible, setProfileVisible] = useState(initialPrivacy.profileVisible);
   const [matchmakingEnabled, setMatchmakingEnabled] = useState(
-    alreadyComplete ? initialPrivacy.matchmakingEnabled : true,
+    initialPrivacy.matchmakingEnabled,
   );
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
