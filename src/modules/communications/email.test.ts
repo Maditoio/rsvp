@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { letter, OUTBOUND_EMAIL_TEMPLATES } from "./email-layout";
 import { emailHtmlIncludesUnsubscribe } from "./email-unsubscribe";
+import { resolveEmailBranding } from "./email-branding";
 
 describe("outbound email templates", () => {
   it("lists every send* entry point", () => {
@@ -41,5 +42,26 @@ describe("outbound email templates", () => {
 
     expect(html).toContain("Unsubscribe");
     expect(emailHtmlIncludesUnsubscribe(html, toEmail)).toBe(true);
+  });
+
+  it("renders event logo and brand accent when branding is provided", () => {
+    const branding = resolveEmailBranding({
+      logoUrl: "https://cdn.example.com/logo.png",
+      emailAccentColor: "#0D9488",
+    });
+    const html = letter({
+      title: "Summit invite",
+      eyebrow: "Invitation",
+      body: "<p>Hello</p>",
+      orgName: "Acme Events",
+      toEmail: "guest@example.com",
+      href: "https://example.com/i/x",
+      cta: "View invitation",
+      branding,
+    });
+
+    expect(html).toContain('src="https://cdn.example.com/logo.png"');
+    expect(html).toContain("background:#0D9488");
+    expect(html).toContain("Powered by Bizcon RSVP");
   });
 });

@@ -384,6 +384,8 @@ model EventSettings {
   meetingDurationMinutes Int     @default(15)
   eventStartTime         String  @default("09:00")
   eventEndTime           String  @default("18:00")
+  /// Accent colour for invitation / reminder emails (#RRGGBB). Null = Bizcon indigo or website theme.
+  emailAccentColor       String?
   /// Category rules, caps, batch triggers, reminder toggles (JSON).
   operationsConfig       Json?
   /// Badge template id, field toggles (JSON).
