@@ -5,6 +5,7 @@ import {
   exportCheckinsCsv,
   exportInviteesCsv,
   exportMeetingsCsv,
+  exportRegistrationsCsv,
 } from "@/modules/reports/export";
 
 export async function GET(
@@ -14,7 +15,13 @@ export async function GET(
   const { orgSlug, eventId } = await ctx.params;
   const kind = new URL(request.url).searchParams.get("kind");
 
-  const validKinds = ["attendees", "invitees", "checkins", "meetings"] as const;
+  const validKinds = [
+    "attendees",
+    "invitees",
+    "checkins",
+    "meetings",
+    "registrations",
+  ] as const;
   if (!validKinds.includes(kind as (typeof validKinds)[number])) {
     return new Response("Unknown export kind", { status: 400 });
   }
@@ -25,6 +32,7 @@ export async function GET(
       invitees: exportInviteesCsv,
       checkins: exportCheckinsCsv,
       meetings: exportMeetingsCsv,
+      registrations: exportRegistrationsCsv,
     };
     const csv = await exporters[kind as keyof typeof exporters](orgSlug, eventId);
     const filename = `${kind}-${eventId}.csv`;

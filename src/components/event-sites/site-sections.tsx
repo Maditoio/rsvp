@@ -1171,7 +1171,13 @@ function agendaPlaceholderSession(): AgendaSessionItem {
     location: null,
     dateLabel: "",
     timeLabel: null,
+    speakers: [],
   };
+}
+
+function sessionSpeakerLine(session: AgendaSessionItem) {
+  if (!session.speakers?.length) return null;
+  return session.speakers.map((speaker) => speaker.name).join(", ");
 }
 
 function resolveAgendaSessions(
@@ -1185,7 +1191,9 @@ function resolveAgendaSessions(
 function AgendaListLayout({ sessions }: { sessions: AgendaSessionItem[] }) {
   return (
     <ul className="mt-8 space-y-3">
-      {sessions.map((session) => (
+      {sessions.map((session) => {
+        const speakersLine = sessionSpeakerLine(session);
+        return (
         <li
           key={session.id}
           className="bg-white p-5 shadow-sm"
@@ -1205,11 +1213,15 @@ function AgendaListLayout({ sessions }: { sessions: AgendaSessionItem[] }) {
           {session.location ? (
             <p className="mt-1 text-sm opacity-60">{session.location}</p>
           ) : null}
+          {speakersLine ? (
+            <p className="mt-1 text-sm opacity-70">{speakersLine}</p>
+          ) : null}
           {session.description ? (
             <p className="mt-2 line-clamp-2 text-sm">{session.description}</p>
           ) : null}
         </li>
-      ))}
+        );
+      })}
     </ul>
   );
 }
@@ -1217,7 +1229,9 @@ function AgendaListLayout({ sessions }: { sessions: AgendaSessionItem[] }) {
 function AgendaTimelineLayout({ sessions }: { sessions: AgendaSessionItem[] }) {
   return (
     <ol className="mt-10 border-l border-slate-200 pl-6">
-      {sessions.map((session) => (
+      {sessions.map((session) => {
+        const speakersLine = sessionSpeakerLine(session);
+        return (
         <li key={session.id} className="relative pb-8 last:pb-0">
           <span
             className="absolute -left-[29px] top-1 size-3 rounded-full border-2 border-white shadow-sm"
@@ -1238,11 +1252,15 @@ function AgendaTimelineLayout({ sessions }: { sessions: AgendaSessionItem[] }) {
           {session.location ? (
             <p className="mt-1 text-sm opacity-60">{session.location}</p>
           ) : null}
+          {speakersLine ? (
+            <p className="mt-1 text-sm opacity-70">{speakersLine}</p>
+          ) : null}
           {session.description ? (
             <p className="mt-2 text-sm leading-relaxed">{session.description}</p>
           ) : null}
         </li>
-      ))}
+        );
+      })}
     </ol>
   );
 }
@@ -1270,7 +1288,9 @@ function AgendaGroupedLayout({ sessions }: { sessions: AgendaSessionItem[] }) {
             {group.dateLabel}
           </p>
           <ul className="mt-3 divide-y divide-slate-200/80 border-t border-slate-200/80">
-            {group.sessions.map((session) => (
+            {group.sessions.map((session) => {
+              const speakersLine = sessionSpeakerLine(session);
+              return (
               <li
                 key={session.id}
                 className="flex flex-wrap items-baseline justify-between gap-2 py-4"
@@ -1285,6 +1305,9 @@ function AgendaGroupedLayout({ sessions }: { sessions: AgendaSessionItem[] }) {
                   {session.location ? (
                     <p className="mt-1 text-sm opacity-60">{session.location}</p>
                   ) : null}
+                  {speakersLine ? (
+                    <p className="mt-1 text-sm opacity-70">{speakersLine}</p>
+                  ) : null}
                   {session.description ? (
                     <p className="mt-1 text-sm leading-relaxed">{session.description}</p>
                   ) : null}
@@ -1295,7 +1318,8 @@ function AgendaGroupedLayout({ sessions }: { sessions: AgendaSessionItem[] }) {
                   </span>
                 ) : null}
               </li>
-            ))}
+              );
+            })}
           </ul>
         </div>
       ))}
@@ -1306,23 +1330,31 @@ function AgendaGroupedLayout({ sessions }: { sessions: AgendaSessionItem[] }) {
 function AgendaCompactLayout({ sessions }: { sessions: AgendaSessionItem[] }) {
   return (
     <ul className="mt-8 divide-y divide-slate-200/80">
-      {sessions.map((session) => (
+      {sessions.map((session) => {
+        const speakersLine = sessionSpeakerLine(session);
+        return (
         <li key={session.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-          <div className="flex min-w-0 items-baseline gap-3">
+          <div className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
             {session.timeLabel ? (
               <span className="w-20 shrink-0 text-xs font-semibold uppercase tracking-wide opacity-60">
                 {session.timeLabel}
               </span>
             ) : null}
-            <span className="truncate font-medium text-[var(--site-primary)]">
-              {session.title}
-            </span>
+            <div className="min-w-0">
+              <span className="truncate font-medium text-[var(--site-primary)]">
+                {session.title}
+              </span>
+              {speakersLine ? (
+                <p className="truncate text-xs opacity-60">{speakersLine}</p>
+              ) : null}
+            </div>
           </div>
           {session.location ? (
             <span className="shrink-0 text-xs opacity-60">{session.location}</span>
           ) : null}
         </li>
-      ))}
+        );
+      })}
     </ul>
   );
 }

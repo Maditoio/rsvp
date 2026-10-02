@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
 import { Radio } from "@/components/ui/radio";
 import { Badge } from "@/components/ui/badge";
-import { cn, displayName, humanizeEnum } from "@/lib/utils";
+import { cn, humanizeEnum } from "@/lib/utils";
 import { parseDateRange } from "@/lib/validation";
 import { useToast } from "@/components/ui/toast";
 
@@ -31,7 +31,12 @@ type RequestRow = {
   id: string;
   status: string;
   message: string | null;
-  counterpart: { firstName: string; lastName: string; company: string | null };
+  counterpart: {
+    firstName: string | null;
+    lastName: string | null;
+    company: string | null;
+    displayName: string;
+  };
   inbound: boolean;
   createdAt: string;
 };
@@ -431,7 +436,7 @@ export function AttendeeMeetingsPanel({
           >
             <input type="hidden" name="requestId" value={current.id} />
             <p className="font-medium text-slate-900">
-              {displayName(current.counterpart)}
+              {current.counterpart.displayName}
             </p>
             {current.message ? (
               <p className="text-sm text-slate-700">{current.message}</p>
@@ -859,7 +864,7 @@ function RequestCard({
   row: RequestRow;
   onReview?: () => void;
 }) {
-  const initials = displayName(row.counterpart)
+  const initials = row.counterpart.displayName
     .split(/\s+/)
     .map((p) => p[0])
     .join("")
@@ -879,7 +884,7 @@ function RequestCard({
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <h3 className="text-[0.9375rem] font-semibold text-slate-900">
-                {displayName(row.counterpart)}
+                {row.counterpart.displayName}
               </h3>
               <p className="mt-0.5 text-sm text-slate-500">
                 {row.counterpart.company || (row.inbound ? "Incoming request" : "Sent request")}

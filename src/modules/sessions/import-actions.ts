@@ -10,6 +10,7 @@ import {
   runAction,
   type ActionResult,
 } from "@/lib/action-result";
+import { speakerDisplayName } from "@/modules/speakers/config";
 import {
   parseSessionImportFile,
   previewSessionImport,
@@ -25,6 +26,10 @@ export type SessionImportPreviewResult = {
   rows: SessionImportRow[];
   timezone: string;
 };
+
+function normalizeSpeakerName(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
 
 export async function previewAgendaImport(
   orgSlug: string,
@@ -79,20 +84,73 @@ export async function commitAgendaImport(
       return actionFail("Import at most 500 sessions at a time.");
     }
 
+    const eventSpeakers = await prisma.eventSpeaker.findMany({
+      where: {
+        eventId,
+        organisationId: ctx.organisation.id,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+      },
+    });
+    const speakersByName = new Map(
+      eventSpeakers.map((speaker) => [
+        normalizeSpeakerName(speakerDisplayName(speaker)),
+        speaker.id,
+      ]),
+    );
+
     let created = 0;
     for (const row of rows) {
-      await prisma.session.create({
+      const linkedSpeakerIds: string[] = [];
+      const unmatchedNames: string[] = [];
+      for (const name of row.speakerNames) {
+        const speakerId = speakersByName.get(normalizeSpeakerName(name));
+        if (speakerId) {
+          if (!linkedSpeakerIds.includes(speakerId)) {
+            linkedSpeakerIds.push(speakerId);
+          }
+        } else {
+          unmatchedNames.push(name);
+        }
+      }
+
+      let description = row.description;
+      if (unmatchedNames.length > 0) {
+        const speakersLine = `Speakers: ${unmatchedNames.join("; ")}`;
+        description = description
+          ? `${description}\n\n${speakersLine}`
+          : speakersLine;
+      }
+
+      const session = await prisma.session.create({
         data: {
           organisationId: ctx.organisation.id,
           eventId,
           title: row.title,
-          description: row.description,
+          description,
           location: row.location,
           startsAt: row.startsAt,
           endsAt: row.endsAt,
           format: row.format,
+          registrationMode: row.registrationMode,
         },
       });
+
+      if (linkedSpeakerIds.length > 0) {
+        await prisma.sessionSpeaker.createMany({
+          data: linkedSpeakerIds.map((speakerId, index) => ({
+            organisationId: ctx.organisation.id,
+            eventId,
+            sessionId: session.id,
+            speakerId,
+            sortOrder: index,
+          })),
+        });
+      }
+
       created += 1;
     }
 
@@ -106,6 +164,7 @@ export async function commitAgendaImport(
     });
 
     revalidatePath(`/app/${orgSlug}/events/${eventId}/agenda`);
+    revalidatePath(`/app/${orgSlug}/events/${eventId}/website`);
     revalidatePath(`/me/events/${eventId}/agenda`);
     return actionOk({ created });
   } catch (error) {

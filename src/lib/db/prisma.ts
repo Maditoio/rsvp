@@ -6,7 +6,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
  * Use a versioned global key. Next.js HMR keeps `globalThis.prisma` across
  * `prisma generate`, so a renamed key forces a fresh client after schema changes.
  */
-const GLOBAL_KEY = "__bizcon_prisma_v12_event_speakers__" as const;
+const GLOBAL_KEY = "__bizcon_prisma_v13_session_speakers__" as const;
 
 type PrismaGlobal = typeof globalThis & {
   [GLOBAL_KEY]?: PrismaClient;
@@ -29,13 +29,19 @@ function clientMatchesSchema(client: PrismaClient) {
   ).eventSpeaker;
   if (typeof eventSpeaker?.count !== "function") return false;
 
+  const sessionSpeaker = (
+    client as unknown as { sessionSpeaker?: { count?: unknown } }
+  ).sessionSpeaker;
+  if (typeof sessionSpeaker?.count !== "function") return false;
+
   // Guard against HMR reusing a client generated before org feature columns existed.
   return (
     "venueAiFloorPlanEnabled" in Prisma.OrganisationScalarFieldEnum &&
     "tokenEncrypted" in Prisma.MapCheckpointScalarFieldEnum &&
     "kind" in Prisma.MapAnalyticsEventScalarFieldEnum &&
     "tier" in Prisma.EventSponsorScalarFieldEnum &&
-    "firstName" in Prisma.EventSpeakerScalarFieldEnum
+    "firstName" in Prisma.EventSpeakerScalarFieldEnum &&
+    "registrationMode" in Prisma.SessionScalarFieldEnum
   );
 }
 
@@ -55,7 +61,7 @@ function getPrismaClient(): PrismaClient {
 
   if (!clientMatchesSchema(client)) {
     throw new Error(
-      "Prisma client is out of date (missing VenueFloorPlan, Organisation.venueAiFloorPlanEnabled, MapAnalyticsEvent, EventSponsor, or EventSpeaker). Run `npx prisma generate`, delete the `.next` folder, and restart the dev server.",
+      "Prisma client is out of date (missing VenueFloorPlan, Organisation.venueAiFloorPlanEnabled, MapAnalyticsEvent, EventSponsor, EventSpeaker, SessionSpeaker, or Session.registrationMode). Run `npx prisma generate`, delete the `.next` folder, and restart the dev server.",
     );
   }
 
@@ -73,6 +79,7 @@ function getPrismaClient(): PrismaClient {
     __bizcon_prisma_v9_map_analytics__?: PrismaClient;
     __bizcon_prisma_v10_event_website__?: PrismaClient;
     __bizcon_prisma_v11_event_sponsors__?: PrismaClient;
+    __bizcon_prisma_v12_event_speakers__?: PrismaClient;
   };
   for (const key of [
     "prisma",
@@ -83,6 +90,7 @@ function getPrismaClient(): PrismaClient {
     "__bizcon_prisma_v9_map_analytics__",
     "__bizcon_prisma_v10_event_website__",
     "__bizcon_prisma_v11_event_sponsors__",
+    "__bizcon_prisma_v12_event_speakers__",
   ] as const) {
     const old = legacy[key];
     if (old && old !== client) {

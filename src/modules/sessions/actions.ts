@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { SessionFormat, SessionMeetingPolicy } from "@prisma/client";
+import {
+  SessionFormat,
+  SessionMeetingPolicy,
+  SessionRegistrationMode,
+} from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent, requireUser } from "@/lib/authz/require";
 import { writeAudit } from "@/modules/audit/log";
@@ -10,6 +14,7 @@ import { AuthzError } from "@/lib/db/tenant";
 import { syncSessionTeamsMeetingIfNeeded } from "@/modules/meetings/session-teams-actions";
 import { parseOptionalDateRange } from "@/lib/validation";
 import { SESSION_MEETING_POLICIES } from "@/modules/meetings/meeting-policy";
+import { SESSION_REGISTRATION_MODES } from "@/modules/sessions/registration-mode";
 
 const sessionSchema = z.object({
   sessionId: z.string().optional(),
@@ -21,7 +26,63 @@ const sessionSchema = z.object({
   capacity: z.string().optional().or(z.literal("")),
   format: z.enum(["PHYSICAL", "ONLINE", "HYBRID"]).default("PHYSICAL"),
   meetingPolicy: z.enum(SESSION_MEETING_POLICIES).default("BLOCK_REGISTERED"),
+  registrationMode: z.enum(SESSION_REGISTRATION_MODES).default("OPEN"),
+  speakerIds: z.array(z.string().min(1)).max(40).default([]),
 });
+
+async function replaceSessionSpeakers(args: {
+  organisationId: string;
+  eventId: string;
+  sessionId: string;
+  speakerIds: string[];
+}) {
+  const uniqueIds = [...new Set(args.speakerIds)];
+  if (uniqueIds.length === 0) {
+    await prisma.sessionSpeaker.deleteMany({
+      where: {
+        sessionId: args.sessionId,
+        organisationId: args.organisationId,
+        eventId: args.eventId,
+      },
+    });
+    return;
+  }
+
+  const speakers = await prisma.eventSpeaker.findMany({
+    where: {
+      id: { in: uniqueIds },
+      eventId: args.eventId,
+      organisationId: args.organisationId,
+    },
+    select: { id: true },
+  });
+  if (speakers.length !== uniqueIds.length) {
+    throw new Error("One or more speakers were not found for this event.");
+  }
+
+  const ordered = uniqueIds.filter((id) =>
+    speakers.some((speaker) => speaker.id === id),
+  );
+
+  await prisma.$transaction([
+    prisma.sessionSpeaker.deleteMany({
+      where: {
+        sessionId: args.sessionId,
+        organisationId: args.organisationId,
+        eventId: args.eventId,
+      },
+    }),
+    prisma.sessionSpeaker.createMany({
+      data: ordered.map((speakerId, index) => ({
+        organisationId: args.organisationId,
+        eventId: args.eventId,
+        sessionId: args.sessionId,
+        speakerId,
+        sortOrder: index,
+      })),
+    }),
+  ]);
+}
 
 export async function saveSession(orgSlug: string, eventId: string, formData: FormData) {
   const ctx = await requireEvent(orgSlug, eventId, "event.update");
@@ -43,6 +104,12 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
     meetingPolicy:
       String(formData.get("meetingPolicy") ?? "BLOCK_REGISTERED") ||
       "BLOCK_REGISTERED",
+    registrationMode:
+      String(formData.get("registrationMode") ?? "OPEN") || "OPEN",
+    speakerIds: formData
+      .getAll("speakerIds")
+      .map((value) => String(value).trim())
+      .filter(Boolean),
   });
 
   const capacityValue = input.capacity
@@ -69,6 +136,7 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
     capacity: capacityValue,
     format: input.format as SessionFormat,
     meetingPolicy: input.meetingPolicy as SessionMeetingPolicy,
+    registrationMode: input.registrationMode as SessionRegistrationMode,
   };
 
   let sessionId = input.sessionId;
@@ -93,8 +161,10 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
         capacity: data.capacity,
         format: data.format,
         meetingPolicy: data.meetingPolicy,
+        registrationMode: data.registrationMode,
       },
     });
+    sessionId = existing.id;
 
     if (data.format !== SessionFormat.PHYSICAL) {
       await syncSessionTeamsMeetingIfNeeded({
@@ -112,6 +182,13 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
     sessionId = created.id;
   }
 
+  await replaceSessionSpeakers({
+    organisationId: ctx.organisation.id,
+    eventId,
+    sessionId: sessionId!,
+    speakerIds: input.speakerIds,
+  });
+
   await writeAudit({
     organisationId: ctx.organisation.id,
     eventId,
@@ -122,6 +199,7 @@ export async function saveSession(orgSlug: string, eventId: string, formData: Fo
   });
   revalidatePath(`/app/${orgSlug}/events/${eventId}/agenda`);
   revalidatePath(`/app/${orgSlug}/events/${eventId}/meetings`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/website`);
   revalidatePath(`/me/events/${eventId}/agenda`);
   return { sessionId };
 }
@@ -144,6 +222,7 @@ export async function deleteSession(orgSlug: string, eventId: string, formData: 
   });
   revalidatePath(`/app/${orgSlug}/events/${eventId}/agenda`);
   revalidatePath(`/app/${orgSlug}/events/${eventId}/meetings`);
+  revalidatePath(`/app/${orgSlug}/events/${eventId}/website`);
   revalidatePath(`/me/events/${eventId}/agenda`);
 }
 
@@ -166,6 +245,9 @@ export async function toggleMySession(eventId: string, formData: FormData) {
   if (existing) {
     await prisma.sessionRegistration.delete({ where: { id: existing.id } });
   } else {
+    if (session.registrationMode === SessionRegistrationMode.CLOSED) {
+      throw new Error("Registration for this session is closed.");
+    }
     if (session.capacity !== null) {
       const count = await prisma.sessionRegistration.count({
         where: { sessionId },

@@ -4,6 +4,7 @@ import { Card, DecisionCard } from "@/components/ui/card";
 import { RouteDrawer } from "@/components/ui/drawer";
 import { getPublicInvitation } from "@/modules/invitations/public";
 import { turnstileSiteKey, attendeeSignUpUrl } from "@/lib/utils";
+import { buildRegistrationPrefill } from "@/modules/registrations/answers";
 import { ensureDefaultRegistrationForm } from "@/modules/registrations/form";
 import { getCurrentUser } from "@/lib/authz/require";
 import { prisma } from "@/lib/db/prisma";
@@ -78,6 +79,29 @@ export default async function RegisterPage({
     invitation.eventId,
   );
 
+  const priorResponse = await prisma.registrationResponse.findFirst({
+    where: {
+      organisationId: invitation.organisationId,
+      eventId: invitation.eventId,
+      contact: { email: invitation.email },
+    },
+    orderBy: { updatedAt: "desc" },
+    select: { data: true },
+  });
+
+  const defaults = buildRegistrationPrefill({
+    contact: {
+      firstName: invitation.firstName,
+      lastName: invitation.lastName,
+      email: invitation.email,
+      phone: invitation.phone || null,
+      company: invitation.company || null,
+      jobTitle: invitation.jobTitle || null,
+      country: invitation.country || null,
+    },
+    priorResponseData: priorResponse?.data,
+  });
+
   let matchmakingHref: string | null = null;
   let user = null;
   try {
@@ -137,15 +161,7 @@ export default async function RegisterPage({
           signUpHref={signUpHref}
           matchmakingHref={matchmakingHref}
           eventDays={eventDays}
-          defaults={{
-            firstName: invitation.firstName,
-            lastName: invitation.lastName,
-            email: invitation.email,
-            phone: invitation.phone,
-            company: invitation.company,
-            jobTitle: invitation.jobTitle,
-            country: invitation.country,
-          }}
+          defaults={defaults}
         />
       </Card>
     </RouteDrawer>

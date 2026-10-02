@@ -4,6 +4,7 @@ import {
   parseSessionDatetime,
   previewSessionImport,
   sessionTemplateCsv,
+  splitSpeakerNames,
 } from "@/modules/sessions/parse";
 
 describe("session import parse", () => {
@@ -17,10 +18,12 @@ describe("session import parse", () => {
       "Track",
       "Speaker names",
       "Format",
+      "Registration",
     ]);
     expect(map.Title).toBe("title");
     expect(map["Start datetime"]).toBe("startsAt");
     expect(map["Speaker names"]).toBe("speakers");
+    expect(map.Registration).toBe("registrationMode");
   });
 
   it("parses ISO and UK datetimes", () => {
@@ -60,6 +63,7 @@ describe("session import parse", () => {
           Track: "Main",
           "Speaker names": "Ada Lovelace",
           Format: "Hybrid",
+          Registration: "Required",
         },
       ],
       undefined,
@@ -69,6 +73,8 @@ describe("session import parse", () => {
     expect(preview.valid[0]?.startsAt?.toISOString()).toBe(
       "2026-11-14T07:00:00.000Z",
     );
+    expect(preview.valid[0]?.registrationMode).toBe("REQUIRED");
+    expect(preview.valid[0]?.speakerNames).toEqual(["Ada Lovelace"]);
   });
 
   it("previews valid rows and reports issues", () => {
@@ -80,27 +86,52 @@ describe("session import parse", () => {
         "End datetime": "2026-11-14 10:00",
         Location: "Hall A",
         Track: "Main",
-        "Speaker names": "Ada Lovelace",
+        "Speaker names": "Ada Lovelace; Grace Hopper",
         Format: "Hybrid",
+        Registration: "Open",
       },
       {
         Title: "",
         "Start datetime": "2026-11-14 11:00",
         "End datetime": "2026-11-14 12:00",
       },
+      {
+        Title: "Workshop",
+        Registration: "maybe",
+      },
     ]);
 
     expect(preview.valid).toHaveLength(1);
     expect(preview.valid[0]?.title).toBe("Keynote");
     expect(preview.valid[0]?.location).toBe("Hall A · Main");
-    expect(preview.valid[0]?.description).toContain("Speakers: Ada Lovelace");
+    expect(preview.valid[0]?.description).toBe("Welcome");
+    expect(preview.valid[0]?.speakerNames).toEqual([
+      "Ada Lovelace",
+      "Grace Hopper",
+    ]);
     expect(preview.valid[0]?.format).toBe("HYBRID");
+    expect(preview.valid[0]?.registrationMode).toBe("OPEN");
     expect(preview.issues.some((i) => i.reason === "missing_title")).toBe(true);
+    expect(preview.issues.some((i) => i.reason === "invalid_registration")).toBe(
+      true,
+    );
+  });
+
+  it("splits speaker names on common separators", () => {
+    expect(splitSpeakerNames("Ada Lovelace; Grace Hopper")).toEqual([
+      "Ada Lovelace",
+      "Grace Hopper",
+    ]);
+    expect(splitSpeakerNames("Ada Lovelace | Grace Hopper")).toEqual([
+      "Ada Lovelace",
+      "Grace Hopper",
+    ]);
   });
 
   it("exports a template CSV with headers", () => {
     const csv = sessionTemplateCsv();
     expect(csv).toContain("Title,Description,Start datetime");
+    expect(csv).toContain("Registration");
     expect(csv).toContain("Opening keynote");
   });
 });

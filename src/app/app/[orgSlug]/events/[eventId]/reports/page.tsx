@@ -52,6 +52,18 @@ export default async function ReportsPage({
           </a>
         </Card>
         <Card>
+          <h2 className="font-medium text-slate-700">Registrations</h2>
+          <p className="mt-1 text-sm text-slate-700">
+            Registration form answers with dynamic custom field columns.
+          </p>
+          <a
+            href={`${base}?kind=registrations`}
+            className="mt-4 inline-flex rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
+          >
+            Download registrations CSV
+          </a>
+        </Card>
+        <Card>
           <h2 className="font-medium text-slate-700">Check-ins</h2>
           <p className="mt-1 text-sm text-slate-700">
             Attendees who have checked in, with timestamps.

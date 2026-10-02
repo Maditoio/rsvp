@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import { requireUser } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { AuthzError } from "@/lib/db/tenant";
+import { resolveFieldVisibility } from "@/modules/privacy";
 import { PrivacyForm } from "./privacy-form";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -24,6 +25,8 @@ export default async function AttendeePrivacyPage({
     return null;
   }
 
+  const visibility = resolveFieldVisibility(attendee.privacy);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -37,9 +40,8 @@ export default async function AttendeePrivacyPage({
         privacy={{
           profileVisible: attendee.privacy?.profileVisible ?? true,
           matchmakingEnabled: attendee.privacy?.matchmakingEnabled ?? false,
-          showEmail: attendee.privacy?.showEmail ?? false,
-          showPhone: attendee.privacy?.showPhone ?? false,
           aiInsightsOptIn: attendee.privacy?.aiInsightsOptIn ?? false,
+          visibility,
         }}
       />
     </div>

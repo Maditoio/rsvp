@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card";
 import { prisma } from "@/lib/db/prisma";
 import { respondToMeetingByToken } from "@/modules/meetings/decisions";
 import { loadMeetingRequestByToken } from "@/modules/meetings/respond-token";
-import { displayName } from "@/lib/utils";
 
 export default async function MeetingResponsePage({
   params,
@@ -22,7 +21,7 @@ export default async function MeetingResponsePage({
 
   const result = await respondToMeetingByToken(token, decision);
   const meetingsHref = `/me/events/${request.eventId}/meetings`;
-  const requesterLabel = displayName(request.requester);
+  const requesterLabel = request.requester.displayName;
   const eventName = request.event.name;
 
   let succeeded = result.ok;

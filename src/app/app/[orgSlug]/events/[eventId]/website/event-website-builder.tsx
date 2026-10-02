@@ -53,6 +53,7 @@ type Props = {
     location: string | null;
     dateLabel: string;
     timeLabel: string | null;
+    speakers: { id: string; name: string }[];
   }[];
   publicQrDataUrl: string | null;
 };

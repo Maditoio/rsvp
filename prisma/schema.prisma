@@ -120,6 +120,13 @@ enum SessionMeetingPolicy {
   MEETING_WINDOW
 }
 
+/// How attendees register for a session on their agenda.
+enum SessionRegistrationMode {
+  OPEN
+  REQUIRED
+  CLOSED
+}
+
 enum OnlineMeetingProvider {
   TEAMS
   ZOOM
@@ -199,6 +206,7 @@ model Organisation {
   attendeePrivacy         AttendeePrivacy[]
   sessions                Session[]
   sessionRegistrations    SessionRegistration[]
+  sessionSpeakers         SessionSpeaker[]
   matchmakingProfiles     MatchmakingProfile[]
   matchScores             MatchScore[]
   meetingRequests         MeetingRequest[]
@@ -289,6 +297,7 @@ model Event {
   attendeePrivacy       AttendeePrivacy[]
   sessions              Session[]
   sessionRegistrations  SessionRegistration[]
+  sessionSpeakers       SessionSpeaker[]
   matchmakingProfiles   MatchmakingProfile[]
   matchScores           MatchScore[]
   meetingRequests       MeetingRequest[]
@@ -364,8 +373,9 @@ model EventSpeaker {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  sessions     SessionSpeaker[]
 
   @@index([organisationId, eventId])
   @@index([eventId, sortOrder])
@@ -708,6 +718,10 @@ model AttendeeProfile {
   lookingFor     String?
   offering       String?
   interests      Json?
+  industry       String?
+  website        String?
+  photoUrl       String?
+  linkedinUrl    String?
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -725,6 +739,8 @@ model AttendeePrivacy {
   showEmail             Boolean @default(false)
   showPhone             Boolean @default(false)
   aiInsightsOptIn       Boolean @default(false)
+  /// Field-level peer visibility flags (name, jobTitle, company, …). See privacy module.
+  visibility            Json?
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -732,25 +748,47 @@ model AttendeePrivacy {
 }
 
 model Session {
-  id             String        @id @default(cuid())
-  organisationId String
-  eventId        String
-  title          String
-  description    String?
-  startsAt       DateTime?
-  endsAt         DateTime?
-  location       String?
-  capacity       Int?
-  format         SessionFormat @default(PHYSICAL)
-  meetingPolicy  SessionMeetingPolicy @default(BLOCK_REGISTERED)
+  id                 String                   @id @default(cuid())
+  organisationId     String
+  eventId            String
+  title              String
+  description        String?
+  startsAt           DateTime?
+  endsAt             DateTime?
+  location           String?
+  capacity           Int?
+  format             SessionFormat            @default(PHYSICAL)
+  meetingPolicy      SessionMeetingPolicy     @default(BLOCK_REGISTERED)
+  registrationMode   SessionRegistrationMode  @default(OPEN)
 
   organisation   Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event          Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
   registrations  SessionRegistration[]
+  speakers       SessionSpeaker[]
   onlineMeetings OnlineMeeting[]
   mapPois        MapPoi[]
 
   @@index([organisationId, eventId])
+}
+
+/// Ordered link between a session and an event speaker.
+model SessionSpeaker {
+  id             String @id @default(cuid())
+  organisationId String
+  eventId        String
+  sessionId      String
+  speakerId      String
+  sortOrder      Int    @default(0)
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  session      Session      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  speaker      EventSpeaker @relation(fields: [speakerId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, speakerId])
+  @@index([organisationId, eventId])
+  @@index([sessionId, sortOrder])
+  @@index([speakerId])
 }
 
 /// Provider-backed online meeting for an event session (Teams active; Zoom reserved).

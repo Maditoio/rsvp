@@ -2,9 +2,12 @@ import { prisma } from "@/lib/db/prisma";
 import { requireUser } from "@/lib/authz/require";
 import { AuthzError, forOrganisation } from "@/lib/db/tenant";
 import type { Prisma } from "@prisma/client";
+import {
+  peerDisplayName,
+  redactAttendeeForViewer,
+} from "@/modules/privacy";
 import { isQuestionnaireComplete } from "./questionnaire";
 import {
-  asStringArray,
   isMatchmakingEligible,
   isProfileVisible,
   loadAiInsightFlags,
@@ -25,14 +28,20 @@ export type DirectoryConnectionStatus =
 
 export type DirectoryPerson = {
   id: string;
-  firstName: string;
-  lastName: string;
+  firstName: string | null;
+  lastName: string | null;
+  /** Peer-safe label when name fields are hidden. */
+  displayName: string;
   company: string | null;
   jobTitle: string | null;
   country: string | null;
   email: string | null;
   phone: string | null;
   about: string | null;
+  industry: string | null;
+  website: string | null;
+  linkedinUrl: string | null;
+  photoUrl: string | null;
   lookingFor: string | null;
   offering: string | null;
   interests: string[];
@@ -67,7 +76,7 @@ const directoryInclude = {
 };
 
 function byName(a: DirectoryPerson, b: DirectoryPerson) {
-  return a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName);
+  return a.displayName.localeCompare(b.displayName);
 }
 
 function forYouRank(a: DirectoryPerson, b: DirectoryPerson) {
@@ -114,11 +123,17 @@ function toDirectoryPerson(
       lookingFor: string | null;
       offering: string | null;
       interests: Prisma.JsonValue | null;
+      industry: string | null;
+      website: string | null;
+      linkedinUrl: string | null;
+      photoUrl: string | null;
     } | null;
     privacy: {
+      profileVisible: boolean;
       showEmail: boolean;
       showPhone: boolean;
       matchmakingEnabled: boolean;
+      visibility: Prisma.JsonValue | null;
     } | null;
     category: { matchmakingEligible: boolean } | null;
     matchProfile: { questionnaire: Prisma.JsonValue } | null;
@@ -129,7 +144,10 @@ function toDirectoryPerson(
     { score: number; reasons: unknown; aiInsight: string | null; aiRankScore: number | null }
   >,
   connectionStatus: DirectoryConnectionStatus,
-): DirectoryPerson {
+): DirectoryPerson | null {
+  const redacted = redactAttendeeForViewer(row, row.privacy, "peer");
+  if (!redacted) return null;
+
   const storedRow = storedByCandidate.get(row.id);
   const live =
     storedRow == null
@@ -139,22 +157,33 @@ function toDirectoryPerson(
   const reasons = storedRow
     ? parseMatchReasons(storedRow.reasons, row.country)
     : (live?.reasons ?? parseMatchReasons(null, row.country));
-  const interests = asStringArray(row.profile?.interests);
+
+  // Only surface shared interests the peer opted to show.
+  const sharedInterests = redacted.interests.length
+    ? reasons.sharedInterests.filter((interest) =>
+        redacted.interests.includes(interest),
+      )
+    : [];
 
   return {
     id: row.id,
-    firstName: row.firstName,
-    lastName: row.lastName,
-    company: row.company,
-    jobTitle: row.jobTitle,
-    country: row.country,
-    email: row.privacy?.showEmail ? row.email : null,
-    phone: row.privacy?.showPhone ? row.phone : null,
-    about: row.profile?.about ?? null,
-    lookingFor: row.profile?.lookingFor ?? null,
-    offering: row.profile?.offering ?? null,
-    interests,
-    sharedInterests: reasons.sharedInterests,
+    firstName: redacted.firstName,
+    lastName: redacted.lastName,
+    displayName: peerDisplayName(redacted),
+    company: redacted.company,
+    jobTitle: redacted.jobTitle,
+    country: redacted.country,
+    email: redacted.email,
+    phone: redacted.phone,
+    about: redacted.about,
+    industry: redacted.industry,
+    website: redacted.website,
+    linkedinUrl: redacted.linkedinUrl,
+    photoUrl: redacted.photoUrl,
+    lookingFor: redacted.lookingFor,
+    offering: redacted.offering,
+    interests: redacted.interests,
+    sharedInterests,
     score,
     reasons,
     band: matchBandFromScore(score),
@@ -228,14 +257,16 @@ export async function rankedDirectory(eventId: string): Promise<RankedDirectory>
   const storedByCandidate = new Map(stored.map((row) => [row.candidateId, row]));
   const meScoreable = toScoreableProfile(me);
 
-  const people: DirectoryPerson[] = visible.map((row) =>
-    toDirectoryPerson(
-      row,
-      meScoreable,
-      storedByCandidate,
-      connectionStatusFor(me.id, row.id, existingRequests),
-    ),
-  );
+  const people: DirectoryPerson[] = visible
+    .map((row) =>
+      toDirectoryPerson(
+        row,
+        meScoreable,
+        storedByCandidate,
+        connectionStatusFor(me.id, row.id, existingRequests),
+      ),
+    )
+    .filter((person): person is DirectoryPerson => person != null);
 
   const recommendationPool = people.filter(
     (person) => !shouldExcludeFromRecommendations(person.connectionStatus),

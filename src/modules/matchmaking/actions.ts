@@ -10,6 +10,10 @@ import { rateLimit } from "@/lib/rate-limit";
 import { writeAudit } from "@/modules/audit/log";
 import { recomputeMatchScoresForAttendee } from "@/modules/matchmaking/score";
 import {
+  defaultFieldVisibility,
+  fieldVisibilityToJson,
+} from "@/modules/privacy";
+import {
   parseQuestionnaire,
   toAttendeeProfileSummary,
   type MatchmakingQuestionnaire,
@@ -129,6 +133,13 @@ export async function saveMatchmakingQuestionnaire(
         attendeeId: attendee.id,
         profileVisible: parsed.profileVisible,
         matchmakingEnabled: parsed.matchmakingEnabled,
+        visibility: fieldVisibilityToJson(
+          defaultFieldVisibility({
+            profileVisible: parsed.profileVisible,
+            showEmail: false,
+            showPhone: false,
+          }),
+        ),
       },
       update: {
         profileVisible: parsed.profileVisible,

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Trash2, XCircle } from "lucide-react";
+import { Check, Eye, Trash2, XCircle } from "lucide-react";
 import {
   cancelAttendeeRegistration,
   cancelRegistration,
@@ -25,12 +25,16 @@ export function RegistrationStatusActions({
   subjectId,
   kind,
   status,
+  canWrite = true,
+  onView,
 }: {
   orgSlug: string;
   eventId: string;
   subjectId: string;
   kind: "registration" | "attendee";
   status: string;
+  canWrite?: boolean;
+  onView?: () => void;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -39,19 +43,29 @@ export function RegistrationStatusActions({
   const [pending, start] = useTransition();
 
   const canConfirm =
-    kind === "registration"
+    canWrite &&
+    (kind === "registration"
       ? status === "COMPLETED" || status === "WAITLISTED"
-      : status === "REGISTERED";
+      : status === "REGISTERED");
   const canCancel =
-    kind === "registration"
+    canWrite &&
+    (kind === "registration"
       ? ["NOT_STARTED", "INCOMPLETE", "COMPLETED", "CONFIRMED", "WAITLISTED"].includes(
           status,
         )
-      : status === "REGISTERED" || status === "CONFIRMED";
-  const canDelete = kind === "attendee" && status !== "CHECKED_IN";
+      : status === "REGISTERED" || status === "CONFIRMED");
+  const canDelete = canWrite && kind === "attendee" && status !== "CHECKED_IN";
 
   const items = useMemo(() => {
     const next: ActionsMenuItem[] = [];
+    if (onView) {
+      next.push({
+        id: "view",
+        label: "View answers",
+        icon: <Eye className="size-3.5 shrink-0" strokeWidth={1.75} />,
+        onSelect: onView,
+      });
+    }
     if (canConfirm) {
       next.push({
         id: "confirm",
@@ -82,7 +96,7 @@ export function RegistrationStatusActions({
       });
     }
     return next;
-  }, [canCancel, canConfirm, canDelete]);
+  }, [canCancel, canConfirm, canDelete, onView]);
 
   if (items.length === 0) return null;
 

@@ -5,6 +5,8 @@ import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
 import { displayName } from "@/lib/utils";
+import { answerRowsForDisplay } from "@/modules/registrations/answers";
+import { ensureDefaultRegistrationForm } from "@/modules/registrations/form";
 import { RegistrationsTable } from "./registrations-table";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -22,6 +24,14 @@ export default async function RegistrationsPage({
     requireEvent(orgSlug, eventId, "registrations.read"),
   );
   const canWrite = hasPermission(ctx.grants, "registrations.write");
+  const canExport = hasPermission(ctx.grants, "reports.export");
+
+  const form = await ensureDefaultRegistrationForm(ctx.organisation.id, eventId);
+  const fields = form.fields.map((field) => ({
+    key: field.key,
+    label: field.label,
+  }));
+
   const responses = await prisma.registrationResponse.findMany({
     where: { eventId, organisationId: ctx.organisation.id },
     include: {
@@ -47,6 +57,7 @@ export default async function RegistrationsPage({
       invitationStatus: row.invitation?.status ?? null,
       status: row.status,
       submittedAt: format(row.createdAt, "d MMM yyyy HH:mm"),
+      answers: answerRowsForDisplay(fields, row.data),
     };
   });
 
@@ -71,6 +82,11 @@ export default async function RegistrationsPage({
             orgSlug={orgSlug}
             eventId={eventId}
             canWrite={canWrite}
+            exportHref={
+              canExport
+                ? `/app/${orgSlug}/events/${eventId}/reports/download?kind=registrations`
+                : null
+            }
             rows={rows}
           />
         </Suspense>

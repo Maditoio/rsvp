@@ -2,7 +2,10 @@ import { prisma } from "@/lib/db/prisma";
 import { requireUser } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { AuthzError } from "@/lib/db/tenant";
-import { displayName } from "@/lib/utils";
+import {
+  peerDisplayName,
+  redactAttendeeForViewer,
+} from "@/modules/privacy";
 import { Suspense } from "react";
 import { MeetingsResponseToast } from "@/components/meetings-response-toast";
 import { AttendeeMeetingsPanel } from "./meetings-panel";
@@ -34,6 +37,43 @@ function calendarDayKey(date: Date, timezone: string) {
   }).format(date);
 }
 
+function peerCounterpart(person: {
+  firstName: string;
+  lastName: string;
+  company: string | null;
+  jobTitle?: string | null;
+  country?: string | null;
+  email?: string;
+  phone?: string | null;
+  privacy: {
+    profileVisible: boolean;
+    showEmail: boolean;
+    showPhone: boolean;
+    visibility: unknown;
+  } | null;
+}) {
+  const redacted = redactAttendeeForViewer(
+    {
+      firstName: person.firstName,
+      lastName: person.lastName,
+      company: person.company,
+      jobTitle: person.jobTitle ?? null,
+      country: person.country ?? null,
+      email: person.email ?? "",
+      phone: person.phone ?? null,
+    },
+    person.privacy,
+    "peer",
+    { requireListed: false },
+  )!;
+  return {
+    firstName: redacted.firstName,
+    lastName: redacted.lastName,
+    company: redacted.company,
+    displayName: peerDisplayName(redacted),
+  };
+}
+
 export default async function AttendeeMeetingsPage({
   params,
 }: PageProps<"/me/events/[eventId]/meetings">) {
@@ -54,7 +94,20 @@ export default async function AttendeeMeetingsPage({
 
   const timezone = attendee.event.timezone || "UTC";
   const counterpart = {
-    select: { firstName: true, lastName: true, company: true },
+    select: {
+      firstName: true,
+      lastName: true,
+      company: true,
+      jobTitle: true,
+      privacy: {
+        select: {
+          profileVisible: true,
+          showEmail: true,
+          showPhone: true,
+          visibility: true,
+        },
+      },
+    },
   } as const;
 
   const rooms = await prisma.meetingRoom.findMany({
@@ -94,7 +147,20 @@ export default async function AttendeeMeetingsPage({
         participants: {
           include: {
             attendee: {
-              select: { id: true, firstName: true, lastName: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                company: true,
+                privacy: {
+                  select: {
+                    profileVisible: true,
+                    showEmail: true,
+                    showPhone: true,
+                    visibility: true,
+                  },
+                },
+              },
             },
           },
         },
@@ -105,15 +171,30 @@ export default async function AttendeeMeetingsPage({
 
   const now = new Date();
   const todayKey = calendarDayKey(now, timezone);
+  const selfLabel = peerDisplayName({
+    firstName: attendee.firstName,
+    lastName: attendee.lastName,
+    company: attendee.company,
+    jobTitle: null,
+    country: null,
+    email: null,
+    phone: null,
+    about: null,
+    lookingFor: null,
+    offering: null,
+    interests: [],
+    industry: null,
+    website: null,
+    photoUrl: null,
+    linkedinUrl: null,
+  });
 
   const meetingRows = meetings.map((row) => {
     const others = row.participants
       .filter((p) => p.attendee.id !== attendee.id)
-      .map((p) => displayName(p.attendee));
+      .map((p) => peerCounterpart(p.attendee).displayName);
     const title =
-      others.length > 0
-        ? `${displayName(attendee)} × ${others.join(" · ")}`
-        : "Meeting";
+      others.length > 0 ? `${selfLabel} × ${others.join(" · ")}` : "Meeting";
     const startsAt = row.startsAt;
     const endsAt = row.endsAt;
     const durationMins =
@@ -161,27 +242,27 @@ export default async function AttendeeMeetingsPage({
         <MeetingsResponseToast />
       </Suspense>
       <AttendeeMeetingsPanel
-      eventId={eventId}
-      eventName={attendee.event.name}
-      rooms={rooms}
-      incoming={incoming.map((row) => ({
-        id: row.id,
-        status: row.status,
-        message: row.message,
-        counterpart: row.requester,
-        inbound: true,
-        createdAt: row.createdAt.toLocaleDateString("en-GB"),
-      }))}
-      outgoing={outgoing.map((row) => ({
-        id: row.id,
-        status: row.status,
-        message: row.message,
-        counterpart: row.target,
-        inbound: false,
-        createdAt: row.createdAt.toLocaleDateString("en-GB"),
-      }))}
-      meetings={meetingRows}
-    />
+        eventId={eventId}
+        eventName={attendee.event.name}
+        rooms={rooms}
+        incoming={incoming.map((row) => ({
+          id: row.id,
+          status: row.status,
+          message: row.message,
+          counterpart: peerCounterpart(row.requester),
+          inbound: true,
+          createdAt: row.createdAt.toLocaleDateString("en-GB"),
+        }))}
+        outgoing={outgoing.map((row) => ({
+          id: row.id,
+          status: row.status,
+          message: row.message,
+          counterpart: peerCounterpart(row.target),
+          inbound: false,
+          createdAt: row.createdAt.toLocaleDateString("en-GB"),
+        }))}
+        meetings={meetingRows}
+      />
     </>
   );
 }

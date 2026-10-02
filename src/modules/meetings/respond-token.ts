@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/db/prisma";
 import { hashToken, tokensMatch } from "@/lib/crypto/tokens";
+import {
+  peerDisplayName,
+  redactAttendeeForViewer,
+} from "@/modules/privacy";
 
 export async function loadMeetingRequestByToken(rawToken: string) {
   const hash = hashToken(rawToken);
@@ -15,6 +19,14 @@ export async function loadMeetingRequestByToken(rawToken: string) {
           lastName: true,
           company: true,
           jobTitle: true,
+          privacy: {
+            select: {
+              profileVisible: true,
+              showEmail: true,
+              showPhone: true,
+              visibility: true,
+            },
+          },
         },
       },
       target: {
@@ -32,5 +44,32 @@ export async function loadMeetingRequestByToken(rawToken: string) {
   if (!request.responseTokenHash || !tokensMatch(rawToken, request.responseTokenHash)) {
     return null;
   }
-  return request;
+
+  const redactedRequester = redactAttendeeForViewer(
+    {
+      firstName: request.requester.firstName,
+      lastName: request.requester.lastName,
+      company: request.requester.company,
+      jobTitle: request.requester.jobTitle,
+      country: null,
+      email: "",
+      phone: null,
+    },
+    request.requester.privacy,
+    "peer",
+    { requireListed: false },
+  )!;
+
+  return {
+    ...request,
+    requester: {
+      id: request.requester.id,
+      userId: request.requester.userId,
+      firstName: redactedRequester.firstName,
+      lastName: redactedRequester.lastName,
+      company: redactedRequester.company,
+      jobTitle: redactedRequester.jobTitle,
+      displayName: peerDisplayName(redactedRequester),
+    },
+  };
 }

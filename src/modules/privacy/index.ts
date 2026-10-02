@@ -1,1 +1,20 @@
-export { notInPhase1 as privacyModule } from "@/modules/matchmaking";
+export {
+  PROFILE_VISIBILITY_FIELDS,
+  PUBLIC_PROFILE_FIELDS,
+  defaultFieldVisibility,
+  fieldVisibilityToJson,
+  isFieldVisibleToPeer,
+  isProfileListed,
+  parseVisibilityFromFormData,
+  peerDisplayName,
+  redactAttendeeForViewer,
+  resolveFieldVisibility,
+  visibilityFieldLabel,
+  type AttendeeForRedaction,
+  type AttendeeProfileLike,
+  type FieldVisibility,
+  type PrivacySettingsLike,
+  type PrivacyViewer,
+  type ProfileVisibilityField,
+  type RedactedAttendee,
+} from "./visibility";

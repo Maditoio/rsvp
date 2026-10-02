@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CalendarDays, Clock3, MapPin, Users } from "lucide-react";
+import { CalendarDays, Clock3, MapPin, Mic2, Users } from "lucide-react";
 import { deleteSession, saveSession } from "@/modules/sessions/actions";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
 import { Radio } from "@/components/ui/radio";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -21,12 +22,27 @@ import {
   sessionMeetingPolicyTone,
   type SessionMeetingPolicyValue,
 } from "@/modules/meetings/meeting-policy";
+import {
+  sessionRegistrationModeHelp,
+  sessionRegistrationModeLabel,
+  sessionRegistrationModeTone,
+  type SessionRegistrationModeValue,
+} from "@/modules/sessions/registration-mode";
+import type { SessionSpeakerPreview } from "@/modules/sessions/speakers";
 import { AgendaImport } from "./agenda-import";
 import {
   SessionOnlineControls,
   type SessionOnlineMeeting,
 } from "./session-online-controls";
 import { SessionProviderIcons } from "./session-provider-icons";
+
+type EventSpeakerOption = {
+  id: string;
+  name: string;
+  jobTitle: string | null;
+  organization: string | null;
+  hidden: boolean;
+};
 
 type SessionRow = {
   id: string;
@@ -35,12 +51,14 @@ type SessionRow = {
   location: string | null;
   format: "PHYSICAL" | "ONLINE" | "HYBRID";
   meetingPolicy: SessionMeetingPolicyValue;
+  registrationMode: SessionRegistrationModeValue;
   dateLabel: string;
   timeLabel: string | null;
   startsAtValue: string;
   endsAtValue: string;
   capacity: number | null;
   registrations: number;
+  speakers: SessionSpeakerPreview[];
   teamsMeeting: SessionOnlineMeeting | null;
 };
 
@@ -60,6 +78,10 @@ function formatLabel(format: SessionRow["format"]) {
     default:
       return "Physical";
   }
+}
+
+function speakerNames(speakers: SessionSpeakerPreview[]) {
+  return speakers.map((speaker) => speaker.name).join(", ");
 }
 
 function SessionListRow({
@@ -136,6 +158,13 @@ function SessionListRow({
               <dd className="truncate">{locationLabel}</dd>
             </div>
           ) : null}
+          {row.speakers.length > 0 ? (
+            <div className="inline-flex min-w-0 items-center gap-1.5">
+              <Mic2 className="size-3.5 shrink-0 text-slate-400" aria-hidden />
+              <dt className="sr-only">Speakers</dt>
+              <dd className="truncate">{speakerNames(row.speakers)}</dd>
+            </div>
+          ) : null}
         </dl>
       </div>
 
@@ -143,6 +172,14 @@ function SessionListRow({
         {row.format !== "PHYSICAL" ? (
           <Badge tone="muted" className="hidden sm:inline-flex">
             {formatLabel(row.format)}
+          </Badge>
+        ) : null}
+        {row.registrationMode !== "OPEN" ? (
+          <Badge
+            tone={sessionRegistrationModeTone(row.registrationMode)}
+            className="hidden lg:inline-flex"
+          >
+            {sessionRegistrationModeLabel(row.registrationMode)}
           </Badge>
         ) : null}
         <Badge
@@ -192,6 +229,7 @@ export function AgendaPanel({
   eventId,
   timezone,
   sessions,
+  eventSpeakers,
   canManage,
   microsoftConnected,
   microsoftNeedsReconnect,
@@ -200,6 +238,7 @@ export function AgendaPanel({
   eventId: string;
   timezone: string;
   sessions: SessionRow[];
+  eventSpeakers: EventSpeakerOption[];
   canManage: boolean;
   microsoftConnected: boolean;
   microsoftNeedsReconnect: boolean;
@@ -212,12 +251,20 @@ export function AgendaPanel({
   const [format, setFormat] = useState<SessionRow["format"]>("PHYSICAL");
   const [meetingPolicy, setMeetingPolicy] =
     useState<SessionMeetingPolicyValue>("BLOCK_REGISTERED");
+  const [registrationMode, setRegistrationMode] =
+    useState<SessionRegistrationModeValue>("OPEN");
+  const [selectedSpeakerIds, setSelectedSpeakerIds] = useState<string[]>([]);
   const [focusOnline, setFocusOnline] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   const focusSessionId = searchParams.get("session");
   const teamsStatus = searchParams.get("teams");
+
+  const visibleSpeakers = eventSpeakers.filter(
+    (speaker) =>
+      !speaker.hidden || selectedSpeakerIds.includes(speaker.id),
+  );
 
   useEffect(() => {
     if (!focusSessionId || !canManage) return;
@@ -226,6 +273,8 @@ export function AgendaPanel({
     setEditing(row);
     setFormat(row.format);
     setMeetingPolicy(row.meetingPolicy);
+    setRegistrationMode(row.registrationMode);
+    setSelectedSpeakerIds(row.speakers.map((speaker) => speaker.id));
     setError(null);
     setOpen(true);
   }, [focusSessionId, sessions, canManage]);
@@ -246,6 +295,8 @@ export function AgendaPanel({
     setEditing(null);
     setFormat("PHYSICAL");
     setMeetingPolicy("BLOCK_REGISTERED");
+    setRegistrationMode("OPEN");
+    setSelectedSpeakerIds([]);
     setFocusOnline(false);
     setError(null);
     setOpen(true);
@@ -255,6 +306,8 @@ export function AgendaPanel({
     setEditing(row);
     setFormat(row.format);
     setMeetingPolicy(row.meetingPolicy);
+    setRegistrationMode(row.registrationMode);
+    setSelectedSpeakerIds(row.speakers.map((speaker) => speaker.id));
     setFocusOnline(false);
     setError(null);
     setOpen(true);
@@ -264,9 +317,19 @@ export function AgendaPanel({
     setEditing(row);
     setFormat(row.format);
     setMeetingPolicy(row.meetingPolicy);
+    setRegistrationMode(row.registrationMode);
+    setSelectedSpeakerIds(row.speakers.map((speaker) => speaker.id));
     setFocusOnline(true);
     setError(null);
     setOpen(true);
+  }
+
+  function toggleSpeaker(speakerId: string) {
+    setSelectedSpeakerIds((current) =>
+      current.includes(speakerId)
+        ? current.filter((id) => id !== speakerId)
+        : [...current, speakerId],
+    );
   }
 
   const whenLabel =
@@ -355,6 +418,12 @@ export function AgendaPanel({
           className="space-y-4"
           action={(formData) => {
             formData.set("format", format);
+            formData.set("meetingPolicy", meetingPolicy);
+            formData.set("registrationMode", registrationMode);
+            formData.delete("speakerIds");
+            for (const speakerId of selectedSpeakerIds) {
+              formData.append("speakerIds", speakerId);
+            }
             setError(null);
             const title = String(formData.get("title") ?? "").trim();
             if (title.length < 2) {
@@ -372,7 +441,6 @@ export function AgendaPanel({
             }
             start(async () => {
               try {
-                formData.set("meetingPolicy", meetingPolicy);
                 await saveSession(orgSlug, eventId, formData);
                 setOpen(false);
                 router.refresh();
@@ -434,6 +502,90 @@ export function AgendaPanel({
                 {label}
               </label>
             ))}
+          </fieldset>
+
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium text-slate-700">
+              Attendee registration
+            </legend>
+            {(["OPEN", "REQUIRED", "CLOSED"] as const).map((value) => (
+              <label
+                key={value}
+                className={cn(
+                  "block cursor-pointer rounded-md border px-3 py-2 text-sm",
+                  registrationMode === value
+                    ? "border-indigo-600 bg-indigo-50"
+                    : "border-slate-200",
+                )}
+              >
+                <div className="flex items-start gap-2 rounded-md">
+                  <Radio
+                    name="registrationModeRadio"
+                    value={value}
+                    checked={registrationMode === value}
+                    onChange={() => setRegistrationMode(value)}
+                  />
+                  <div>
+                    <span className="font-medium text-slate-900">
+                      {sessionRegistrationModeLabel(value)}
+                    </span>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {sessionRegistrationModeHelp(value)}
+                    </p>
+                  </div>
+                </div>
+              </label>
+            ))}
+          </fieldset>
+
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium text-slate-700">
+              Speakers
+            </legend>
+            {visibleSpeakers.length === 0 ? (
+              <p className="rounded-md border border-dashed border-slate-200 px-3 py-3 text-sm text-slate-500">
+                No speakers yet. Add them under Speakers, then link them here.
+              </p>
+            ) : (
+              <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border border-slate-200 p-2">
+                {visibleSpeakers.map((speaker) => {
+                  const checked = selectedSpeakerIds.includes(speaker.id);
+                  const subtitle = [speaker.jobTitle, speaker.organization]
+                    .filter(Boolean)
+                    .join(" · ");
+                  return (
+                    <label
+                      key={speaker.id}
+                      className={cn(
+                        "flex cursor-pointer items-start gap-2 rounded-md px-2 py-2 text-sm",
+                        checked ? "bg-indigo-50" : "hover:bg-slate-50",
+                      )}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onChange={() => toggleSpeaker(speaker.id)}
+                        aria-label={`Select ${speaker.name}`}
+                      />
+                      <span className="min-w-0">
+                        <span className="block font-medium text-slate-900">
+                          {speaker.name}
+                          {speaker.hidden ? (
+                            <span className="ml-1 text-xs font-normal text-slate-400">
+                              (hidden)
+                            </span>
+                          ) : null}
+                        </span>
+                        {subtitle ? (
+                          <span className="mt-0.5 block truncate text-xs text-slate-500">
+                            {subtitle}
+                          </span>
+                        ) : null}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
           </fieldset>
 
           <fieldset className="space-y-2">

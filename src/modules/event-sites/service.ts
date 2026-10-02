@@ -22,6 +22,7 @@ export type EventSiteSessionPreview = {
   location: string | null;
   dateLabel: string;
   timeLabel: string | null;
+  speakers: { id: string; name: string }[];
 };
 
 export type PublishedEventSite = {
@@ -77,6 +78,14 @@ function mapSessions(
     startsAt: Date | null;
     endsAt: Date | null;
     location: string | null;
+    speakers: {
+      sortOrder: number;
+      speaker: {
+        id: string;
+        firstName: string;
+        lastName: string;
+      };
+    }[];
   }[],
   timezone: string,
   maxSessions: number,
@@ -90,6 +99,15 @@ function mapSessions(
       location: s.location,
       dateLabel: schedule.dateLabel,
       timeLabel: schedule.timeLabel,
+      speakers: [...s.speakers]
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((link) => ({
+          id: link.speaker.id,
+          name: [link.speaker.firstName, link.speaker.lastName]
+            .filter(Boolean)
+            .join(" ")
+            .trim() || "Speaker",
+        })),
     };
   });
 }
@@ -222,6 +240,19 @@ export async function loadPublishedEventSite(
           startsAt: true,
           endsAt: true,
           location: true,
+          speakers: {
+            orderBy: { sortOrder: "asc" },
+            select: {
+              sortOrder: true,
+              speaker: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
         },
       })
     : [];

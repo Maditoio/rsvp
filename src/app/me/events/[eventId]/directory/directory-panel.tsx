@@ -15,7 +15,6 @@ import { Drawer } from "@/components/ui/drawer";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { displayName } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 
@@ -70,7 +69,7 @@ function buildConnectMessage(
   person: DirectoryPerson,
   eventName: string,
 ): string {
-  const firstName = person.firstName?.trim() || displayName(person);
+  const firstName = person.firstName?.trim() || person.displayName;
   return `Hi ${firstName},
 
 I came across your profile through the ${eventName} matchmaking directory and would welcome the opportunity to connect during the event. I believe we may have complementary interests and would value a brief conversation at the summit.
@@ -383,7 +382,7 @@ function PersonCard({
     .filter(Boolean)
     .join("")
     .slice(0, 2)
-    .toUpperCase();
+    .toUpperCase() || person.displayName.slice(0, 2).toUpperCase();
 
   return (
     <article
@@ -394,21 +393,33 @@ function PersonCard({
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 flex-1 gap-4">
-          <div
-            className={cn(
-              "flex size-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
-              isTopMatch
-                ? "bg-amber-500/15 text-amber-800"
-                : "bg-slate-100 text-slate-700",
-            )}
-            aria-hidden
-          >
-            {initials || "?"}
-          </div>
+          {person.photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={person.photoUrl}
+              alt=""
+              className={cn(
+                "size-12 shrink-0 rounded-full object-cover",
+                isTopMatch ? "ring-2 ring-amber-300/60" : "",
+              )}
+            />
+          ) : (
+            <div
+              className={cn(
+                "flex size-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+                isTopMatch
+                  ? "bg-amber-500/15 text-amber-800"
+                  : "bg-slate-100 text-slate-700",
+              )}
+              aria-hidden
+            >
+              {initials || "?"}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-[1.0625rem] font-semibold text-slate-900">
-                {displayName(person)}
+                {person.displayName}
               </h3>
               {isTopMatch ? (
                 <Badge tone="accent">Top match</Badge>
@@ -427,7 +438,7 @@ function PersonCard({
               ) : null}
             </div>
             <p className="mt-1 text-sm text-slate-700">
-              {[person.jobTitle, person.company, person.country]
+              {[person.jobTitle, person.company, person.industry, person.country]
                 .filter(Boolean)
                 .join(" · ") || "—"}
             </p>
@@ -477,8 +488,28 @@ function PersonCard({
                   ))}
               </div>
             ) : null}
-            {(person.email || person.phone) && (
+            {(person.website || person.linkedinUrl || person.email || person.phone) && (
               <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+                {person.website ? (
+                  <a
+                    href={person.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                  >
+                    Website
+                  </a>
+                ) : null}
+                {person.linkedinUrl ? (
+                  <a
+                    href={person.linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-indigo-600 underline-offset-2 hover:underline"
+                  >
+                    LinkedIn
+                  </a>
+                ) : null}
                 {person.email ? <span>{person.email}</span> : null}
                 {person.phone ? <span>{person.phone}</span> : null}
               </div>
@@ -717,7 +748,7 @@ export function DirectoryPanel({
         title="Connect"
         description={
           target
-            ? `Send a connection request to ${displayName(target)}. They must accept before a meeting can be arranged.`
+            ? `Send a connection request to ${target.displayName}. They must accept before a meeting can be arranged.`
             : undefined
         }
       >

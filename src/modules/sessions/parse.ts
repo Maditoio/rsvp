@@ -1,11 +1,12 @@
 import { z } from "zod";
 import Papa from "papaparse";
 import ExcelJS from "exceljs";
-import type { SessionFormat } from "@prisma/client";
+import type { SessionFormat, SessionRegistrationMode } from "@prisma/client";
 import {
   parseDatetimeLocalValue,
   utcFromZonedDateTime,
 } from "@/lib/timezone";
+import { SESSION_REGISTRATION_MODES } from "@/modules/sessions/registration-mode";
 
 export const SESSION_TEMPLATE_HEADERS = [
   "Title",
@@ -16,6 +17,7 @@ export const SESSION_TEMPLATE_HEADERS = [
   "Track",
   "Speaker names",
   "Format",
+  "Registration",
 ] as const;
 
 export const SESSION_IMPORT_FIELD_KEYS = [
@@ -27,6 +29,7 @@ export const SESSION_IMPORT_FIELD_KEYS = [
   "track",
   "speakers",
   "format",
+  "registrationMode",
   "ignore",
 ] as const;
 
@@ -53,6 +56,12 @@ const FIELD_ALIASES: Record<
   track: ["track", "stream", "theme"],
   speakers: ["speaker names", "speakers", "speaker", "presenters"],
   format: ["format", "session format", "type"],
+  registrationMode: [
+    "registration",
+    "registration mode",
+    "registration required",
+    "reg required",
+  ],
 };
 
 export type SessionImportRow = {
@@ -63,6 +72,8 @@ export type SessionImportRow = {
   startsAt: Date | null;
   endsAt: Date | null;
   format: SessionFormat;
+  registrationMode: SessionRegistrationMode;
+  speakerNames: string[];
 };
 
 export type SessionImportIssue = {
@@ -74,6 +85,7 @@ export type SessionImportIssue = {
     | "missing_times"
     | "invalid_times"
     | "invalid_format"
+    | "invalid_registration"
     | "duplicate_in_file";
   message: string;
 };
@@ -215,18 +227,42 @@ function parseSessionFormat(raw: string): SessionFormat | null {
   return null;
 }
 
+function parseRegistrationMode(raw: string): SessionRegistrationMode | null {
+  const normalized = raw.trim().toLowerCase().replace(/[_-]+/g, " ");
+  if (!normalized) return "OPEN";
+  if (
+    ["open", "optional", "false", "0", "no", "n"].includes(normalized)
+  ) {
+    return "OPEN";
+  }
+  if (
+    [
+      "required",
+      "registration required",
+      "true",
+      "1",
+      "yes",
+      "y",
+    ].includes(normalized)
+  ) {
+    return "REQUIRED";
+  }
+  if (["closed", "close", "locked"].includes(normalized)) {
+    return "CLOSED";
+  }
+  return null;
+}
+
+export function splitSpeakerNames(raw: string): string[] {
+  return raw
+    .split(/[;|,]/)
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
 function combineLocation(location: string, track: string) {
   if (location && track) return `${location} · ${track}`;
   return location || track || null;
-}
-
-function combineDescription(description: string, speakers: string) {
-  const base = description.trim();
-  const names = speakers.trim();
-  if (!names) return base || null;
-  const speakersLine = `Speakers: ${names}`;
-  if (!base) return speakersLine;
-  return `${base}\n\n${speakersLine}`;
 }
 
 const sessionImportRowSchema = z.object({
@@ -236,6 +272,8 @@ const sessionImportRowSchema = z.object({
   startsAt: z.date().nullable(),
   endsAt: z.date().nullable(),
   format: z.enum(["PHYSICAL", "ONLINE", "HYBRID"]),
+  registrationMode: z.enum(SESSION_REGISTRATION_MODES),
+  speakerNames: z.array(z.string().min(1).max(120)).max(20),
 });
 
 export function previewSessionImport(
@@ -259,6 +297,7 @@ export function previewSessionImport(
     const startsRaw = cellFromMapped(row, map, "startsAt");
     const endsRaw = cellFromMapped(row, map, "endsAt");
     const formatRaw = cellFromMapped(row, map, "format");
+    const registrationRaw = cellFromMapped(row, map, "registrationMode");
 
     if (!title) {
       issues.push({
@@ -276,6 +315,17 @@ export function previewSessionImport(
         title,
         reason: "invalid_format",
         message: "Format must be Physical, Online, or Hybrid.",
+      });
+      return;
+    }
+
+    const registrationMode = parseRegistrationMode(registrationRaw);
+    if (!registrationMode) {
+      issues.push({
+        line,
+        title,
+        reason: "invalid_registration",
+        message: "Registration must be Open, Required, or Closed.",
       });
       return;
     }
@@ -315,11 +365,13 @@ export function previewSessionImport(
 
     const parsed = sessionImportRowSchema.safeParse({
       title,
-      description: combineDescription(descriptionRaw, speakers),
+      description: descriptionRaw.trim() || null,
       location: combineLocation(locationRaw, track),
       startsAt,
       endsAt,
       format,
+      registrationMode,
+      speakerNames: splitSpeakerNames(speakers),
     });
 
     if (!parsed.success) {
@@ -398,6 +450,7 @@ export function sessionTemplateCsv(): string {
     "Plenary",
     "Jane Smith; John Doe",
     "Hybrid",
+    "Required",
   ]
     .map((cell) => `"${cell.replace(/"/g, '""')}"`)
     .join(",");

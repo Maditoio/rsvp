@@ -57,11 +57,16 @@ export default async function AttendeeProfilePage({
       <ProfileForm
         eventId={eventId}
         matchingComplete={isQuestionnaireComplete(attendee.matchProfile?.questionnaire)}
+        accountPhotoUrl={user.imageUrl ?? null}
         profile={{
           about: attendee.profile?.about ?? "",
           lookingFor: attendee.profile?.lookingFor ?? "",
           offering: attendee.profile?.offering ?? "",
           interests: asStringArray(attendee.profile?.interests).join(", "),
+          industry: attendee.profile?.industry ?? "",
+          website: attendee.profile?.website ?? "",
+          linkedinUrl: attendee.profile?.linkedinUrl ?? "",
+          photoUrl: attendee.profile?.photoUrl ?? null,
         }}
       />
     </div>

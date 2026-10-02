@@ -12,6 +12,11 @@ import { loadInvitationByToken } from "@/modules/invitations/store";
 import { invitationUsable } from "@/modules/invitations/lifecycle";
 import { verifyTurnstile } from "@/lib/turnstile";
 import {
+  buildRegistrationPrefill,
+  diffImportantFieldChanges,
+  hydrateAttendeeFromRegistrationData,
+} from "@/modules/registrations/answers";
+import {
   ensureDefaultRegistrationForm,
   parseFormValuesSafe,
   scalar,
@@ -126,20 +131,49 @@ export async function submitRegistration(
       );
     }
 
+    const priorResponse = await prisma.registrationResponse.findFirst({
+      where: {
+        organisationId: invitation.organisationId,
+        eventId: invitation.eventId,
+        OR: [{ invitationId: invitation.id }, { contactId: invitation.contactId }],
+      },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, data: true },
+    });
+
+    const prefill = buildRegistrationPrefill({
+      contact: invitation.contact,
+      priorResponseData: priorResponse?.data,
+    });
+    const fieldChanges = diffImportantFieldChanges(prefill, parsed);
+    const hydration = hydrateAttendeeFromRegistrationData(parsed);
+    const { attendee: attendeeFields, profile: profileFields } = hydration;
+
     const qr = generateOpaqueToken();
 
     const result = await prisma.$transaction(async (tx) => {
-      const registration = await tx.registrationResponse.create({
-        data: {
-          organisationId: invitation.organisationId,
-          eventId: invitation.eventId,
-          invitationId: invitation.id,
-          contactId: invitation.contactId,
-          userId: user?.id,
-          status: "COMPLETED",
-          data: parsed,
-        },
-      });
+      const registration = priorResponse
+        ? await tx.registrationResponse.update({
+            where: { id: priorResponse.id },
+            data: {
+              invitationId: invitation.id,
+              contactId: invitation.contactId,
+              userId: user?.id,
+              status: "COMPLETED",
+              data: parsed,
+            },
+          })
+        : await tx.registrationResponse.create({
+            data: {
+              organisationId: invitation.organisationId,
+              eventId: invitation.eventId,
+              invitationId: invitation.id,
+              contactId: invitation.contactId,
+              userId: user?.id,
+              status: "COMPLETED",
+              data: parsed,
+            },
+          });
 
       const attendee = await tx.attendee.create({
         data: {
@@ -153,17 +187,22 @@ export async function submitRegistration(
           qrTokenHash: qr.hash,
           attendanceTokenEnc: encryptSecret(qr.raw),
           status: "REGISTERED",
-          firstName,
-          lastName,
-          email,
-          phone: scalar(parsed, "phone") || null,
-          company: scalar(parsed, "company") || null,
-          jobTitle: scalar(parsed, "jobTitle") || null,
-          country: scalar(parsed, "country") || null,
+          firstName: attendeeFields.firstName || firstName,
+          lastName: attendeeFields.lastName || lastName,
+          email: attendeeFields.email || email,
+          phone: attendeeFields.phone,
+          company: attendeeFields.company,
+          jobTitle: attendeeFields.jobTitle,
+          country: attendeeFields.country,
           profile: {
             create: {
               organisationId: invitation.organisationId,
               eventId: invitation.eventId,
+              about: profileFields.about,
+              industry: profileFields.industry,
+              website: profileFields.website,
+              linkedinUrl: profileFields.linkedinUrl,
+              photoUrl: profileFields.photoUrl,
             },
           },
           privacy: {
@@ -186,7 +225,12 @@ export async function submitRegistration(
       resource: "attendee",
       resourceId: result.attendee.id,
       ip: (await headers()).get("x-forwarded-for"),
-      metadata: { invitationId: invitation.id },
+      metadata: {
+        invitationId: invitation.id,
+        registrationId: result.registration.id,
+        fieldChanges,
+        hydratedFields: hydration.hydratedFields,
+      },
     });
 
     const appUrl = getAppUrl();

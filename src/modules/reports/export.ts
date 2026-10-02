@@ -3,6 +3,11 @@
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { writeAudit } from "@/modules/audit/log";
+import { ensureDefaultRegistrationForm } from "@/modules/registrations/form";
+import {
+  registrationExportHeaders,
+  registrationExportRow,
+} from "@/modules/registrations/export";
 
 export async function exportAttendeesCsv(orgSlug: string, eventId: string) {
   const ctx = await requireEvent(orgSlug, eventId, "reports.export");
@@ -158,6 +163,46 @@ export async function exportMeetingsCsv(orgSlug: string, eventId: string) {
         m.room?.name ?? "",
         m.startsAt?.toISOString() ?? "",
       ]
+        .map(csvCell)
+        .join(","),
+    ),
+  ];
+  return lines.join("\n");
+}
+
+export async function exportRegistrationsCsv(orgSlug: string, eventId: string) {
+  const ctx = await requireEvent(orgSlug, eventId, "reports.export");
+  const form = await ensureDefaultRegistrationForm(ctx.organisation.id, eventId);
+  const fields = form.fields.map((field) => ({
+    key: field.key,
+    label: field.label,
+  }));
+
+  const responses = await prisma.registrationResponse.findMany({
+    where: { eventId, organisationId: ctx.organisation.id },
+    include: { invitation: { select: { status: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+
+  await writeAudit({
+    organisationId: ctx.organisation.id,
+    eventId,
+    userId: ctx.user.id,
+    action: "report.export",
+    resource: "registration",
+    metadata: { count: responses.length, fieldCount: fields.length },
+  });
+
+  const header = registrationExportHeaders(fields);
+  const lines = [
+    header.map(csvCell).join(","),
+    ...responses.map((row) =>
+      registrationExportRow(fields, {
+        status: row.status,
+        submittedAt: row.createdAt.toISOString(),
+        invitationStatus: row.invitation?.status ?? "",
+        data: row.data,
+      })
         .map(csvCell)
         .join(","),
     ),

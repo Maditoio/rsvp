@@ -25,6 +25,10 @@ import { meetingMessageSchema } from "@/lib/validation";
 import { createNotification } from "@/modules/notifications/service";
 import { getAppUrl, displayName } from "@/lib/utils";
 import {
+  peerDisplayName,
+  redactAttendeeForViewer,
+} from "@/modules/privacy";
+import {
   applyMeetingRequestDecision,
   type MeetingActionResult,
 } from "@/modules/meetings/decisions";
@@ -40,6 +44,7 @@ async function myAttendee(eventId: string) {
   const user = await requireUser();
   const attendee = await prisma.attendee.findFirst({
     where: { eventId, userId: user.id },
+    include: { privacy: true, profile: true },
   });
   if (!attendee) throw new AuthzError("You are not registered for this event", 403);
   return attendee;
@@ -185,7 +190,13 @@ export async function requestMeeting(
     }
 
     const appUrl = getAppUrl();
-    const requesterName = displayName(requester);
+    const requesterPreview = redactAttendeeForViewer(
+      requester,
+      requester.privacy,
+      "peer",
+      { requireListed: false },
+    )!;
+    const requesterName = peerDisplayName(requesterPreview);
     const targetName = displayName(target);
 
     if (target.userId) {
@@ -206,8 +217,8 @@ export async function requestMeeting(
         toName: targetName,
         eventName: target.event.name,
         requesterName,
-        requesterCompany: requester.company,
-        requesterJobTitle: requester.jobTitle,
+        requesterCompany: requesterPreview.company,
+        requesterJobTitle: requesterPreview.jobTitle,
         message: message || null,
         acceptUrl: `${appUrl}/m/${responseToken!.raw}?decision=accept`,
         declineUrl: `${appUrl}/m/${responseToken!.raw}?decision=decline`,

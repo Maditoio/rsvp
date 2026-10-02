@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { AuthzError } from "@/lib/db/tenant";
 import { formatSessionSchedule } from "@/lib/session-schedule";
+import { mapSessionSpeakers } from "@/modules/sessions/speakers";
 import { AttendeeAgendaPanel } from "./agenda-panel";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -30,6 +31,21 @@ export default async function AttendeeAgendaPage({
       registrations: {
         where: { attendeeId: attendee.id },
         select: { id: true },
+      },
+      speakers: {
+        orderBy: { sortOrder: "asc" },
+        include: {
+          speaker: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              jobTitle: true,
+              organization: true,
+              photoUrl: true,
+            },
+          },
+        },
       },
       onlineMeetings: {
         where: { provider: "TEAMS" },
@@ -80,9 +96,11 @@ export default async function AttendeeAgendaPage({
             description: row.description,
             location: row.location,
             format: row.format,
+            registrationMode: row.registrationMode,
             dateLabel: schedule.dateLabel,
             timeLabel: schedule.timeLabel,
             picked: row.registrations.length > 0,
+            speakers: mapSessionSpeakers(row.speakers),
             teamsJoinUrl: row.onlineMeetings[0]?.joinUrl ?? null,
             navigateHref: row.mapPois[0]
               ? `/me/events/${eventId}/map?session=${row.id}`

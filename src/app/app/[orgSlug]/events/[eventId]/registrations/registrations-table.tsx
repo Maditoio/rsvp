@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { DataTable, type DataTableColumn } from "@/components/data-table/data-table";
 import { StatusBadge } from "@/components/status-badge";
 import { RegistrationStatusActions } from "./registration-status-actions";
-import { displayName } from "@/lib/utils";
+import {
+  RegistrationAnswersDrawer,
+  type RegistrationAnswerRow,
+} from "./registration-answers-drawer";
 
 type RegistrationRow = {
   id: string;
@@ -13,6 +16,7 @@ type RegistrationRow = {
   invitationStatus: string | null;
   status: string;
   submittedAt: string;
+  answers: RegistrationAnswerRow[];
 };
 
 export function RegistrationsTable({
@@ -20,20 +24,31 @@ export function RegistrationsTable({
   eventId,
   rows,
   canWrite,
+  exportHref,
 }: {
   orgSlug: string;
   eventId: string;
   rows: RegistrationRow[];
   canWrite: boolean;
+  exportHref?: string | null;
 }) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = rows.find((row) => row.id === selectedId) ?? null;
+
   const columns = useMemo<DataTableColumn<RegistrationRow>[]>(() => {
-    const cols: DataTableColumn<RegistrationRow>[] = [
+    return [
       {
         id: "name",
         header: "Name",
         width: "1.5fr",
         cell: (row) => (
-          <span className="font-medium text-slate-700">{row.name}</span>
+          <button
+            type="button"
+            onClick={() => setSelectedId(row.id)}
+            className="text-left font-medium text-slate-700 hover:text-indigo-600"
+          >
+            {row.name}
+          </button>
         ),
       },
       {
@@ -67,10 +82,7 @@ export function RegistrationsTable({
           <span className="whitespace-nowrap">{row.submittedAt}</span>
         ),
       },
-    ];
-
-    if (canWrite) {
-      cols.push({
+      {
         id: "actions",
         header: "",
         width: "60px",
@@ -83,35 +95,59 @@ export function RegistrationsTable({
             subjectId={row.id}
             kind="registration"
             status={row.status}
+            canWrite={canWrite}
+            onView={() => setSelectedId(row.id)}
           />
         ),
-      });
-    }
-
-    return cols;
+      },
+    ];
   }, [canWrite, eventId, orgSlug]);
 
   return (
-    <DataTable
-      rows={rows}
-      columns={columns}
-      getRowId={(row) => row.id}
-      searchPlaceholder="Search registrations…"
-      searchFilter={(row, query) => {
-        const haystack = [
-          row.name,
-          row.email,
-          row.invitationStatus,
-          row.status,
-          row.submittedAt,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return haystack.includes(query);
-      }}
-      emptyMessage="No registration responses yet."
-      showRowsPerPage
-    />
+    <>
+      <DataTable
+        rows={rows}
+        columns={columns}
+        getRowId={(row) => row.id}
+        searchPlaceholder="Search registrations…"
+        searchFilter={(row, query) => {
+          const haystack = [
+            row.name,
+            row.email,
+            row.invitationStatus,
+            row.status,
+            row.submittedAt,
+            ...row.answers.map((answer) => `${answer.label} ${answer.value}`),
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(query);
+        }}
+        emptyMessage="No registration responses yet."
+        showRowsPerPage
+        toolbar={
+          exportHref ? (
+            <div className="flex justify-end">
+              <a
+                href={exportHref}
+                className="inline-flex h-9 items-center rounded-full bg-indigo-600 px-4 text-sm font-medium text-white hover:bg-indigo-700"
+              >
+                Export CSV
+              </a>
+            </div>
+          ) : null
+        }
+      />
+      <RegistrationAnswersDrawer
+        open={Boolean(selected)}
+        onClose={() => setSelectedId(null)}
+        name={selected?.name ?? ""}
+        email={selected?.email ?? ""}
+        status={selected?.status ?? ""}
+        submittedAt={selected?.submittedAt ?? ""}
+        answers={selected?.answers ?? []}
+      />
+    </>
   );
 }

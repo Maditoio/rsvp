@@ -29,6 +29,19 @@ export default async function EventWebsitePage({
         startsAt: true,
         endsAt: true,
         location: true,
+        speakers: {
+          orderBy: { sortOrder: "asc" },
+          select: {
+            sortOrder: true,
+            speaker: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
       },
     }),
   ]);
@@ -62,6 +75,14 @@ export default async function EventWebsitePage({
       location: s.location,
       dateLabel: schedule.dateLabel,
       timeLabel: schedule.timeLabel,
+      speakers: s.speakers.map((link) => ({
+        id: link.speaker.id,
+        name:
+          [link.speaker.firstName, link.speaker.lastName]
+            .filter(Boolean)
+            .join(" ")
+            .trim() || "Speaker",
+      })),
     };
   });
 

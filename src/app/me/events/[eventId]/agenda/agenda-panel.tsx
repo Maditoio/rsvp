@@ -7,12 +7,19 @@ import {
   Clock3,
   ExternalLink,
   MapPin,
+  Mic2,
   Video,
 } from "lucide-react";
 import { toggleMySession } from "@/modules/sessions/actions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import {
+  sessionRegistrationModeLabel,
+  sessionRegistrationModeTone,
+  type SessionRegistrationModeValue,
+} from "@/modules/sessions/registration-mode";
+import type { SessionSpeakerPreview } from "@/modules/sessions/speakers";
 
 export type AttendeeSessionRow = {
   id: string;
@@ -20,9 +27,11 @@ export type AttendeeSessionRow = {
   description: string | null;
   location: string | null;
   format: "PHYSICAL" | "ONLINE" | "HYBRID";
+  registrationMode: SessionRegistrationModeValue;
   dateLabel: string;
   timeLabel: string | null;
   picked: boolean;
+  speakers: SessionSpeakerPreview[];
   teamsJoinUrl: string | null;
   /** Opens attendee venue map with this session as destination when linked. */
   navigateHref: string | null;
@@ -55,6 +64,8 @@ function SessionCard({
       : row.format === "HYBRID"
         ? "Hybrid"
         : null);
+  const registrationClosed = row.registrationMode === "CLOSED" && !row.picked;
+  const canToggle = !registrationClosed;
 
   return (
     <article
@@ -73,6 +84,11 @@ function SessionCard({
               <Badge tone={row.format === "PHYSICAL" ? "muted" : "info"}>
                 {formatLabel(row.format)}
               </Badge>
+              {row.registrationMode !== "OPEN" ? (
+                <Badge tone={sessionRegistrationModeTone(row.registrationMode)}>
+                  {sessionRegistrationModeLabel(row.registrationMode)}
+                </Badge>
+              ) : null}
               {row.picked ? (
                 <Badge tone="success">On my agenda</Badge>
               ) : null}
@@ -83,6 +99,15 @@ function SessionCard({
             <p className="text-sm leading-relaxed text-slate-600">
               {row.description}
             </p>
+          ) : null}
+
+          {row.speakers.length > 0 ? (
+            <div className="flex items-start gap-1.5 text-sm text-slate-700">
+              <Mic2 className="mt-0.5 size-3.5 shrink-0 text-slate-400" aria-hidden />
+              <p>
+                {row.speakers.map((speaker) => speaker.name).join(", ")}
+              </p>
+            </div>
           ) : null}
 
           <dl className="flex flex-col gap-1.5 text-sm text-slate-700 sm:flex-row sm:flex-wrap sm:gap-x-5 sm:gap-y-1.5">
@@ -165,16 +190,26 @@ function SessionCard({
               Join session
             </a>
           ) : null}
-          <Button
-            type="button"
-            size="sm"
-            variant={row.picked ? "secondary" : "primary"}
-            disabled={pending}
-            onClick={onToggle}
-            className="sm:min-w-[7.5rem]"
-          >
-            {row.picked ? "Remove" : "Add to agenda"}
-          </Button>
+          {canToggle ? (
+            <Button
+              type="button"
+              size="sm"
+              variant={row.picked ? "secondary" : "primary"}
+              disabled={pending}
+              onClick={onToggle}
+              className="sm:min-w-[7.5rem]"
+            >
+              {row.picked
+                ? "Remove"
+                : row.registrationMode === "REQUIRED"
+                  ? "Register"
+                  : "Add to agenda"}
+            </Button>
+          ) : (
+            <p className="text-xs text-slate-500 sm:text-right">
+              Registration closed
+            </p>
+          )}
         </div>
       </div>
     </article>
