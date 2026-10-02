@@ -61,6 +61,8 @@ async function putEventAsset(input: {
       access: "public",
       contentType: input.file.type,
       addRandomSuffix: input.addRandomSuffix,
+      // Event logo uses a fixed pathname (`logo.png`); re-uploads must overwrite.
+      allowOverwrite: !input.addRandomSuffix,
     });
 
     await prisma.fileObject.create({
