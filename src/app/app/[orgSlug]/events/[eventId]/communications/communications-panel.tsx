@@ -25,6 +25,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { humanizeEnum } from "@/lib/utils";
+import {
+  CommunicationsTabs,
+  type CommunicationsTabId,
+} from "./communications-tabs";
 
 type MessageRow = {
   id: string;
@@ -70,6 +74,7 @@ export function CommunicationsPanel({
   orgSlug,
   eventId,
   eventName,
+  activeTab,
   messages,
   automations,
   automationsEnabled,
@@ -83,6 +88,7 @@ export function CommunicationsPanel({
   orgSlug: string;
   eventId: string;
   eventName: string;
+  activeTab: CommunicationsTabId;
   messages: MessageRow[];
   automations: AutomationRow[];
   automationsEnabled: boolean;
@@ -177,7 +183,7 @@ export function CommunicationsPanel({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         eyebrow="Outreach"
         title="Communications"
@@ -201,7 +207,7 @@ export function CommunicationsPanel({
       />
 
       {notice ? <p className="text-sm text-success">{notice}</p> : null}
-      {!automationsEnabled ? (
+      {!automationsEnabled && activeTab === "automations" ? (
         <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800">
           Communication automations are disabled in event settings. Manual
           reminders and post-event email still work.
@@ -219,153 +225,163 @@ export function CommunicationsPanel({
         .
       </p>
 
-      <section className="rounded-xl bg-white shadow-sm p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="font-display text-xl text-slate-900">
-              Post-event follow-up
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
+      <CommunicationsTabs
+        orgSlug={orgSlug}
+        eventId={eventId}
+        active={activeTab}
+      />
+
+      {activeTab === "automations" ? (
+        <section className="rounded-xl bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">
+            Stored as data per event. A daily job evaluates enabled rules.
+          </p>
+          <div className="mt-4 space-y-3">
+            {automations.length === 0 ? (
+              <p className="text-sm text-slate-600">
+                No automations configured for this event.
+              </p>
+            ) : (
+              automations.map((automation) => (
+                <div
+                  key={automation.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-100 px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-900">
+                      {automation.name ?? triggerLabel(automation.trigger)}
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      WHEN {triggerLabel(automation.trigger).toLowerCase()}
+                      {automation.trigger.startsWith("EVENT")
+                        ? ` · ${automation.delayDays} day(s) before`
+                        : ` · AFTER ${automation.delayDays} day(s)`}{" "}
+                      · DO {humanizeEnum(automation.action)}
+                    </p>
+                    {automation.lastRunAt ? (
+                      <p className="mt-1 text-xs text-slate-400">
+                        Last run{" "}
+                        {new Date(automation.lastRunAt).toLocaleString("en-GB")}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge
+                      status={automation.enabled ? "ENABLED" : "DISABLED"}
+                    />
+                    {canSend ? (
+                      <>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          disabled={pending}
+                          onClick={() => {
+                            setDrawer(null);
+                            setEditAutomation(automation);
+                            setError(null);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          disabled={pending || !automation.enabled}
+                          onClick={() => {
+                            setError(null);
+                            start(async () => {
+                              try {
+                                const result =
+                                  await runCommunicationAutomationNow(
+                                    orgSlug,
+                                    eventId,
+                                    automation.id,
+                                  );
+                                setNotice(
+                                  result.skipped
+                                    ? "Automation skipped (disabled or gated)."
+                                    : `Automation queued ${result.queued} reminder${result.queued === 1 ? "" : "s"} for delivery.`,
+                                );
+                                router.refresh();
+                              } catch (e) {
+                                setError(
+                                  e instanceof Error
+                                    ? e.message
+                                    : "Could not run automation",
+                                );
+                              }
+                            });
+                          }}
+                        >
+                          Run now
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "post-event" ? (
+        <section className="rounded-xl bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <p className="text-sm text-slate-500">
               Thank attendees after the event ends. Optional category filter and
               poll link.
             </p>
+            {!eventEnded ? (
+              <p className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                Available after event end
+              </p>
+            ) : null}
           </div>
-          {!eventEnded ? (
-            <p className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-              Available after event end
+          {postEventCampaigns.length === 0 ? (
+            <p className="mt-4 text-sm text-slate-600">
+              No post-event emails have been sent yet.
             </p>
-          ) : null}
-        </div>
-        {postEventCampaigns.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-600">
-            No post-event emails have been sent yet.
-          </p>
-        ) : (
-          <div className="mt-4">
-            <Suspense
-              fallback={<div className="h-32 rounded-xl bg-slate-50" />}
-            >
-              <DataTable
-                rows={postEventCampaigns}
-                columns={campaignColumns}
-                getRowId={(row) => row.id}
-                searchPlaceholder="Search follow-ups…"
-                searchFilter={(row, query) => {
-                  const haystack = [
-                    row.subject,
-                    row.name,
-                    row.audience ?? "",
-                    row.status,
-                    row.sentAt,
-                  ]
-                    .join(" ")
-                    .toLowerCase();
-                  return haystack.includes(query);
-                }}
-                emptyMessage="No post-event emails have been sent yet."
-                showRowsPerPage
-              />
-            </Suspense>
-          </div>
-        )}
-      </section>
-
-      <section className="rounded-xl bg-white shadow-sm p-5">
-        <h2 className="font-display text-xl text-slate-900">Automations</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Stored as data per event. A daily job evaluates enabled rules.
-        </p>
-        <div className="mt-4 space-y-3">
-          {automations.map((automation) => (
-            <div
-              key={automation.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-100 px-4 py-3"
-            >
-              <div className="min-w-0">
-                <p className="font-medium text-slate-900">
-                  {automation.name ?? triggerLabel(automation.trigger)}
-                </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  WHEN {triggerLabel(automation.trigger).toLowerCase()}
-                  {automation.trigger.startsWith("EVENT")
-                    ? ` · ${automation.delayDays} day(s) before`
-                    : ` · AFTER ${automation.delayDays} day(s)`}{" "}
-                  · DO {humanizeEnum(automation.action)}
-                </p>
-                {automation.lastRunAt ? (
-                  <p className="mt-1 text-xs text-slate-400">
-                    Last run{" "}
-                    {new Date(automation.lastRunAt).toLocaleString("en-GB")}
-                  </p>
-                ) : null}
-              </div>
-              <div className="flex items-center gap-2">
-                <StatusBadge
-                  status={automation.enabled ? "ENABLED" : "DISABLED"}
+          ) : (
+            <div className="mt-4">
+              <Suspense
+                fallback={<div className="h-32 rounded-xl bg-slate-50" />}
+              >
+                <DataTable
+                  rows={postEventCampaigns}
+                  columns={campaignColumns}
+                  getRowId={(row) => row.id}
+                  searchPlaceholder="Search follow-ups…"
+                  searchFilter={(row, query) => {
+                    const haystack = [
+                      row.subject,
+                      row.name,
+                      row.audience ?? "",
+                      row.status,
+                      row.sentAt,
+                    ]
+                      .join(" ")
+                      .toLowerCase();
+                    return haystack.includes(query);
+                  }}
+                  emptyMessage="No post-event emails have been sent yet."
+                  showRowsPerPage
                 />
-                {canSend ? (
-                  <>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      disabled={pending}
-                      onClick={() => {
-                        setDrawer(null);
-                        setEditAutomation(automation);
-                        setError(null);
-                      }}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      disabled={pending || !automation.enabled}
-                      onClick={() => {
-                        setError(null);
-                        start(async () => {
-                          try {
-                            const result = await runCommunicationAutomationNow(
-                              orgSlug,
-                              eventId,
-                              automation.id,
-                            );
-                            setNotice(
-                              result.skipped
-                                ? "Automation skipped (disabled or gated)."
-                                : `Automation queued ${result.queued} reminder${result.queued === 1 ? "" : "s"} for delivery.`,
-                            );
-                            router.refresh();
-                          } catch (e) {
-                            setError(
-                              e instanceof Error
-                                ? e.message
-                                : "Could not run automation",
-                            );
-                          }
-                        });
-                      }}
-                    >
-                      Run now
-                    </Button>
-                  </>
-                ) : null}
-              </div>
+              </Suspense>
             </div>
-          ))}
-        </div>
-      </section>
+          )}
+        </section>
+      ) : null}
 
-      <section>
-        <h2 className="font-display text-xl text-slate-900">Recent messages</h2>
-        {messages.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-700">
-            No messages have been sent yet.
-          </p>
-        ) : (
-          <div className="mt-3">
+      {activeTab === "messages" ? (
+        <section>
+          {messages.length === 0 ? (
+            <p className="text-sm text-slate-700">
+              No messages have been sent yet.
+            </p>
+          ) : (
             <Suspense
               fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}
             >
@@ -389,9 +405,9 @@ export function CommunicationsPanel({
                 showRowsPerPage
               />
             </Suspense>
-          </div>
-        )}
-      </section>
+          )}
+        </section>
+      ) : null}
 
       <Drawer
         open={drawer === "reminders"}

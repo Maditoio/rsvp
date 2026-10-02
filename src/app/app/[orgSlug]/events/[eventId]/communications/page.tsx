@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
@@ -6,11 +7,15 @@ import { listAutomations } from "@/modules/communications/automations";
 import { listPostEventCampaigns } from "@/modules/communications/post-event-queue";
 import { defaultPostEventSubject } from "@/modules/communications/post-event";
 import { CommunicationsPanel } from "./communications-panel";
+import { parseCommunicationsTab } from "./communications-tabs";
 
 export default async function CommunicationsPage({
   params,
+  searchParams,
 }: PageProps<"/app/[orgSlug]/events/[eventId]/communications">) {
   const { orgSlug, eventId } = await params;
+  const query = await searchParams;
+  const activeTab = parseCommunicationsTab(query.tab);
   const ctx = await safe(() =>
     requireEvent(orgSlug, eventId, "invitations.write"),
   );
@@ -62,36 +67,39 @@ export default async function CommunicationsPage({
 
   return (
     <div>
-      <CommunicationsPanel
-        orgSlug={orgSlug}
-        eventId={eventId}
-        eventName={event?.name ?? "Event"}
-        canSend={hasPermission(ctx.grants, "invitations.write")}
-        automations={automations}
-        automationsEnabled={event?.settings?.automationsEnabled !== false}
-        eventEnded={eventEnded}
-        defaultPostEventSubject={defaultPostEventSubject(event?.name ?? "the event")}
-        categories={categories}
-        polls={polls}
-        postEventCampaigns={postEventCampaigns.map((row) => ({
-          id: row.id,
-          name: row.name,
-          subject: row.subject ?? "",
-          audience: row.audience,
-          status: row.status,
-          queuedCount: row.queuedCount,
-          skippedCount: row.skippedCount,
-          sentAt: row.sentAt?.toLocaleString("en-GB") ?? "",
-          createdAt: row.createdAt.toLocaleString("en-GB"),
-        }))}
-        messages={messages.map((row) => ({
-          id: row.id,
-          toEmail: row.toEmail,
-          subject: row.subject,
-          status: row.status,
-          sentAt: row.sentAt?.toLocaleString("en-GB") ?? "",
-        }))}
-      />
+      <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
+        <CommunicationsPanel
+          orgSlug={orgSlug}
+          eventId={eventId}
+          eventName={event?.name ?? "Event"}
+          activeTab={activeTab}
+          canSend={hasPermission(ctx.grants, "invitations.write")}
+          automations={automations}
+          automationsEnabled={event?.settings?.automationsEnabled !== false}
+          eventEnded={eventEnded}
+          defaultPostEventSubject={defaultPostEventSubject(event?.name ?? "the event")}
+          categories={categories}
+          polls={polls}
+          postEventCampaigns={postEventCampaigns.map((row) => ({
+            id: row.id,
+            name: row.name,
+            subject: row.subject ?? "",
+            audience: row.audience,
+            status: row.status,
+            queuedCount: row.queuedCount,
+            skippedCount: row.skippedCount,
+            sentAt: row.sentAt?.toLocaleString("en-GB") ?? "",
+            createdAt: row.createdAt.toLocaleString("en-GB"),
+          }))}
+          messages={messages.map((row) => ({
+            id: row.id,
+            toEmail: row.toEmail,
+            subject: row.subject,
+            status: row.status,
+            sentAt: row.sentAt?.toLocaleString("en-GB") ?? "",
+          }))}
+        />
+      </Suspense>
     </div>
   );
 }
