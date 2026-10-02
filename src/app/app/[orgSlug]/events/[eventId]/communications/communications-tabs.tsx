@@ -12,14 +12,6 @@ export const COMMUNICATIONS_TABS = [
 
 export type CommunicationsTabId = (typeof COMMUNICATIONS_TABS)[number]["id"];
 
-export function parseCommunicationsTab(
-  value: string | string[] | undefined,
-): CommunicationsTabId {
-  const raw = Array.isArray(value) ? value[0] : value;
-  if (raw === "post-event" || raw === "messages") return raw;
-  return "automations";
-}
-
 export function CommunicationsTabs({
   orgSlug,
   eventId,

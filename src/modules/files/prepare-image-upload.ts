@@ -6,6 +6,8 @@ import {
   TARGET_UPLOAD_BYTES,
   eventImageTooLargeMessage,
   eventImageTypeError,
+  formatFileBytes,
+  resolveEventImageMime,
   type EventImageKind,
 } from "@/modules/files/image-upload";
 
@@ -22,37 +24,80 @@ export async function prepareImageForUpload(
   file: File,
   kind: EventImageKind = "logo",
 ): Promise<PrepareImageResult> {
-  if (!ALLOWED_EVENT_IMAGE_TYPES.has(file.type)) {
-    return { ok: false, error: eventImageTypeError() };
+  const mime = await resolveEventImageMime(file);
+  if (!mime) {
+    return {
+      ok: false,
+      error: eventImageTypeError({
+        reportedType: file.type || "(empty)",
+        fileName: file.name,
+        sizeBytes: file.size,
+      }),
+    };
   }
 
-  if (file.type === "image/svg+xml") {
-    if (file.size > MAX_EVENT_IMAGE_BYTES) {
-      return { ok: false, error: eventImageTooLargeMessage(kind) };
+  const normalized =
+    mime === file.type
+      ? file
+      : new File([file], file.name || defaultNameForMime(mime), {
+          type: mime,
+          lastModified: file.lastModified,
+        });
+
+  if (normalized.type === "image/svg+xml") {
+    if (normalized.size > MAX_EVENT_IMAGE_BYTES) {
+      return {
+        ok: false,
+        error: eventImageTooLargeMessage(kind, normalized.size),
+      };
     }
-    return { ok: true, file };
+    return { ok: true, file: normalized };
   }
 
-  if (file.size <= TARGET_UPLOAD_BYTES) {
-    return { ok: true, file };
+  if (normalized.size <= TARGET_UPLOAD_BYTES) {
+    return { ok: true, file: normalized };
   }
 
   try {
-    const compressed = await compressRasterImage(file, {
+    const compressed = await compressRasterImage(normalized, {
       maxDimension:
         kind === "background" ? MAX_BACKGROUND_DIMENSION : MAX_LOGO_DIMENSION,
       maxBytes: TARGET_UPLOAD_BYTES,
     });
     if (compressed.size > MAX_EVENT_IMAGE_BYTES) {
-      return { ok: false, error: eventImageTooLargeMessage(kind) };
+      return {
+        ok: false,
+        error: eventImageTooLargeMessage(kind, compressed.size),
+      };
     }
     return { ok: true, file: compressed };
-  } catch {
-    if (file.size > MAX_EVENT_IMAGE_BYTES) {
-      return { ok: false, error: eventImageTooLargeMessage(kind) };
+  } catch (error) {
+    const detail =
+      error instanceof Error && error.message
+        ? error.message
+        : "browser could not decode this image";
+    if (normalized.size > MAX_EVENT_IMAGE_BYTES) {
+      return {
+        ok: false,
+        error: `${eventImageTooLargeMessage(kind, normalized.size)} Decode also failed: ${detail}.`,
+      };
     }
-    return { ok: true, file };
+    // Small enough to send raw — try uploading original despite decode failure.
+    if (ALLOWED_EVENT_IMAGE_TYPES.has(normalized.type)) {
+      return { ok: true, file: normalized };
+    }
+    return {
+      ok: false,
+      error: `Could not process this image (${detail}). File: "${normalized.name}", ${formatFileBytes(normalized.size)}, type "${normalized.type}". Try re-exporting as PNG or JPEG.`,
+    };
   }
+}
+
+function defaultNameForMime(mime: string): string {
+  if (mime === "image/png") return "image.png";
+  if (mime === "image/webp") return "image.webp";
+  if (mime === "image/svg+xml") return "image.svg";
+  return "image.jpg";
 }
 
 function canvasToBlob(

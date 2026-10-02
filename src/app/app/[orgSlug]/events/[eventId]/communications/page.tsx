@@ -7,7 +7,15 @@ import { listAutomations } from "@/modules/communications/automations";
 import { listPostEventCampaigns } from "@/modules/communications/post-event-queue";
 import { defaultPostEventSubject } from "@/modules/communications/post-event";
 import { CommunicationsPanel } from "./communications-panel";
-import { parseCommunicationsTab } from "./communications-tabs";
+import type { CommunicationsTabId } from "./communications-tabs";
+
+function parseCommunicationsTab(
+  value: string | string[] | undefined,
+): CommunicationsTabId {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw === "post-event" || raw === "messages") return raw;
+  return "automations";
+}
 
 export default async function CommunicationsPage({
   params,

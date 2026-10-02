@@ -7,63 +7,108 @@ import {
   isBlobStorageConfigured,
 } from "@/modules/files/blob-config";
 import {
-  ALLOWED_EVENT_IMAGE_TYPES,
   MAX_EVENT_IMAGE_BYTES,
   eventImageTooLargeMessage,
   eventImageTypeError,
+  formatFileBytes,
+  resolveEventImageMime,
 } from "@/modules/files/image-upload";
+
+async function normalizeUploadFile(
+  file: File,
+  kind: "background" | "logo",
+): Promise<File> {
+  const mime = await resolveEventImageMime(file);
+  if (!mime) {
+    throw new Error(
+      eventImageTypeError({
+        reportedType: file.type || "(empty)",
+        fileName: file.name,
+        sizeBytes: file.size,
+      }),
+    );
+  }
+  if (file.size > MAX_EVENT_IMAGE_BYTES) {
+    throw new Error(eventImageTooLargeMessage(kind, file.size));
+  }
+  if (mime === file.type) return file;
+  return new File([file], file.name || `image.${extForMime(mime)}`, {
+    type: mime,
+    lastModified: file.lastModified,
+  });
+}
+
+function extForMime(mime: string): string {
+  if (mime === "image/png") return "png";
+  if (mime === "image/webp") return "webp";
+  if (mime === "image/svg+xml") return "svg";
+  return "jpg";
+}
+
+async function putEventAsset(input: {
+  organisationId: string;
+  eventId: string;
+  file: File;
+  pathname: string;
+  addRandomSuffix: boolean;
+}): Promise<{ url: string }> {
+  if (!isBlobStorageConfigured()) {
+    throw new Error(blobStorageNotConfiguredMessage());
+  }
+
+  try {
+    const blob = await put(input.pathname, input.file, {
+      access: "public",
+      contentType: input.file.type,
+      addRandomSuffix: input.addRandomSuffix,
+    });
+
+    await prisma.fileObject.create({
+      data: {
+        organisationId: input.organisationId,
+        eventId: input.eventId,
+        kind: "EVENT_ASSET",
+        filename: input.file.name || input.pathname.split("/").pop() || "asset",
+        contentType: input.file.type,
+        url: blob.url,
+        sizeBytes: input.file.size,
+      },
+    });
+
+    return { url: blob.url };
+  } catch (error) {
+    const detail =
+      error instanceof Error && error.message.trim()
+        ? error.message.trim()
+        : "unknown storage error";
+    throw new Error(
+      `Upload failed for "${input.file.name || "image"}" (${input.file.type || "unknown type"}, ${formatFileBytes(input.file.size)}): ${detail}`,
+    );
+  }
+}
 
 export async function uploadEventLogo(input: {
   organisationId: string;
   eventId: string;
   file: File;
 }): Promise<{ url: string }> {
-  if (!isBlobStorageConfigured()) {
-    throw new Error(blobStorageNotConfiguredMessage());
-  }
-
-  if (!ALLOWED_EVENT_IMAGE_TYPES.has(input.file.type)) {
-    throw new Error(eventImageTypeError());
-  }
-
-  if (input.file.size > MAX_EVENT_IMAGE_BYTES) {
-    throw new Error(eventImageTooLargeMessage("logo"));
-  }
-
-  const ext =
-    input.file.type === "image/png"
-      ? "png"
-      : input.file.type === "image/webp"
-        ? "webp"
-        : input.file.type === "image/svg+xml"
-          ? "svg"
-          : "jpg";
-
+  const file = await normalizeUploadFile(input.file, "logo");
+  const ext = extForMime(file.type);
   const pathname = `orgs/${input.organisationId}/events/${input.eventId}/logo.${ext}`;
-  const blob = await put(pathname, input.file, {
-    access: "public",
-    contentType: input.file.type,
+  const { url } = await putEventAsset({
+    organisationId: input.organisationId,
+    eventId: input.eventId,
+    file,
+    pathname,
     addRandomSuffix: false,
-  });
-
-  await prisma.fileObject.create({
-    data: {
-      organisationId: input.organisationId,
-      eventId: input.eventId,
-      kind: "EVENT_ASSET",
-      filename: input.file.name || `logo.${ext}`,
-      contentType: input.file.type,
-      url: blob.url,
-      sizeBytes: input.file.size,
-    },
   });
 
   await prisma.event.update({
     where: { id: input.eventId },
-    data: { logoUrl: blob.url },
+    data: { logoUrl: url },
   });
 
-  return { url: blob.url };
+  return { url };
 }
 
 export async function removeEventLogo(
@@ -85,47 +130,15 @@ export async function uploadEventAssetImage(input: {
   pathnameSuffix: string;
   kind?: "background" | "logo";
 }): Promise<{ url: string }> {
-  if (!isBlobStorageConfigured()) {
-    throw new Error(blobStorageNotConfiguredMessage());
-  }
-
   const imageKind = input.kind ?? "logo";
-
-  if (!ALLOWED_EVENT_IMAGE_TYPES.has(input.file.type)) {
-    throw new Error(eventImageTypeError());
-  }
-
-  if (input.file.size > MAX_EVENT_IMAGE_BYTES) {
-    throw new Error(eventImageTooLargeMessage(imageKind));
-  }
-
-  const ext =
-    input.file.type === "image/png"
-      ? "png"
-      : input.file.type === "image/webp"
-        ? "webp"
-        : input.file.type === "image/svg+xml"
-          ? "svg"
-          : "jpg";
-
+  const file = await normalizeUploadFile(input.file, imageKind);
+  const ext = extForMime(file.type);
   const pathname = `orgs/${input.organisationId}/events/${input.eventId}/${input.pathnameSuffix}.${ext}`;
-  const blob = await put(pathname, input.file, {
-    access: "public",
-    contentType: input.file.type,
+  return putEventAsset({
+    organisationId: input.organisationId,
+    eventId: input.eventId,
+    file,
+    pathname,
     addRandomSuffix: true,
   });
-
-  await prisma.fileObject.create({
-    data: {
-      organisationId: input.organisationId,
-      eventId: input.eventId,
-      kind: "EVENT_ASSET",
-      filename: input.file.name || `${input.pathnameSuffix}.${ext}`,
-      contentType: input.file.type,
-      url: blob.url,
-      sizeBytes: input.file.size,
-    },
-  });
-
-  return { url: blob.url };
 }

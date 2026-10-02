@@ -32,7 +32,7 @@ export function publicActionError(error: unknown, fallback: string): string {
     }
   }
 
-  if (error instanceof Error && error.message && error.message.length < 220) {
+  if (error instanceof Error && error.message && error.message.length < 400) {
     const message = error.message.trim();
     if (
       message &&

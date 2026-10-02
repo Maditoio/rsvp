@@ -677,7 +677,9 @@ export function BadgeSettingsForm({
                           "background",
                         );
                         if (!prepared.ok) {
+                          setError(prepared.error);
                           setUploadAlert(prepared.error);
+                          toast.error(prepared.error);
                           clearDraft();
                           return;
                         }
@@ -691,6 +693,7 @@ export function BadgeSettingsForm({
                         if (!result.ok) {
                           setError(result.error);
                           setUploadAlert(result.error);
+                          toast.error(result.error);
                           clearDraft();
                           return;
                         }
@@ -706,6 +709,7 @@ export function BadgeSettingsForm({
                         );
                         setError(message);
                         setUploadAlert(message);
+                        toast.error(message);
                         clearDraft();
                       }
                     });
@@ -904,7 +908,9 @@ export function BadgeSettingsForm({
                       try {
                         const prepared = await prepareImageForUpload(file, "logo");
                         if (!prepared.ok) {
+                          setError(prepared.error);
                           setUploadAlert(prepared.error);
+                          toast.error(prepared.error);
                           clearDraft();
                           return;
                         }
@@ -918,6 +924,7 @@ export function BadgeSettingsForm({
                         if (!result.ok) {
                           setError(result.error);
                           setUploadAlert(result.error);
+                          toast.error(result.error);
                           clearDraft();
                           return;
                         }
@@ -933,6 +940,7 @@ export function BadgeSettingsForm({
                         );
                         setError(message);
                         setUploadAlert(message);
+                        toast.error(message);
                         clearDraft();
                       }
                     });
@@ -1058,6 +1066,7 @@ export function BadgeSettingsForm({
                       const prepared = await prepareImageForUpload(file, "logo");
                       if (!prepared.ok) {
                         setUploadAlert(prepared.error);
+                        toast.error(prepared.error);
                         if (sponsorLogoRef.current) {
                           sponsorLogoRef.current.value = "";
                         }
@@ -1073,6 +1082,7 @@ export function BadgeSettingsForm({
                       );
                       if (!result.ok) {
                         setUploadAlert(result.error);
+                        toast.error(result.error);
                         return;
                       }
                       setSponsorName("");
@@ -1080,13 +1090,13 @@ export function BadgeSettingsForm({
                       toast.success("Sponsor added to event.");
                       router.refresh();
                     } catch (err) {
-                      setUploadAlert(
-                        friendlyUploadFailure(
-                          err,
-                          "logo",
-                          "Could not upload sponsor logo.",
-                        ),
+                      const message = friendlyUploadFailure(
+                        err,
+                        "logo",
+                        "Could not upload sponsor logo.",
                       );
+                      setUploadAlert(message);
+                      toast.error(message);
                       if (sponsorLogoRef.current) {
                         sponsorLogoRef.current.value = "";
                       }
