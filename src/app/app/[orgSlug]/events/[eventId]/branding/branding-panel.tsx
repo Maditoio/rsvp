@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   removeEmailBanner,
   saveEmailBranding,
@@ -12,6 +11,11 @@ import {
   EMAIL_ACCENT_SWATCHES,
   type EmailBranding,
 } from "@/modules/communications/email-branding";
+import {
+  removeEventLogoAction,
+  uploadEventLogoAction,
+} from "@/modules/badges/actions";
+import { friendlyUploadFailure } from "@/modules/files/image-upload";
 import { prepareImageForUpload } from "@/modules/files/prepare-image-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +45,9 @@ export function BrandingPanel({
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
+  const displayLogoUrl = branding.logoUrl ?? logoUrl;
+  const hasLogo = Boolean(displayLogoUrl);
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -64,28 +71,115 @@ export function BrandingPanel({
               <p className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
                 Logo
               </p>
-              {branding.logoUrl || logoUrl ? (
+              {hasLogo ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={branding.logoUrl ?? logoUrl ?? ""}
+                  src={displayLogoUrl ?? ""}
                   alt="Event logo"
                   className="mt-3 max-h-16 max-w-full object-contain"
                 />
               ) : (
                 <p className="mt-3 text-sm text-slate-600">Optional — no logo set.</p>
               )}
-              <Link
-                href={`/app/${orgSlug}/events/${eventId}/settings?tab=badges`}
-                className="mt-3 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-700"
-              >
-                Manage event logo
-              </Link>
+              {canEdit ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <label className="inline-flex cursor-pointer">
+                    <span className="rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700">
+                      {pending
+                        ? "Working…"
+                        : hasLogo
+                          ? "Replace logo"
+                          : "Upload logo"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="sr-only"
+                      disabled={pending}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file) return;
+                        setError(null);
+                        start(async () => {
+                          try {
+                            const prepared = await prepareImageForUpload(
+                              file,
+                              "logo",
+                            );
+                            if (!prepared.ok) {
+                              setError(prepared.error);
+                              return;
+                            }
+                            const formData = new FormData();
+                            formData.set("logo", prepared.file);
+                            const result = await uploadEventLogoAction(
+                              orgSlug,
+                              eventId,
+                              formData,
+                            );
+                            if (!result.ok) {
+                              setError(result.error);
+                              return;
+                            }
+                            setNotice("Event logo uploaded.");
+                            router.refresh();
+                          } catch (err) {
+                            setError(
+                              friendlyUploadFailure(
+                                err,
+                                "logo",
+                                "Could not upload logo",
+                              ),
+                            );
+                          }
+                        });
+                      }}
+                    />
+                  </label>
+                  {hasLogo ? (
+                    <button
+                      type="button"
+                      disabled={pending}
+                      className="text-xs font-medium text-slate-500 hover:text-slate-800"
+                      onClick={() => {
+                        setError(null);
+                        start(async () => {
+                          try {
+                            const result = await removeEventLogoAction(
+                              orgSlug,
+                              eventId,
+                            );
+                            if (!result.ok) {
+                              setError(result.error);
+                              return;
+                            }
+                            setNotice("Event logo removed.");
+                            router.refresh();
+                          } catch (err) {
+                            setError(
+                              err instanceof Error
+                                ? err.message
+                                : "Could not remove logo",
+                            );
+                          }
+                        });
+                      }}
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
               {logoUrl && !branding.logoUrl ? (
                 <p className="mt-2 text-xs text-amber-700">
                   SVG logos are skipped in email. Upload a PNG or JPEG for email
                   branding.
                 </p>
               ) : null}
+              <p className="mt-2 text-xs text-slate-400">
+                PNG, JPEG, or WebP. Also used on badges and the event website.
+              </p>
             </div>
 
             <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
