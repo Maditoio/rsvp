@@ -294,3 +294,47 @@ export async function loadPublishedEventSite(
     publicUrl,
   };
 }
+
+/**
+ * Keep the public website header logo in sync with the event logo so uploads
+ * from Settings/Badges don't leave a stale site-specific override.
+ */
+export async function syncEventWebsiteHeaderLogo(input: {
+  organisationId: string;
+  eventId: string;
+  logoUrl: string | null;
+}): Promise<boolean> {
+  const settings = await prisma.eventSettings.findFirst({
+    where: { eventId: input.eventId, organisationId: input.organisationId },
+    select: { websiteConfig: true },
+  });
+  if (!settings?.websiteConfig) return false;
+
+  const config = parseEventSiteConfig(settings.websiteConfig);
+  let changed = false;
+  const sections = config.sections.map((section) => {
+    if (section.type !== "header") return section;
+    const current = section.content.logoUrl;
+    const next = input.logoUrl;
+    if ((typeof current === "string" ? current : null) === next) {
+      return section;
+    }
+    changed = true;
+    return {
+      ...section,
+      content: { ...section.content, logoUrl: next },
+    };
+  });
+  if (!changed) return false;
+
+  await prisma.eventSettings.update({
+    where: { eventId: input.eventId },
+    data: {
+      websiteConfig: {
+        ...config,
+        sections,
+      } as unknown as import("@prisma/client").Prisma.InputJsonValue,
+    },
+  });
+  return true;
+}

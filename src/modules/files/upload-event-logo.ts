@@ -61,7 +61,7 @@ async function putEventAsset(input: {
       access: "public",
       contentType: input.file.type,
       addRandomSuffix: input.addRandomSuffix,
-      // Event logo uses a fixed pathname (`logo.png`); re-uploads must overwrite.
+      // Fixed pathnames (no random suffix) may be re-uploaded; allow replace.
       allowOverwrite: !input.addRandomSuffix,
     });
 
@@ -96,13 +96,14 @@ export async function uploadEventLogo(input: {
 }): Promise<{ url: string }> {
   const file = await normalizeUploadFile(input.file, "logo");
   const ext = extForMime(file.type);
+  // Unique pathname per upload so CDN/browser caches don't keep serving the old image.
   const pathname = `orgs/${input.organisationId}/events/${input.eventId}/logo.${ext}`;
   const { url } = await putEventAsset({
     organisationId: input.organisationId,
     eventId: input.eventId,
     file,
     pathname,
-    addRandomSuffix: false,
+    addRandomSuffix: true,
   });
 
   await prisma.event.update({

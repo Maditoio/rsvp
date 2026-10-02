@@ -35,6 +35,7 @@ import { parseBadgePrintSheet } from "./a4-sheet";
 import { ensureBadgeRecord, loadBadgePrintPayload } from "./service";
 import { prisma } from "@/lib/db/prisma";
 import type { Prisma } from "@prisma/client";
+import { syncEventWebsiteHeaderLogo } from "@/modules/event-sites/service";
 import {
   createEventSponsorWithLogoAction,
   deleteEventSponsorAction,
@@ -46,6 +47,8 @@ function badgePaths(orgSlug: string, eventId: string) {
     `/app/${orgSlug}/events/${eventId}/day/badges`,
     `/app/${orgSlug}/events/${eventId}/day`,
     `/app/${orgSlug}/events/${eventId}/settings`,
+    `/app/${orgSlug}/events/${eventId}/branding`,
+    `/app/${orgSlug}/events/${eventId}/website`,
   ];
 }
 
@@ -369,6 +372,12 @@ export async function uploadEventLogoAction(
       file,
     });
 
+    await syncEventWebsiteHeaderLogo({
+      organisationId: ctx.organisation.id,
+      eventId,
+      logoUrl: url,
+    });
+
     invalidateEventMailContextCache(ctx.organisation.id, eventId);
 
     await writeAudit({
@@ -392,6 +401,11 @@ export async function removeEventLogoAction(orgSlug: string, eventId: string) {
   return runAction(async () => {
     const ctx = await requireEvent(orgSlug, eventId, "event.update");
     await removeEventLogo(ctx.organisation.id, eventId);
+    await syncEventWebsiteHeaderLogo({
+      organisationId: ctx.organisation.id,
+      eventId,
+      logoUrl: null,
+    });
     invalidateEventMailContextCache(ctx.organisation.id, eventId);
 
     await writeAudit({

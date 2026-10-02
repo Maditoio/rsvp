@@ -38,7 +38,9 @@ import type { EventSiteRenderData, SectionRenderProps } from "./types";
 function siteLogoUrl(data: EventSiteRenderData): string | null {
   const header = data.config.sections.find((s) => s.type === "header");
   const url = header?.content.logoUrl;
-  return typeof url === "string" && url.length > 0 ? url : null;
+  if (typeof url === "string" && url.length > 0) return url;
+  // Fall back to the event logo when the website header has no override.
+  return data.logoUrl ?? null;
 }
 
 function headerImageDisplay(data: EventSiteRenderData): Record<string, unknown> {
