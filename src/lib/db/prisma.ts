@@ -6,7 +6,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
  * Use a versioned global key. Next.js HMR keeps `globalThis.prisma` across
  * `prisma generate`, so a renamed key forces a fresh client after schema changes.
  */
-const GLOBAL_KEY = "__bizcon_prisma_v13_session_speakers__" as const;
+const GLOBAL_KEY = "__bizcon_prisma_v14_post_event_campaigns__" as const;
 
 type PrismaGlobal = typeof globalThis & {
   [GLOBAL_KEY]?: PrismaClient;
@@ -41,7 +41,9 @@ function clientMatchesSchema(client: PrismaClient) {
     "kind" in Prisma.MapAnalyticsEventScalarFieldEnum &&
     "tier" in Prisma.EventSponsorScalarFieldEnum &&
     "firstName" in Prisma.EventSpeakerScalarFieldEnum &&
-    "registrationMode" in Prisma.SessionScalarFieldEnum
+    "registrationMode" in Prisma.SessionScalarFieldEnum &&
+    "kind" in Prisma.EmailCampaignScalarFieldEnum &&
+    "audience" in Prisma.EmailCampaignScalarFieldEnum
   );
 }
 
@@ -61,7 +63,7 @@ function getPrismaClient(): PrismaClient {
 
   if (!clientMatchesSchema(client)) {
     throw new Error(
-      "Prisma client is out of date (missing VenueFloorPlan, Organisation.venueAiFloorPlanEnabled, MapAnalyticsEvent, EventSponsor, EventSpeaker, SessionSpeaker, or Session.registrationMode). Run `npx prisma generate`, delete the `.next` folder, and restart the dev server.",
+      "Prisma client is out of date (missing VenueFloorPlan, Organisation.venueAiFloorPlanEnabled, MapAnalyticsEvent, EventSponsor, EventSpeaker, SessionSpeaker, Session.registrationMode, or EmailCampaign.post-event fields). Run `npx prisma generate`, delete the `.next` folder, and restart the dev server.",
     );
   }
 
@@ -80,6 +82,7 @@ function getPrismaClient(): PrismaClient {
     __bizcon_prisma_v10_event_website__?: PrismaClient;
     __bizcon_prisma_v11_event_sponsors__?: PrismaClient;
     __bizcon_prisma_v12_event_speakers__?: PrismaClient;
+    __bizcon_prisma_v13_session_speakers__?: PrismaClient;
   };
   for (const key of [
     "prisma",
@@ -91,6 +94,7 @@ function getPrismaClient(): PrismaClient {
     "__bizcon_prisma_v10_event_website__",
     "__bizcon_prisma_v11_event_sponsors__",
     "__bizcon_prisma_v12_event_speakers__",
+    "__bizcon_prisma_v13_session_speakers__",
   ] as const) {
     const old = legacy[key];
     if (old && old !== client) {

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CheckCircle } from "lucide-react";
 
 export const metadata = {
-  title: "Demo Requested — Bizcon RSVP",
+  title: "Message sent — Bizcon RSVP",
 };
 
 export default function ThanksPage() {
@@ -10,11 +10,11 @@ export default function ThanksPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-6">
       <CheckCircle className="size-12 text-indigo-600" strokeWidth={1.5} />
       <h1 className="mt-6 text-3xl font-semibold tracking-[-0.02em] text-slate-900">
-        Demo request received
+        Message received
       </h1>
       <p className="mt-3 max-w-md text-center text-base text-slate-600">
-        Thank you for your interest in Bizcon RSVP. We&apos;ll be in touch
-        within one business day to schedule your personalised walkthrough.
+        Thank you for contacting Bizcon RSVP. We&apos;ll be in touch within one
+        business day.
       </p>
       <Link
         href="/"

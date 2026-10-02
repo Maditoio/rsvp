@@ -146,6 +146,24 @@ enum CommunicationAutomationAction {
   SEND_EVENT_REMINDER
 }
 
+enum EmailCampaignKind {
+  REMINDER
+  POST_EVENT
+}
+
+enum EmailCampaignStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+/// Audience for organiser-authored post-event follow-up emails.
+enum PostEventAudience {
+  CHECKED_IN
+  REGISTERED
+  REGISTERED_NOT_CHECKED_IN
+}
+
 enum EventSponsorTier {
   PLATINUM
   GOLD
@@ -1150,17 +1168,32 @@ model EmailTemplate {
 }
 
 model EmailCampaign {
-  id             String @id @default(cuid())
+  id             String              @id @default(cuid())
   organisationId String
   eventId        String
   templateId     String?
   name           String
+  kind           EmailCampaignKind   @default(REMINDER)
+  status         EmailCampaignStatus @default(QUEUED)
+  subject        String?
+  /// Plain-text body authored by organisers; escaped when rendered to HTML.
+  body           String?
+  audience       PostEventAudience?
+  /// Optional invitation-category filter (`string[]`). Empty / null = all categories.
+  categoryIds    Json?
+  queuedCount    Int                 @default(0)
+  skippedCount   Int                 @default(0)
+  createdById    String?
   scheduledAt    DateTime?
+  sentAt         DateTime?
+  createdAt      DateTime            @default(now())
 
   organisation Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   event        Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
   template     EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   messages     EmailMessage[]
+
+  @@index([organisationId, eventId, kind, createdAt])
 }
 
 model EmailMessage {

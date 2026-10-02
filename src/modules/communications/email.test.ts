@@ -5,10 +5,11 @@ import { resolveEmailBranding } from "./email-branding";
 
 describe("outbound email templates", () => {
   it("lists every send* entry point", () => {
-    expect(OUTBOUND_EMAIL_TEMPLATES).toHaveLength(10);
+    expect(OUTBOUND_EMAIL_TEMPLATES).toHaveLength(11);
     expect(OUTBOUND_EMAIL_TEMPLATES).toContain("sendInvitationEmail");
     expect(OUTBOUND_EMAIL_TEMPLATES).toContain("sendRegistrationConfirmationEmail");
     expect(OUTBOUND_EMAIL_TEMPLATES).toContain("sendApplicationDecisionEmail");
+    expect(OUTBOUND_EMAIL_TEMPLATES).toContain("sendPostEventFollowUpEmail");
   });
 
   it("includes visible unsubscribe link and footer copy in the shared letter shell", () => {

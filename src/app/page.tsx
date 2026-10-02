@@ -22,8 +22,45 @@ import {
   Map,
   IdCard,
   UserPlus,
+  CalendarDays,
+  UserRound,
+  Eye,
+  RefreshCw,
 } from "lucide-react";
 import { StickyNav } from "@/components/landing/sticky-nav";
+
+const recentFeatures = [
+  {
+    icon: ClipboardCheck,
+    title: "Configurable registration forms",
+    description:
+      "Build event registration forms and export attendee answers for ops and reporting.",
+  },
+  {
+    icon: CalendarDays,
+    title: "Agenda with speakers & modes",
+    description:
+      "Sessions with speaker line-ups and registration modes so organisers control capacity.",
+  },
+  {
+    icon: UserRound,
+    title: "Richer attendee profiles",
+    description:
+      "Photo, LinkedIn, industry, and website on the event profile attendees manage.",
+  },
+  {
+    icon: Eye,
+    title: "Field-level privacy controls",
+    description:
+      "Attendees choose which profile fields are visible to peers in the directory.",
+  },
+  {
+    icon: RefreshCw,
+    title: "Registration → profile hydration",
+    description:
+      "Answers from registration flow into the attendee profile so people start complete.",
+  },
+];
 
 const journeySteps = [
   { icon: UserPlus, label: "Manage invitees" },
@@ -150,22 +187,56 @@ export default function HomePage() {
                 href="/sign-up"
                 className="inline-flex h-12 items-center rounded-full bg-indigo-600 shadow-accent px-8 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
               >
-                Start free
+                Get started
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
               <Link
-                href="/contact"
+                href="/sign-in"
                 className="inline-flex h-12 items-center rounded-full border border-slate-200 bg-white px-8 text-sm font-semibold text-slate-900 transition-colors hover:border-slate-300"
               >
-                Book a demo
+                Sign in
               </Link>
             </div>
           </div>
         </div>
       </section>
 
+      {/* What's new */}
+      <section className="border-b border-slate-200 bg-slate-50 py-14 md:py-20">
+        <div className="mx-auto max-w-6xl px-6">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
+            What&apos;s new
+          </p>
+          <h2 className="mt-3 text-center text-2xl font-semibold text-slate-900 md:text-3xl">
+            Recently shipped for Phase 2
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-center text-base text-slate-500">
+            Registration, agenda, profiles, and privacy — capabilities organisers
+            and attendees can use today.
+          </p>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {recentFeatures.map((feature) => (
+              <div
+                key={feature.title}
+                className="rounded-xl bg-white p-6 shadow-sm"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 shadow-sm">
+                  <feature.icon className="h-5 w-5 text-indigo-600" />
+                </div>
+                <h3 className="mt-4 text-base font-semibold text-slate-900">
+                  {feature.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Hosted events */}
-      <section className="border-b border-slate-200 bg-slate-50 py-14 md:py-16">
+      <section className="border-b border-slate-200 bg-white py-14 md:py-16">
         <div className="mx-auto max-w-6xl px-6">
           <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
             Hosted on Bizcon RSVP
@@ -177,7 +248,7 @@ export default function HomePage() {
             {hostedEvents.map((event) => (
               <div
                 key={event.name}
-                className="rounded-xl bg-white p-6 shadow-sm"
+                className="rounded-xl bg-slate-50 p-6 shadow-sm"
               >
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-400">
                   {event.type}
@@ -369,27 +440,30 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Early Access CTA */}
+      {/* Closing CTA */}
       <section className="border-t border-slate-200 bg-white py-20 md:py-28">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
-            Early access
+            Get started
           </p>
           <h2 className="mt-3 text-3xl font-semibold text-slate-900 md:text-4xl">
             Join organisers running professional events on Bizcon RSVP.
           </h2>
-          <div className="mt-10">
+          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
               href="/sign-up"
               className="inline-flex h-12 items-center rounded-full bg-indigo-600 shadow-accent px-8 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
             >
-              Start free
+              Get started
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
+            <Link
+              href="/contact"
+              className="inline-flex h-12 items-center rounded-full border border-slate-200 bg-white px-8 text-sm font-semibold text-slate-900 transition-colors hover:border-slate-300"
+            >
+              Contact us
+            </Link>
           </div>
-          <p className="mt-5 text-sm text-slate-500">
-            No credit card required · Set up in minutes
-          </p>
         </div>
       </section>
 

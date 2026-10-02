@@ -29,6 +29,10 @@ import {
   reminderEmailSubject,
   type ReminderEmailKind,
 } from "@/modules/communications/reminder-copy";
+import {
+  defaultPostEventSubject,
+  renderPostEventBodyHtml,
+} from "@/modules/communications/post-event";
 
 export { bareEmailAddress, formatOutboundFrom } from "@/modules/communications/email-from";
 
@@ -686,6 +690,49 @@ export async function sendPostMeetingFollowUpEmail(input: {
       body: `${p(`Hello ${escapeHtml(input.toName)},`)}
         ${p(`We hope your meeting at <strong style="color:${aurora.text}">${escapeHtml(ctx.eventName)}</strong> went well.`)}
         ${p(`${escapeHtml(ctx.orgName)} would value optional feedback via a short poll — it helps improve future sessions.`)}
+        ${eventFactsBlock(ctx)}`,
+    }),
+  });
+}
+
+export async function sendPostEventFollowUpEmail(input: {
+  organisationId: string;
+  eventId: string;
+  campaignId?: string;
+  messageId?: string;
+  toEmail: string;
+  toName: string;
+  eventName: string;
+  orgName: string;
+  subject: string;
+  body: string;
+  href: string;
+  ctaLabel?: string;
+  mail?: EventMailSnapshot;
+}) {
+  const ctx = await resolveEventMailContext(input.organisationId, input.eventId, input);
+  const subject =
+    input.subject.trim() || defaultPostEventSubject(ctx.eventName);
+  const bodyHtml = renderPostEventBodyHtml(input.body, escapeHtml, p);
+
+  return deliver({
+    organisationId: input.organisationId,
+    eventId: input.eventId,
+    campaignId: input.campaignId,
+    messageId: input.messageId,
+    toEmail: input.toEmail,
+    orgName: ctx.orgName,
+    subject,
+    html: letter({
+      title: subject,
+      eyebrow: "Post-event",
+      orgName: ctx.orgName,
+      toEmail: input.toEmail,
+      branding: ctx.branding,
+      href: input.href,
+      cta: input.ctaLabel ?? "Open event app",
+      body: `${p(`Hello ${escapeHtml(input.toName)},`)}
+        ${bodyHtml}
         ${eventFactsBlock(ctx)}`,
     }),
   });

@@ -190,5 +190,6 @@ export const OUTBOUND_EMAIL_TEMPLATES = [
   "sendMeetingReminderEmail",
   "sendUnscheduledMeetingNudgeEmail",
   "sendPostMeetingFollowUpEmail",
+  "sendPostEventFollowUpEmail",
   "sendApplicationDecisionEmail",
 ] as const;

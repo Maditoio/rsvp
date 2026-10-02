@@ -7,9 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 export const metadata = {
-  title: "Book a Demo — Bizcon RSVP",
+  title: "Contact — Bizcon RSVP",
   description:
-    "See how Bizcon RSVP can power your next professional summit. Get a personalised walkthrough.",
+    "Get in touch with Bizcon RSVP about running your next professional summit.",
 };
 
 export default function ContactPage() {
@@ -32,15 +32,14 @@ export default function ContactPage() {
 
       <main className="mx-auto max-w-2xl px-6 pb-20 pt-10">
         <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
-          Book a demo
+          Contact
         </p>
         <h1 className="mt-3 text-4xl font-semibold leading-tight tracking-[-0.02em] text-slate-900 md:text-5xl">
-          See Bizcon RSVP in action
+          Talk to the Bizcon RSVP team
         </h1>
         <p className="mt-4 text-lg text-slate-600">
-          Get a personalised walkthrough of how Bizcon RSVP manages invitations,
-          registrations, AI matchmaking, and event-day operations for
-          professional summits.
+          Tell us about your event — invitations, registration, agenda, profiles,
+          and event-day operations for professional summits.
         </p>
 
         <form
@@ -48,7 +47,7 @@ export default function ContactPage() {
           action="https://formsubmit.co/hello@bizconrsvp.com"
           method="POST"
         >
-          <input type="hidden" name="_subject" value="Demo request from bizconrsvp.com" />
+          <input type="hidden" name="_subject" value="Contact from bizconrsvp.com" />
           <input type="hidden" name="_next" value="https://bizconrsvp.com/contact/thanks" />
           <input type="text" name="_honey" className="hidden" />
 
@@ -91,7 +90,7 @@ export default function ContactPage() {
           </div>
 
           <Button type="submit" size="lg">
-            Request a demo
+            Send message
           </Button>
 
           <p className="text-xs text-slate-400">

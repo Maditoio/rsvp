@@ -2,6 +2,7 @@ import { inngest } from "@/modules/jobs/client";
 import { sendInvitationEmail } from "@/modules/communications/email";
 import { runAllEnabledAutomations } from "@/modules/communications/automations";
 import type { ReminderSendEvent } from "@/modules/communications/reminder-queue";
+import type { PostEventSendEvent } from "@/modules/communications/post-event-queue";
 import type { EventMailSnapshot } from "@/modules/communications/email-mail-context";
 import {
   runMeetingReminders,
@@ -9,7 +10,10 @@ import {
   runPostMeetingFollowUps,
   checkSmartBatchTriggers,
 } from "@/modules/communications/meeting-reminders";
-import { sendReminderEmail } from "@/modules/communications/email";
+import {
+  sendPostEventFollowUpEmail,
+  sendReminderEmail,
+} from "@/modules/communications/email";
 import { runMatchmakingPipeline } from "@/modules/matchmaking/batch";
 import { prisma } from "@/lib/db/prisma";
 
@@ -90,6 +94,38 @@ export const sendReminderJob = inngest.createFunction(
   },
 );
 
+export const sendPostEventFollowUpJob = inngest.createFunction(
+  {
+    id: "communication-post-event-send",
+    retries: 4,
+    throttle: {
+      key: "event.data.throttleKey",
+      limit: 8,
+      period: "1s",
+      burst: 1,
+    },
+    triggers: [{ event: "communication/post-event.send" }],
+  },
+  async ({ event }: { event: PostEventSendEvent }) => {
+    await sendPostEventFollowUpEmail({
+      organisationId: event.data.organisationId,
+      eventId: event.data.eventId,
+      campaignId: event.data.campaignId,
+      messageId: event.data.messageId,
+      toEmail: event.data.toEmail,
+      toName: event.data.toName,
+      eventName: event.data.eventName,
+      orgName: event.data.orgName,
+      subject: event.data.subject,
+      body: event.data.body,
+      href: event.data.href,
+      ctaLabel: event.data.ctaLabel,
+      mail: event.data.mail,
+    });
+    return { ok: true };
+  },
+);
+
 export const matchmakingBatchJob = inngest.createFunction(
   {
     id: "matchmaking-batch",
@@ -147,6 +183,7 @@ export const functions = [
   sendInvitationJob,
   communicationAutomationsJob,
   sendReminderJob,
+  sendPostEventFollowUpJob,
   matchmakingBatchJob,
   meetingRemindersJob,
   unscheduledNudgeJob,

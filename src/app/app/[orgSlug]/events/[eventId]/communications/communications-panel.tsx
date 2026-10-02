@@ -8,7 +8,9 @@ import {
   saveCommunicationAutomation,
   runCommunicationAutomationNow,
 } from "@/modules/communications/automation-actions";
+import { sendPostEventFollowUp } from "@/modules/communications/post-event-actions";
 import type { AutomationRow } from "@/modules/communications/automations";
+import { audienceLabel } from "@/modules/communications/post-event";
 import {
   DataTable,
   type DataTableColumn,
@@ -21,6 +23,7 @@ import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/status-badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { humanizeEnum } from "@/lib/utils";
 
 type MessageRow = {
@@ -30,6 +33,23 @@ type MessageRow = {
   status: string;
   sentAt: string;
 };
+
+type CategoryOption = { id: string; name: string };
+type PollOption = { id: string; title: string };
+
+type PostEventCampaignRow = {
+  id: string;
+  name: string;
+  subject: string;
+  audience: "CHECKED_IN" | "REGISTERED" | "REGISTERED_NOT_CHECKED_IN" | null;
+  status: string;
+  queuedCount: number;
+  skippedCount: number;
+  sentAt: string;
+  createdAt: string;
+};
+
+type DrawerKind = "reminders" | "post-event" | "automation" | null;
 
 function triggerLabel(trigger: AutomationRow["trigger"]) {
   switch (trigger) {
@@ -49,21 +69,35 @@ function triggerLabel(trigger: AutomationRow["trigger"]) {
 export function CommunicationsPanel({
   orgSlug,
   eventId,
+  eventName,
   messages,
   automations,
   automationsEnabled,
   canSend,
+  eventEnded,
+  defaultPostEventSubject,
+  categories,
+  polls,
+  postEventCampaigns,
 }: {
   orgSlug: string;
   eventId: string;
+  eventName: string;
   messages: MessageRow[];
   automations: AutomationRow[];
   automationsEnabled: boolean;
   canSend: boolean;
+  eventEnded: boolean;
+  defaultPostEventSubject: string;
+  categories: CategoryOption[];
+  polls: PollOption[];
+  postEventCampaigns: PostEventCampaignRow[];
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [editAutomation, setEditAutomation] = useState<AutomationRow | null>(null);
+  const [drawer, setDrawer] = useState<DrawerKind>(null);
+  const [editAutomation, setEditAutomation] = useState<AutomationRow | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -97,24 +131,71 @@ export function CommunicationsPanel({
     },
   ];
 
+  const campaignColumns: DataTableColumn<PostEventCampaignRow>[] = [
+    {
+      id: "subject",
+      header: "Subject",
+      width: "2fr",
+      cell: (row) => row.subject || row.name,
+    },
+    {
+      id: "audience",
+      header: "Audience",
+      width: "1.2fr",
+      cell: (row) =>
+        row.audience ? audienceLabel(row.audience) : "—",
+    },
+    {
+      id: "queued",
+      header: "Queued",
+      width: "0.8fr",
+      cell: (row) => String(row.queuedCount),
+    },
+    {
+      id: "status",
+      header: "Status",
+      width: "1fr",
+      cell: (row) => <StatusBadge status={row.status} />,
+    },
+    {
+      id: "sent",
+      header: "Sent",
+      width: "1.2fr",
+      cell: (row) => (
+        <span className="whitespace-nowrap">
+          {row.sentAt || row.createdAt || "—"}
+        </span>
+      ),
+    },
+  ];
+
+  function openDrawer(kind: Exclude<DrawerKind, null | "automation">) {
+    setError(null);
+    setNotice(null);
+    setEditAutomation(null);
+    setDrawer(kind);
+  }
+
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow="Outreach"
         title="Communications"
-        description="Manual reminders and rule-based automations for invitations and registrations."
+        description="Reminders, automations, and post-event follow-up for attendees."
         actions={
           canSend ? (
-            <Button
-              type="button"
-              onClick={() => {
-                setError(null);
-                setNotice(null);
-                setOpen(true);
-              }}
-            >
-              Send reminders
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => openDrawer("reminders")}
+              >
+                Send reminders
+              </Button>
+              <Button type="button" onClick={() => openDrawer("post-event")}>
+                Post-event email
+              </Button>
+            </div>
           ) : null
         }
       />
@@ -123,7 +204,7 @@ export function CommunicationsPanel({
       {!automationsEnabled ? (
         <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800">
           Communication automations are disabled in event settings. Manual
-          reminders still work.
+          reminders and post-event email still work.
         </p>
       ) : null}
 
@@ -137,6 +218,57 @@ export function CommunicationsPanel({
         </Link>
         .
       </p>
+
+      <section className="rounded-xl bg-white shadow-sm p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl text-slate-900">
+              Post-event follow-up
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Thank attendees after the event ends. Optional category filter and
+              poll link.
+            </p>
+          </div>
+          {!eventEnded ? (
+            <p className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+              Available after event end
+            </p>
+          ) : null}
+        </div>
+        {postEventCampaigns.length === 0 ? (
+          <p className="mt-4 text-sm text-slate-600">
+            No post-event emails have been sent yet.
+          </p>
+        ) : (
+          <div className="mt-4">
+            <Suspense
+              fallback={<div className="h-32 rounded-xl bg-slate-50" />}
+            >
+              <DataTable
+                rows={postEventCampaigns}
+                columns={campaignColumns}
+                getRowId={(row) => row.id}
+                searchPlaceholder="Search follow-ups…"
+                searchFilter={(row, query) => {
+                  const haystack = [
+                    row.subject,
+                    row.name,
+                    row.audience ?? "",
+                    row.status,
+                    row.sentAt,
+                  ]
+                    .join(" ")
+                    .toLowerCase();
+                  return haystack.includes(query);
+                }}
+                emptyMessage="No post-event emails have been sent yet."
+                showRowsPerPage
+              />
+            </Suspense>
+          </div>
+        )}
+      </section>
 
       <section className="rounded-xl bg-white shadow-sm p-5">
         <h2 className="font-display text-xl text-slate-900">Automations</h2>
@@ -162,7 +294,8 @@ export function CommunicationsPanel({
                 </p>
                 {automation.lastRunAt ? (
                   <p className="mt-1 text-xs text-slate-400">
-                    Last run {new Date(automation.lastRunAt).toLocaleString("en-GB")}
+                    Last run{" "}
+                    {new Date(automation.lastRunAt).toLocaleString("en-GB")}
                   </p>
                 ) : null}
               </div>
@@ -178,6 +311,7 @@ export function CommunicationsPanel({
                       size="sm"
                       disabled={pending}
                       onClick={() => {
+                        setDrawer(null);
                         setEditAutomation(automation);
                         setError(null);
                       }}
@@ -227,17 +361,26 @@ export function CommunicationsPanel({
       <section>
         <h2 className="font-display text-xl text-slate-900">Recent messages</h2>
         {messages.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-700">No messages have been sent yet.</p>
+          <p className="mt-2 text-sm text-slate-700">
+            No messages have been sent yet.
+          </p>
         ) : (
           <div className="mt-3">
-            <Suspense fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}>
+            <Suspense
+              fallback={<div className="h-40 rounded-xl bg-white shadow-sm" />}
+            >
               <DataTable
                 rows={messages}
                 columns={columns}
                 getRowId={(row) => row.id}
                 searchPlaceholder="Search messages…"
                 searchFilter={(row, query) => {
-                  const haystack = [row.toEmail, row.subject, row.status, row.sentAt]
+                  const haystack = [
+                    row.toEmail,
+                    row.subject,
+                    row.status,
+                    row.sentAt,
+                  ]
                     .join(" ")
                     .toLowerCase();
                   return haystack.includes(query);
@@ -251,8 +394,8 @@ export function CommunicationsPanel({
       </section>
 
       <Drawer
-        open={open}
-        onClose={() => setOpen(false)}
+        open={drawer === "reminders"}
+        onClose={() => setDrawer(null)}
         title="Send reminders"
         description="Each reminder issues a new invitation link. Previous email links stop working."
       >
@@ -262,8 +405,12 @@ export function CommunicationsPanel({
             setError(null);
             start(async () => {
               try {
-                const result = await sendEventReminders(orgSlug, eventId, formData);
-                setOpen(false);
+                const result = await sendEventReminders(
+                  orgSlug,
+                  eventId,
+                  formData,
+                );
+                setDrawer(null);
                 setNotice(
                   `${result.queued} reminder${result.queued === 1 ? "" : "s"} queued for delivery.`,
                 );
@@ -297,10 +444,135 @@ export function CommunicationsPanel({
       </Drawer>
 
       <Drawer
+        open={drawer === "post-event"}
+        onClose={() => setDrawer(null)}
+        title="Post-event email"
+        description={`Send a follow-up to attendees of ${eventName} after the event ends.`}
+        size="lg"
+      >
+        <form
+          className="space-y-4"
+          action={(formData) => {
+            setError(null);
+            start(async () => {
+              try {
+                const result = await sendPostEventFollowUp(
+                  orgSlug,
+                  eventId,
+                  formData,
+                );
+                setDrawer(null);
+                setNotice(
+                  result.queued === 0
+                    ? `No recipients to email${result.skipped ? ` (${result.skipped} skipped)` : ""}.`
+                    : `Queued ${result.queued} post-event email${result.queued === 1 ? "" : "s"}${result.skipped ? ` (${result.skipped} skipped)` : ""}.`,
+                );
+                router.refresh();
+              } catch (e) {
+                setError(
+                  e instanceof Error
+                    ? e.message
+                    : "Could not send post-event email",
+                );
+              }
+            });
+          }}
+        >
+          {!eventEnded ? (
+            <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-800">
+              Sending is available after the event end date.
+            </p>
+          ) : null}
+          <div>
+            <Label htmlFor="post-event-audience">Audience</Label>
+            <Select
+              id="post-event-audience"
+              name="audience"
+              required
+              defaultValue="checked_in"
+            >
+              <option value="checked_in">Checked in</option>
+              <option value="registered">All registered (incl. checked in)</option>
+              <option value="registered_not_checked_in">
+                Registered, not checked in
+              </option>
+            </Select>
+          </div>
+          {categories.length > 0 ? (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium text-slate-900">
+                Categories (optional)
+              </legend>
+              <p className="text-xs text-slate-500">
+                Leave unchecked to include every category.
+              </p>
+              <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border border-slate-200 bg-slate-50 p-3">
+                {categories.map((category) => (
+                  <label
+                    key={category.id}
+                    className="flex items-center gap-2 text-sm text-slate-700"
+                  >
+                    <Checkbox name="categoryIds" value={category.id} />
+                    {category.name}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
+          <div>
+            <Label htmlFor="post-event-subject">Subject</Label>
+            <Input
+              id="post-event-subject"
+              name="subject"
+              required
+              maxLength={180}
+              defaultValue={defaultPostEventSubject}
+            />
+          </div>
+          <div>
+            <Label htmlFor="post-event-body">Message</Label>
+            <Textarea
+              id="post-event-body"
+              name="body"
+              required
+              maxLength={8000}
+              rows={8}
+              placeholder="Thank attendees, share next steps, or invite feedback. Plain text only — HTML is escaped."
+            />
+          </div>
+          {polls.length > 0 ? (
+            <div>
+              <Label htmlFor="post-event-poll">Feedback poll (optional)</Label>
+              <Select id="post-event-poll" name="pollId" defaultValue="">
+                <option value="">Event app home</option>
+                {polls.map((poll) => (
+                  <option key={poll.id} value={poll.id}>
+                    {poll.title}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          ) : null}
+          <p className="text-xs text-slate-500">
+            Unsubscribed recipients are skipped. Duplicate sends to the same
+            address with the same subject are suppressed for 24 hours.
+          </p>
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
+          <div className="flex justify-end">
+            <Button disabled={pending || !eventEnded}>
+              {pending ? "Sending…" : "Send follow-up"}
+            </Button>
+          </div>
+        </form>
+      </Drawer>
+
+      <Drawer
         open={editAutomation != null}
         onClose={() => setEditAutomation(null)}
         title="Edit automation"
-        description={editAutomation ? triggerLabel(editAutomation.trigger) : undefined}
+        description={
+          editAutomation ? triggerLabel(editAutomation.trigger) : undefined
+        }
         size="sm"
       >
         {editAutomation ? (

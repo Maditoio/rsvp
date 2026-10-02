@@ -30,6 +30,7 @@ export async function getEventChecklist(
     formFieldCount,
     categoryCount,
     pollCount,
+    postEventCampaignCount,
   ] = await Promise.all([
     prisma.event.findFirst({
       where: { id: eventId, organisationId },
@@ -61,6 +62,9 @@ export async function getEventChecklist(
     prisma.registrationField.count({ where: { eventId, organisationId } }),
     prisma.invitationCategory.count({ where: { eventId, organisationId } }),
     prisma.eventPoll.count({ where: { eventId, organisationId } }),
+    prisma.emailCampaign.count({
+      where: { eventId, organisationId, kind: "POST_EVENT" },
+    }),
   ]);
 
   const items: ChecklistItem[] = [
@@ -169,6 +173,15 @@ export async function getEventChecklist(
       href: `${base}/settings`,
       optional: true,
       complete: event?.settings?.aiInsightsEnabled === true,
+    },
+    {
+      id: "post_event_comms",
+      phase: "follow_up",
+      title: "Post-event email",
+      description: "Thank attendees and optionally link a feedback poll.",
+      href: `${base}/communications`,
+      optional: true,
+      complete: postEventCampaignCount > 0,
     },
     {
       id: "polls",
