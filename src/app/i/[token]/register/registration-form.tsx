@@ -26,6 +26,7 @@ export function RegistrationForm({
   invitationEmail,
   signUpHref,
   matchmakingHref,
+  accentColor,
 }: {
   token: string;
   siteKey: string;
@@ -36,6 +37,7 @@ export function RegistrationForm({
   invitationEmail: string;
   signUpHref: string;
   matchmakingHref?: string | null;
+  accentColor?: string | null;
 }) {
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -64,10 +66,13 @@ export function RegistrationForm({
   if (completed) {
     return (
       <div className="text-center">
-        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
+        <p
+          className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em]"
+          style={{ color: accentColor || "#4F46E5" }}
+        >
           Registered
         </p>
-        <h2 className="mt-2 font-display text-3xl text-slate-900">
+        <h2 className="mt-2 text-3xl font-semibold tracking-[-0.02em] text-slate-900">
           Registration complete
         </h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-slate-700">
@@ -79,7 +84,8 @@ export function RegistrationForm({
         <div className="mx-auto mt-8 flex max-w-md flex-col gap-3">
           <Link
             href={signUpHref}
-            className="inline-flex h-11 items-center justify-center rounded-full bg-indigo-600 px-5 text-[0.9375rem] font-semibold text-white hover:bg-indigo-700"
+            className="inline-flex h-11 items-center justify-center rounded-full px-5 text-[0.9375rem] font-semibold text-white hover:brightness-95"
+            style={{ backgroundColor: accentColor || "#4F46E5" }}
           >
             Create your account
           </Link>
@@ -167,7 +173,7 @@ export function RegistrationForm({
       <TurnstileWidget siteKey={siteKey} onToken={onToken} />
       {error ? <p className="text-sm text-danger">{error}</p> : null}
       <div className="flex justify-end">
-        <Button disabled={pending}>
+        <Button disabled={pending} accentColor={accentColor}>
           {pending ? "Submitting…" : "Complete registration"}
         </Button>
       </div>

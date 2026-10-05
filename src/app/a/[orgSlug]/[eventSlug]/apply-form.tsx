@@ -17,10 +17,12 @@ export function PublicApplyForm({
   orgSlug,
   eventSlug,
   siteKey,
+  accentColor,
 }: {
   orgSlug: string;
   eventSlug: string;
   siteKey: string;
+  accentColor?: string | null;
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -35,10 +37,13 @@ export function PublicApplyForm({
   if (submitted) {
     return (
       <div>
-        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
+        <p
+          className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em]"
+          style={{ color: accentColor || undefined }}
+        >
           Received
         </p>
-        <h2 className="mt-2 font-display text-3xl text-slate-900">
+        <h2 className="mt-2 text-3xl font-semibold tracking-[-0.02em] text-slate-900">
           Application submitted
         </h2>
         <p className="mt-2 text-sm text-slate-700">
@@ -162,7 +167,7 @@ export function PublicApplyForm({
       <TurnstileWidget siteKey={siteKey} onToken={onToken} />
       {error ? <p className="text-sm text-danger">{error}</p> : null}
       <div className="flex justify-end">
-        <Button disabled={pending}>
+        <Button disabled={pending} accentColor={accentColor}>
           {pending ? "Submitting…" : "Submit application"}
         </Button>
       </div>

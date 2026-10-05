@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Card, DecisionCard } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { RouteDrawer } from "@/components/ui/drawer";
+import { PublicEventHero } from "@/components/public/public-event-branding";
 import { getPublicInvitation } from "@/modules/invitations/public";
 import { turnstileSiteKey, attendeeSignUpUrl } from "@/lib/utils";
 import { buildRegistrationPrefill } from "@/modules/registrations/answers";
@@ -13,6 +14,8 @@ import {
   matchmakingPath,
 } from "@/modules/matchmaking/questionnaire";
 import { eventDayOptions } from "@/lib/event-dates";
+import { loadPublicEventBrandingByIds } from "@/modules/branding/public-event-branding";
+import { DEFAULT_EMAIL_ACCENT } from "@/modules/communications/email-branding";
 import { RegistrationForm } from "./registration-form";
 
 export default async function RegisterPage({
@@ -22,6 +25,23 @@ export default async function RegisterPage({
   const invitation = await getPublicInvitation(token);
   if (invitation.gate === "missing") notFound();
 
+  const branding =
+    (await loadPublicEventBrandingByIds({
+      organisationId: invitation.organisationId,
+      eventId: invitation.eventId,
+    })) ?? {
+      logoUrl: null,
+      bannerUrl: null,
+      accentColor: DEFAULT_EMAIL_ACCENT,
+      accentSoft: "#EEF2FF",
+      accentBorder: "#C7D2FE",
+      accentShadow: "0 4px 12px rgba(79,70,229,0.28)",
+      eventName: invitation.eventName,
+      orgName: invitation.orgName,
+      venue: invitation.venue,
+      timezone: "UTC",
+    };
+
   if (
     invitation.gate === "cancelled" ||
     invitation.gate === "expired" ||
@@ -30,7 +50,7 @@ export default async function RegisterPage({
   ) {
     return (
       <Card>
-        <h1 className="font-display text-3xl text-slate-900">
+        <h1 className="text-3xl font-semibold tracking-[-0.02em] text-slate-900">
           Registration is not available
         </h1>
         <p className="mt-3 text-slate-700">
@@ -49,7 +69,7 @@ export default async function RegisterPage({
   if (!invitation.accepted) {
     return (
       <Card>
-        <h1 className="font-display text-3xl text-slate-900">
+        <h1 className="text-3xl font-semibold tracking-[-0.02em] text-slate-900">
           Accept the invitation first
         </h1>
         <p className="mt-3 text-slate-700">
@@ -58,7 +78,8 @@ export default async function RegisterPage({
         </p>
         <Link
           href={`/i/${encodeURIComponent(token)}`}
-          className="mt-5 inline-flex rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white"
+          className="mt-5 inline-flex rounded-full px-4 py-2 text-sm font-medium text-white"
+          style={{ backgroundColor: branding.accentColor }}
         >
           Review invitation
         </Link>
@@ -137,20 +158,23 @@ export default async function RegisterPage({
       closeHref={`/i/${encodeURIComponent(token)}`}
       size="lg"
     >
-      <DecisionCard className="mb-6">
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-indigo-200">
-          Registration
-        </p>
-        <h1 className="mt-2 font-display text-4xl">{invitation.eventName}</h1>
-        <p className="mt-2 text-slate-100">
-          Confirm or correct the details we already have from your invitation.
-        </p>
-        {eventDays.length > 0 ? (
-          <p className="mt-3 text-sm text-slate-100/90">
-            Event dates: {eventDays.map((day) => day.label).join(" · ")}
-          </p>
-        ) : null}
-      </DecisionCard>
+      <PublicEventHero
+        className="mb-6"
+        branding={branding}
+        eyebrow="Registration"
+        title={invitation.eventName}
+        description={
+          <>
+            Confirm or correct the details we already have from your invitation.
+            {eventDays.length > 0 ? (
+              <>
+                <br />
+                Event dates: {eventDays.map((day) => day.label).join(" · ")}
+              </>
+            ) : null}
+          </>
+        }
+      />
       <Card>
         <RegistrationForm
           token={token}
@@ -162,6 +186,7 @@ export default async function RegisterPage({
           matchmakingHref={matchmakingHref}
           eventDays={eventDays}
           defaults={defaults}
+          accentColor={branding.accentColor}
         />
       </Card>
     </RouteDrawer>

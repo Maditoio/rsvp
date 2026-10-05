@@ -9,10 +9,12 @@ export function InvitationResponse({
   token,
   accepted,
   registered,
+  accentColor,
 }: {
   token: string;
   accepted: boolean;
   registered: boolean;
+  accentColor?: string | null;
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +45,11 @@ export function InvitationResponse({
         </p>
         <Link
           href={`/i/${encodeURIComponent(token)}/register`}
-          className="mt-5 inline-flex rounded-full bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white"
+          className="mt-5 inline-flex rounded-full px-5 py-2.5 text-sm font-medium text-white"
+          style={{
+            backgroundColor: accentColor || "#4F46E5",
+            boxShadow: `0 4px 12px ${(accentColor || "#4F46E5")}47`,
+          }}
         >
           {registered ? "View registration" : "Continue to registration"}
         </Link>
@@ -62,6 +68,7 @@ export function InvitationResponse({
         <Button
           type="button"
           disabled={pending}
+          accentColor={accentColor}
           onClick={() => {
             setError(null);
             start(async () => {
