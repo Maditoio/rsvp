@@ -33,7 +33,7 @@ export default async function PlatformOrganisationPage({
           </Link>
         }
         title={detail.name}
-        description="Review events for this company and suspend access when needed."
+        description="Review events for this company, suspend access, or permanently delete."
         className="max-w-3xl"
       />
 

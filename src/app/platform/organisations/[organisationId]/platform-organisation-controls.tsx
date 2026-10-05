@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ExternalLink } from "lucide-react";
 import {
+  deletePlatformEvent,
+  deletePlatformOrganisation,
   setAllOrganisationEventsSuspended,
   setEventSuspended,
   setOrganisationSuspended,
 } from "@/modules/platform/governance";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import {
   PlatformStatusTag,
@@ -35,11 +38,17 @@ type Props = {
   events: EventRow[];
 };
 
+type ConfirmState =
+  | { kind: "org" }
+  | { kind: "event"; event: EventRow }
+  | null;
+
 export function PlatformOrganisationControls({ organisation, events }: Props) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmState>(null);
   const orgSuspended = Boolean(organisation.suspendedAt);
   const activeEvents = events.filter((event) => !event.suspendedAt);
   const suspendedEvents = events.filter((event) => event.suspendedAt);
@@ -101,6 +110,40 @@ export function PlatformOrganisationControls({ organisation, events }: Props) {
     });
   };
 
+  const runConfirmedDelete = () => {
+    if (!confirm) return;
+    if (confirm.kind === "org") {
+      setBusyId("org-delete");
+      start(async () => {
+        const result = await deletePlatformOrganisation(organisation.id);
+        setBusyId(null);
+        setConfirm(null);
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
+        toast.success(`${organisation.name} deleted.`);
+        router.push("/platform/organisations");
+        router.refresh();
+      });
+      return;
+    }
+
+    const event = confirm.event;
+    setBusyId(`delete-${event.id}`);
+    start(async () => {
+      const result = await deletePlatformEvent(event.id);
+      setBusyId(null);
+      setConfirm(null);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(`${event.name} deleted.`);
+      router.refresh();
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -139,6 +182,14 @@ export function PlatformOrganisationControls({ organisation, events }: Props) {
               : orgSuspended
                 ? "Restore company"
                 : "Suspend company"}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={pending}
+            onClick={() => setConfirm({ kind: "org" })}
+          >
+            {busyId === "org-delete" ? "Deleting…" : "Delete company"}
           </Button>
         </div>
       </div>
@@ -236,6 +287,17 @@ export function PlatformOrganisationControls({ organisation, events }: Props) {
                                 ? "Restore"
                                 : "Suspend"}
                           </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            disabled={pending}
+                            onClick={() => setConfirm({ kind: "event", event })}
+                          >
+                            {busyId === `delete-${event.id}`
+                              ? "Deleting…"
+                              : "Delete"}
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -251,6 +313,38 @@ export function PlatformOrganisationControls({ organisation, events }: Props) {
           </p>
         ) : null}
       </div>
+
+      <ConfirmDialog
+        open={confirm?.kind === "org"}
+        onClose={() => (pending ? undefined : setConfirm(null))}
+        title="Delete company?"
+        description={`Permanently delete “${organisation.name}” and all of its events, invitees, registrations, and related data. This cannot be undone.`}
+        confirmLabel="Delete company"
+        cancelLabel="Cancel"
+        destructive
+        pending={pending && busyId === "org-delete"}
+        onConfirm={runConfirmedDelete}
+      />
+
+      <ConfirmDialog
+        open={confirm?.kind === "event"}
+        onClose={() => (pending ? undefined : setConfirm(null))}
+        title="Delete event?"
+        description={
+          confirm?.kind === "event"
+            ? `Permanently delete “${confirm.event.name}” and its invitees, registrations, and related data. This cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete event"
+        cancelLabel="Cancel"
+        destructive
+        pending={
+          pending &&
+          confirm?.kind === "event" &&
+          busyId === `delete-${confirm.event.id}`
+        }
+        onConfirm={runConfirmedDelete}
+      />
     </div>
   );
 }

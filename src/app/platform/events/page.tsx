@@ -9,6 +9,7 @@ import {
   PlatformStatusTag,
   formatPlatformDate,
 } from "../platform-ui";
+import { PlatformEventRowActions } from "./platform-event-row-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export default async function PlatformEventsPage({
     <div className="space-y-6">
       <PageHeader
         title="Events"
-        description="Search events across all companies and open them in organiser context."
+        description="Search events across all companies, suspend access, or permanently delete."
         className="max-w-3xl"
       />
 
@@ -86,12 +87,7 @@ export default async function PlatformEventsPage({
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Link
-                          href={`/app/${event.organisation.slug}/events/${event.id}`}
-                          className="inline-flex h-9 items-center rounded-full border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                        >
-                          Open
-                        </Link>
+                        <PlatformEventRowActions event={event} />
                       </td>
                     </tr>
                   );

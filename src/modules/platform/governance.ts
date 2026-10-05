@@ -395,3 +395,91 @@ export async function setAllOrganisationEventsSuspended(
     );
   }
 }
+
+export async function deletePlatformEvent(
+  eventId: string,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const actor = await requirePlatformAdmin();
+    const id = z.string().cuid().parse(eventId);
+
+    const event = await prisma.event.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        organisation: { select: { id: true, slug: true, name: true } },
+      },
+    });
+    if (!event) throw new Error("Event not found.");
+
+    await writeAudit({
+      userId: actor.id,
+      organisationId: event.organisation.id,
+      eventId: event.id,
+      action: "event.delete",
+      resource: "event",
+      resourceId: event.id,
+      ip: await requestIp(),
+      metadata: {
+        slug: event.slug,
+        name: event.name,
+        organisationSlug: event.organisation.slug,
+        organisationName: event.organisation.name,
+      },
+    });
+
+    await prisma.event.delete({ where: { id: event.id } });
+
+    revalidatePlatformPaths(event.organisation, event.id);
+    revalidatePath(`/e/${event.organisation.slug}/${event.slug}`);
+    return actionOk({ id: event.id });
+  } catch (error) {
+    return actionFail(publicActionError(error, "Could not delete event."));
+  }
+}
+
+export async function deletePlatformOrganisation(
+  organisationId: string,
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    const actor = await requirePlatformAdmin();
+    const id = z.string().cuid().parse(organisationId);
+
+    const organisation = await prisma.organisation.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        _count: { select: { events: true, users: true } },
+      },
+    });
+    if (!organisation) throw new Error("Organisation not found.");
+
+    await writeAudit({
+      userId: actor.id,
+      organisationId: organisation.id,
+      action: "organisation.delete",
+      resource: "organisation",
+      resourceId: organisation.id,
+      ip: await requestIp(),
+      metadata: {
+        slug: organisation.slug,
+        name: organisation.name,
+        eventCount: organisation._count.events,
+        memberCount: organisation._count.users,
+      },
+    });
+
+    await prisma.organisation.delete({ where: { id: organisation.id } });
+
+    revalidatePlatformPaths(organisation);
+    return actionOk({ id: organisation.id });
+  } catch (error) {
+    return actionFail(
+      publicActionError(error, "Could not delete organisation."),
+    );
+  }
+}
