@@ -15,6 +15,68 @@ export function publicBrandStyle(branding: PublicBrandTokens): CSSProperties {
   };
 }
 
+function HeroCopy({
+  branding,
+  eyebrow,
+  title,
+  description,
+  children,
+  onAccent,
+}: {
+  branding: PublicBrandTokens;
+  eyebrow?: string;
+  title: string;
+  description?: ReactNode;
+  children?: ReactNode;
+  onAccent: boolean;
+}) {
+  return (
+    <div className={cn("space-y-2", onAccent ? "text-white" : "text-slate-900")}>
+      {branding.logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={branding.logoUrl}
+          alt=""
+          className={cn(
+            "max-h-12 max-w-[180px] object-contain",
+            onAccent ? "mb-3" : "mb-1",
+          )}
+        />
+      ) : null}
+      {eyebrow ? (
+        <p
+          className={cn(
+            "text-[0.6875rem] font-semibold uppercase tracking-[0.06em]",
+            onAccent ? "text-white/75" : "text-slate-500",
+          )}
+          style={onAccent ? undefined : { color: branding.accentColor }}
+        >
+          {eyebrow}
+        </p>
+      ) : null}
+      <h1
+        className={cn(
+          "text-3xl font-semibold tracking-[-0.02em] sm:text-4xl",
+          onAccent ? "text-white" : "text-slate-900",
+        )}
+      >
+        {title}
+      </h1>
+      {description ? (
+        <div
+          className={cn(
+            "text-sm sm:text-base",
+            onAccent ? "text-white/90" : "text-slate-600",
+          )}
+        >
+          {description}
+        </div>
+      ) : null}
+      {children}
+    </div>
+  );
+}
+
 export function PublicEventHero({
   branding,
   eyebrow,
@@ -41,36 +103,30 @@ export function PublicEventHero({
         )}
         style={publicBrandStyle(branding)}
       >
-        <div className="relative">
+        <div
+          className="border-b"
+          style={{
+            backgroundColor: branding.accentSoft,
+            borderColor: branding.accentBorder,
+          }}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={branding.bannerUrl ?? ""}
             alt=""
-            className="h-44 w-full object-cover sm:h-52"
+            className="mx-auto block h-auto w-full max-h-64 object-contain"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/10" />
-          <div className="absolute inset-x-0 bottom-0 space-y-2 p-5 sm:p-6">
-            {branding.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={branding.logoUrl}
-                alt=""
-                className="mb-1 max-h-10 max-w-[160px] object-contain"
-              />
-            ) : null}
-            {eyebrow ? (
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-white/80">
-                {eyebrow}
-              </p>
-            ) : null}
-            <h1 className="text-3xl font-semibold tracking-[-0.02em] text-white sm:text-4xl">
-              {title}
-            </h1>
-            {description ? (
-              <div className="text-sm text-white/90 sm:text-base">{description}</div>
-            ) : null}
+        </div>
+        <div className="p-5 sm:p-6">
+          <HeroCopy
+            branding={branding}
+            eyebrow={eyebrow}
+            title={title}
+            description={description}
+            onAccent={false}
+          >
             {children}
-          </div>
+          </HeroCopy>
         </div>
       </section>
     );
@@ -78,33 +134,22 @@ export function PublicEventHero({
 
   return (
     <section
-      className={cn("rounded-xl p-6 text-white shadow-sm", className)}
+      className={cn("rounded-xl p-6 shadow-sm", className)}
       style={{
         ...publicBrandStyle(branding),
         backgroundColor: branding.accentColor,
         boxShadow: `0 4px 12px ${branding.accentColor}47`,
       }}
     >
-      {branding.logoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={branding.logoUrl}
-          alt=""
-          className="mb-4 max-h-12 max-w-[180px] object-contain"
-        />
-      ) : null}
-      {eyebrow ? (
-        <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-white/75">
-          {eyebrow}
-        </p>
-      ) : null}
-      <h1 className="mt-2 text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">
-        {title}
-      </h1>
-      {description ? (
-        <div className="mt-2 text-sm text-white/90 sm:text-base">{description}</div>
-      ) : null}
-      {children}
+      <HeroCopy
+        branding={branding}
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
+        onAccent
+      >
+        {children}
+      </HeroCopy>
     </section>
   );
 }
