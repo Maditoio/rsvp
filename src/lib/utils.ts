@@ -85,14 +85,43 @@ export function formatEventWindow(
   endsAt: Date | null,
   timezone: string,
 ) {
-  const fmt = (d: Date) =>
+  if (!startsAt) return "Dates TBC";
+
+  const dateFmt = new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: timezone,
+  });
+  const timeFmt = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: timezone,
+  });
+  const tzName =
     new Intl.DateTimeFormat("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
       timeZone: timezone,
-    }).format(d);
-  if (startsAt && endsAt) return `${fmt(startsAt)} – ${fmt(endsAt)}`;
-  if (startsAt) return fmt(startsAt);
-  return "Dates TBC";
+      timeZoneName: "short",
+    })
+      .formatToParts(startsAt)
+      .find((part) => part.type === "timeZoneName")?.value ?? null;
+
+  const startDate = dateFmt.format(startsAt);
+  const startTime = timeFmt.format(startsAt);
+
+  let core: string;
+  if (!endsAt) {
+    core = `${startDate}, ${startTime}`;
+  } else {
+    const endDate = dateFmt.format(endsAt);
+    const endTime = timeFmt.format(endsAt);
+    core =
+      startDate === endDate
+        ? `${startDate}, ${startTime} – ${endTime}`
+        : `${startDate}, ${startTime} – ${endDate}, ${endTime}`;
+  }
+
+  return tzName ? `${core} ${tzName}` : core;
 }
+
