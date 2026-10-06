@@ -66,10 +66,38 @@ export function BrandingPanel({
 
   const displayLogoUrl = branding.logoUrl ?? logoUrl;
   const hasLogo = Boolean(displayLogoUrl);
-  const hasBanner = Boolean(bannerUrl || branding.bannerUrl);
+  // Use the raw stored banner URL — branding.bannerUrl becomes the composed
+  // hero when overlay mode is on, which must not replace the Banner card.
+  const hasBanner = Boolean(bannerUrl);
   const previewHeroUrl = branding.heroCard
     ? branding.bannerUrl
     : hero.imageUrl;
+
+  function uploadBannerFile(file: File) {
+    setError(null);
+    start(async () => {
+      try {
+        const prepared = await prepareImageForUpload(file, "background");
+        if (!prepared.ok) {
+          setError(prepared.error);
+          return;
+        }
+        const formData = new FormData();
+        formData.set("banner", prepared.file);
+        await uploadEmailBanner(orgSlug, eventId, formData);
+        setNotice(
+          heroEnabled
+            ? "Background uploaded. Invitation hero rebuilt."
+            : "Email banner uploaded.",
+        );
+        router.refresh();
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Could not upload banner",
+        );
+      }
+    });
+  }
 
   function saveBranding() {
     setError(null);
@@ -238,14 +266,14 @@ export function BrandingPanel({
               {hasBanner ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={branding.bannerUrl ?? bannerUrl ?? ""}
+                  src={bannerUrl ?? ""}
                   alt="Email banner"
                   className="mt-3 max-h-24 w-full rounded-lg object-cover"
                 />
               ) : (
                 <p className="mt-3 text-sm text-slate-600">
-                  Optional — also used as the invitation hero background
-                  (~1200×630 recommended).
+                  Optional for plain emails — required as the invitation hero
+                  background (~1200×630 recommended).
                 </p>
               )}
               {canEdit ? (
@@ -263,30 +291,7 @@ export function BrandingPanel({
                         const file = e.target.files?.[0];
                         e.target.value = "";
                         if (!file) return;
-                        setError(null);
-                        start(async () => {
-                          try {
-                            const prepared = await prepareImageForUpload(
-                              file,
-                              "background",
-                            );
-                            if (!prepared.ok) {
-                              setError(prepared.error);
-                              return;
-                            }
-                            const formData = new FormData();
-                            formData.set("banner", prepared.file);
-                            await uploadEmailBanner(orgSlug, eventId, formData);
-                            setNotice("Email banner uploaded.");
-                            router.refresh();
-                          } catch (err) {
-                            setError(
-                              err instanceof Error
-                                ? err.message
-                                : "Could not upload banner",
-                            );
-                          }
-                        });
+                        uploadBannerFile(file);
                       }}
                     />
                   </label>
@@ -371,7 +376,7 @@ export function BrandingPanel({
                 ) : hasBanner ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={branding.bannerUrl ?? bannerUrl ?? ""}
+                    src={bannerUrl ?? ""}
                     alt=""
                     className="h-16 w-full object-cover"
                   />
@@ -446,6 +451,52 @@ export function BrandingPanel({
         {heroEnabled ? (
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_minmax(0,320px)]">
             <div className="space-y-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <Label>Background photo</Label>
+                <p className="mt-1 text-xs text-slate-500">
+                  This is the same as the email banner. Upload a wide photo —
+                  it is softly blurred behind the invitation copy.
+                </p>
+                {hasBanner ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={bannerUrl ?? ""}
+                    alt="Hero background"
+                    className="mt-3 max-h-28 w-full rounded-lg object-cover"
+                  />
+                ) : (
+                  <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    No background yet — without one the hero uses a solid brand
+                    colour (often looks brown/dark).
+                  </p>
+                )}
+                {canEdit ? (
+                  <div className="mt-3">
+                    <label className="inline-flex cursor-pointer">
+                      <span className="rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700">
+                        {pending
+                          ? "Uploading…"
+                          : hasBanner
+                            ? "Replace background"
+                            : "Upload background"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="sr-only"
+                        disabled={pending}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = "";
+                          if (!file) return;
+                          uploadBannerFile(file);
+                        }}
+                      />
+                    </label>
+                  </div>
+                ) : null}
+              </div>
+
               <div>
                 <Label htmlFor="emailHeroEyebrow">Eyebrow</Label>
                 <Input
@@ -496,8 +547,8 @@ export function BrandingPanel({
               </div>
               {!hasBanner ? (
                 <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  Upload a banner above first — it becomes the blurred
-                  background for the hero.
+                  Upload a background photo above, then save — otherwise guests
+                  only see a dark brand-colour fill.
                 </p>
               ) : null}
             </div>

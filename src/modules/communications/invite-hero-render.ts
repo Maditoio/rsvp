@@ -36,13 +36,24 @@ function wrapLines(text: string, maxChars: number): string[] {
 
 async function fetchImageBuffer(url: string): Promise<Buffer | null> {
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(20_000),
+      headers: { Accept: "image/*,*/*" },
+      cache: "no-store",
+    });
     if (!res.ok) return null;
-    const type = res.headers.get("content-type") ?? "";
-    if (type && !type.startsWith("image/") && !type.includes("octet-stream")) {
+    const type = (res.headers.get("content-type") ?? "").toLowerCase();
+    // Allow missing type / octet-stream — Blob URLs sometimes omit image/*
+    if (
+      type &&
+      !type.startsWith("image/") &&
+      !type.includes("octet-stream") &&
+      !type.includes("binary")
+    ) {
       return null;
     }
-    return Buffer.from(await res.arrayBuffer());
+    const buf = Buffer.from(await res.arrayBuffer());
+    return buf.byteLength > 0 ? buf : null;
   } catch {
     return null;
   }
@@ -74,13 +85,19 @@ export type InviteHeroRenderInput = {
   closing?: string | null;
 };
 
+export type InviteHeroRenderResult = {
+  png: Buffer;
+  /** True when a background photo was downloaded and used (not the solid accent fill). */
+  usedBackgroundPhoto: boolean;
+};
+
 /**
- * Compose a portrait invitation hero: blurred photo (or brand colour),
+ * Compose a portrait invitation hero: photo (or brand colour),
  * optional logo, and white overlay copy — one PNG for reliable email clients.
  */
 export async function renderInviteHeroPng(
   input: InviteHeroRenderInput,
-): Promise<Buffer> {
+): Promise<InviteHeroRenderResult> {
   const accent = hexToRgb(input.accentColor);
   let background = sharp({
     create: {
@@ -88,21 +105,24 @@ export async function renderInviteHeroPng(
       height: HEIGHT,
       channels: 3,
       background: {
-        r: Math.max(0, Math.round(accent.r * 0.25)),
-        g: Math.max(0, Math.round(accent.g * 0.25)),
-        b: Math.max(0, Math.round(accent.b * 0.28)),
+        r: Math.max(0, Math.round(accent.r * 0.45)),
+        g: Math.max(0, Math.round(accent.g * 0.45)),
+        b: Math.max(0, Math.round(accent.b * 0.5)),
       },
     },
   }).png();
 
+  let usedBackgroundPhoto = false;
   if (input.backgroundUrl) {
     const raw = await fetchImageBuffer(input.backgroundUrl);
     if (raw) {
       background = sharp(raw)
         .rotate()
         .resize(WIDTH, HEIGHT, { fit: "cover", position: "centre" })
-        .blur(18)
-        .modulate({ brightness: 0.55, saturation: 0.85 });
+        // Soft blur + slight darken so white text stays readable without turning muddy brown.
+        .blur(6)
+        .modulate({ brightness: 0.78, saturation: 0.95 });
+      usedBackgroundPhoto = true;
     }
   }
 
@@ -114,9 +134,9 @@ export async function renderInviteHeroPng(
         `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="veil" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#000000" stop-opacity="0.35"/>
-              <stop offset="45%" stop-color="#000000" stop-opacity="0.45"/>
-              <stop offset="100%" stop-color="#000000" stop-opacity="0.72"/>
+              <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
+              <stop offset="40%" stop-color="#000000" stop-opacity="0.28"/>
+              <stop offset="100%" stop-color="#000000" stop-opacity="0.55"/>
             </linearGradient>
           </defs>
           <rect width="100%" height="100%" fill="url(#veil)"/>
@@ -202,5 +222,6 @@ export async function renderInviteHeroPng(
     left: 0,
   });
 
-  return sharp(base).composite(composites).png().toBuffer();
+  const png = await sharp(base).composite(composites).png().toBuffer();
+  return { png, usedBackgroundPhoto };
 }

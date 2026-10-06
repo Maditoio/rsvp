@@ -78,8 +78,9 @@ export async function regenerateEventInviteHero(input: {
   ].filter(Boolean) as string[];
 
   const customDetail = detailLinesFromSettings(event.settings.emailHeroDetail);
-  const png = await renderInviteHeroPng({
-    backgroundUrl: event.settings.emailBannerUrl,
+  const backgroundUrl = event.settings.emailBannerUrl;
+  const { png, usedBackgroundPhoto } = await renderInviteHeroPng({
+    backgroundUrl,
     logoUrl: event.logoUrl,
     accentColor: accent,
     eyebrow:
@@ -92,6 +93,12 @@ export async function regenerateEventInviteHero(input: {
       event.settings.emailHeroClosing?.trim() ||
       "Can't wait to see you there!",
   });
+
+  if (backgroundUrl && !usedBackgroundPhoto) {
+    throw new Error(
+      "Could not load the banner image for the invitation hero. Re-upload a PNG, JPEG, or WebP banner and try again.",
+    );
+  }
 
   const pathname = `orgs/${input.organisationId}/events/${input.eventId}/invite-hero.png`;
   const blob = await put(pathname, png, {

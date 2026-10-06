@@ -42,7 +42,9 @@ async function safeRegenerateHero(organisationId: string, eventId: string) {
     return await regenerateEventInviteHero({ organisationId, eventId });
   } catch (error) {
     console.error("invite hero regenerate failed", error);
-    return null;
+    throw error instanceof Error
+      ? error
+      : new Error("Could not rebuild the invitation hero image.");
   }
 }
 
