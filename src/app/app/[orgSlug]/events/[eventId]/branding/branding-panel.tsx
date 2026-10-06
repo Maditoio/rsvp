@@ -232,7 +232,7 @@ export function BrandingPanel({
       <PageHeader
         eyebrow="Setup"
         title="Branding"
-        description="Logo, brand colour, and invitation hero for outbound emails. Sender remains Bizcon RSVP."
+        description="Logo, brand colour, and invitation hero for outbound emails. The sender remains Bizcon RSVP."
       />
 
       {notice ? <p className="text-sm text-success">{notice}</p> : null}
