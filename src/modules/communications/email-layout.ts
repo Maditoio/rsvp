@@ -87,10 +87,13 @@ function trustFooter(
 
 function brandBanner(branding: EmailBranding) {
   if (!branding.bannerUrl) return "";
-  return `<img src="${escapeHtml(branding.bannerUrl)}" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto;max-height:180px;object-fit:cover;border:0;outline:none;text-decoration:none" />`;
+  const maxHeight = branding.heroCard ? "720px" : "180px";
+  return `<img src="${escapeHtml(branding.bannerUrl)}" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto;max-height:${maxHeight};object-fit:cover;border:0;outline:none;text-decoration:none" />`;
 }
 
 function brandHeader(branding: EmailBranding) {
+  if (branding.heroCard) return "";
+
   if (branding.logoUrl) {
     return `<div style="margin:0 0 20px">
       <img src="${escapeHtml(branding.logoUrl)}" alt="" width="160" style="display:block;max-width:160px;height:auto;border:0;outline:none;text-decoration:none" />
@@ -133,8 +136,12 @@ export function letter(opts: {
           ${brandBanner(branding)}
           <div style="padding:32px 28px 28px">
             ${brandHeader(branding)}
-            <p style="margin:0 0 20px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:${aurora.muted}">${escapeHtml(opts.eyebrow)}</p>
-            <h1 style="margin:0 0 16px;font-family:${aurora.font};font-size:22px;font-weight:700;line-height:1.3;color:${aurora.text}">${escapeHtml(opts.title)}</h1>
+            ${
+              branding.heroCard
+                ? ""
+                : `<p style="margin:0 0 20px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:${aurora.muted}">${escapeHtml(opts.eyebrow)}</p>
+            <h1 style="margin:0 0 16px;font-family:${aurora.font};font-size:22px;font-weight:700;line-height:1.3;color:${aurora.text}">${escapeHtml(opts.title)}</h1>`
+            }
             <div style="font-family:${aurora.font};font-size:14px;line-height:1.55;color:${aurora.body}">
               ${opts.body}
             </div>

@@ -418,6 +418,18 @@ model EventSettings {
   emailAccentColor       String?
   /// Optional full-width header banner for outbound emails (HTTPS raster URL).
   emailBannerUrl         String?
+  /// When true, invitations use an in-app composed hero (blurred photo/colour + logo + copy).
+  emailHeroOverlayEnabled Boolean @default(false)
+  /// Optional eyebrow above the hero title (e.g. "Join us as we attend the").
+  emailHeroEyebrow       String?
+  /// Optional hero title override; null uses the event name.
+  emailHeroTitle         String?
+  /// Optional detail lines under the title (newlines preserved).
+  emailHeroDetail        String?
+  /// Optional closing line on the hero (e.g. "Can't wait to see you there!").
+  emailHeroClosing       String?
+  /// Cached composed hero image URL for emails (HTTPS raster).
+  emailHeroImageUrl      String?
   /// Category rules, caps, batch triggers, reminder toggles (JSON).
   operationsConfig       Json?
   /// Badge template id, field toggles (JSON).

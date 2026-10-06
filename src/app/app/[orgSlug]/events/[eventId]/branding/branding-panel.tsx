@@ -21,6 +21,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
+import { Textarea } from "@/components/ui/textarea";
+
+type HeroSettings = {
+  enabled: boolean;
+  eyebrow: string;
+  title: string;
+  detail: string;
+  closing: string;
+  imageUrl: string | null;
+};
 
 export function BrandingPanel({
   orgSlug,
@@ -30,6 +40,8 @@ export function BrandingPanel({
   emailAccentColor,
   logoUrl,
   bannerUrl,
+  eventName,
+  hero,
 }: {
   orgSlug: string;
   eventId: string;
@@ -38,22 +50,32 @@ export function BrandingPanel({
   emailAccentColor: string | null;
   logoUrl: string | null;
   bannerUrl: string | null;
+  eventName: string;
+  hero: HeroSettings;
 }) {
   const router = useRouter();
   const [accent, setAccent] = useState(emailAccentColor ?? branding.accentColor);
+  const [heroEnabled, setHeroEnabled] = useState(hero.enabled);
+  const [heroEyebrow, setHeroEyebrow] = useState(hero.eyebrow);
+  const [heroTitle, setHeroTitle] = useState(hero.title);
+  const [heroDetail, setHeroDetail] = useState(hero.detail);
+  const [heroClosing, setHeroClosing] = useState(hero.closing);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   const displayLogoUrl = branding.logoUrl ?? logoUrl;
   const hasLogo = Boolean(displayLogoUrl);
+  const previewHeroUrl = branding.heroCard
+    ? branding.bannerUrl
+    : hero.imageUrl;
 
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow="Setup"
         title="Branding"
-        description="Logo, banner, and colour used on invitation and reminder emails. The sender remains Bizcon RSVP."
+        description="Logo, banner, colour, and invitation hero used on emails. The sender remains Bizcon RSVP."
       />
 
       {notice ? <p className="text-sm text-success">{notice}</p> : null}
@@ -63,6 +85,8 @@ export function BrandingPanel({
         <h2 className="text-xl font-semibold text-slate-900">Email branding</h2>
         <p className="mt-1 text-sm text-slate-500">
           Use a logo, a banner, or both. Brand colour styles buttons and links.
+          Enable the invitation hero to bake logo and copy into one image for
+          reliable email clients.
         </p>
 
         <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_1fr]">
@@ -195,7 +219,8 @@ export function BrandingPanel({
                 />
               ) : (
                 <p className="mt-3 text-sm text-slate-600">
-                  Optional — wide header image (~560×160).
+                  Optional — used as the invitation hero background when the
+                  hero is enabled (~1200×630 recommended).
                 </p>
               )}
               {canEdit ? (
@@ -275,10 +300,22 @@ export function BrandingPanel({
             action={(formData) => {
               setError(null);
               formData.set("emailAccentColor", accent);
+              formData.set(
+                "emailHeroOverlayEnabled",
+                heroEnabled ? "true" : "false",
+              );
+              formData.set("emailHeroEyebrow", heroEyebrow);
+              formData.set("emailHeroTitle", heroTitle);
+              formData.set("emailHeroDetail", heroDetail);
+              formData.set("emailHeroClosing", heroClosing);
               start(async () => {
                 try {
                   await saveEmailBranding(orgSlug, eventId, formData);
-                  setNotice("Email branding saved.");
+                  setNotice(
+                    heroEnabled
+                      ? "Email branding saved. Invitation hero updated."
+                      : "Email branding saved.",
+                  );
                   router.refresh();
                 } catch (e) {
                   setError(
@@ -322,12 +359,97 @@ export function BrandingPanel({
               </div>
             </div>
 
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <input
+                  id="emailHeroOverlayEnabled"
+                  type="checkbox"
+                  checked={heroEnabled}
+                  disabled={!canEdit}
+                  onChange={(e) => setHeroEnabled(e.target.checked)}
+                  className="mt-1 size-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
+                />
+                <div>
+                  <Label htmlFor="emailHeroOverlayEnabled">
+                    Invitation hero image
+                  </Label>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Builds one image from your banner (blurred), logo, and the
+                    copy below. Invitation emails use this instead of stacking
+                    separate HTML layers.
+                  </p>
+                </div>
+              </div>
+
+              {heroEnabled ? (
+                <div className="space-y-3 border-t border-slate-200 pt-3">
+                  <div>
+                    <Label htmlFor="emailHeroEyebrow">Eyebrow</Label>
+                    <Input
+                      id="emailHeroEyebrow"
+                      value={heroEyebrow}
+                      disabled={!canEdit}
+                      onChange={(e) => setHeroEyebrow(e.target.value)}
+                      placeholder="You are invited to"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="emailHeroTitle">Title</Label>
+                    <Input
+                      id="emailHeroTitle"
+                      value={heroTitle}
+                      disabled={!canEdit}
+                      onChange={(e) => setHeroTitle(e.target.value)}
+                      placeholder={eventName}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="emailHeroDetail">Detail line</Label>
+                    <Textarea
+                      id="emailHeroDetail"
+                      value={heroDetail}
+                      disabled={!canEdit}
+                      onChange={(e) => setHeroDetail(e.target.value)}
+                      placeholder="Dates · Venue"
+                      rows={2}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="emailHeroClosing">Closing</Label>
+                    <Input
+                      id="emailHeroClosing"
+                      value={heroClosing}
+                      disabled={!canEdit}
+                      onChange={(e) => setHeroClosing(e.target.value)}
+                      placeholder="We look forward to welcoming you"
+                      className="mt-1"
+                    />
+                  </div>
+                  {!bannerUrl && !branding.bannerUrl ? (
+                    <p className="text-xs text-amber-700">
+                      Upload a banner first — it becomes the blurred background.
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+
             <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-400">
                 Preview
               </p>
               <div className="mt-3 overflow-hidden rounded-xl bg-white shadow-sm">
-                {branding.bannerUrl || bannerUrl ? (
+                {previewHeroUrl && heroEnabled ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={previewHeroUrl}
+                    alt="Invitation hero"
+                    className="w-full object-cover"
+                  />
+                ) : branding.bannerUrl || bannerUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={branding.bannerUrl ?? bannerUrl ?? ""}
@@ -336,21 +458,23 @@ export function BrandingPanel({
                   />
                 ) : null}
                 <div className="p-4">
-                  {branding.logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={branding.logoUrl}
-                      alt=""
-                      className="mb-3 max-h-10 max-w-[140px] object-contain"
-                    />
-                  ) : (
-                    <p
-                      className="mb-2 text-[11px] font-bold tracking-[0.02em]"
-                      style={{ color: accent }}
-                    >
-                      Bizcon RSVP
-                    </p>
-                  )}
+                  {!heroEnabled || !previewHeroUrl ? (
+                    branding.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={branding.logoUrl}
+                        alt=""
+                        className="mb-3 max-h-10 max-w-[140px] object-contain"
+                      />
+                    ) : (
+                      <p
+                        className="mb-2 text-[11px] font-bold tracking-[0.02em]"
+                        style={{ color: accent }}
+                      >
+                        Bizcon RSVP
+                      </p>
+                    )
+                  ) : null}
                   <p className="text-sm font-semibold text-slate-900">
                     You&apos;re invited
                   </p>

@@ -11,6 +11,7 @@ import {
   uploadEventAssetImage,
 } from "@/modules/files/upload-event-logo";
 import { invalidateEventMailContextCache } from "@/modules/communications/email-mail-context";
+import { regenerateEventInviteHero } from "@/modules/communications/invite-hero";
 import {
   badgeConfigSchema,
   parseBadgeConfig,
@@ -378,6 +379,15 @@ export async function uploadEventLogoAction(
       logoUrl: url,
     });
 
+    try {
+      await regenerateEventInviteHero({
+        organisationId: ctx.organisation.id,
+        eventId,
+      });
+    } catch (error) {
+      console.error("invite hero regenerate after logo upload failed", error);
+    }
+
     invalidateEventMailContextCache(ctx.organisation.id, eventId);
 
     await writeAudit({
@@ -406,6 +416,14 @@ export async function removeEventLogoAction(orgSlug: string, eventId: string) {
       eventId,
       logoUrl: null,
     });
+    try {
+      await regenerateEventInviteHero({
+        organisationId: ctx.organisation.id,
+        eventId,
+      });
+    } catch (error) {
+      console.error("invite hero regenerate after logo remove failed", error);
+    }
     invalidateEventMailContextCache(ctx.organisation.id, eventId);
 
     await writeAudit({

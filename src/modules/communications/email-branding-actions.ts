@@ -10,6 +10,7 @@ import {
   parseEmailHexColor,
 } from "@/modules/communications/email-branding";
 import { invalidateEventMailContextCache } from "@/modules/communications/email-mail-context";
+import { regenerateEventInviteHero } from "@/modules/communications/invite-hero";
 import {
   blobStorageNotConfiguredMessage,
   isBlobStorageConfigured,
@@ -23,12 +24,26 @@ const brandingSchema = z.object({
     .regex(/^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/, "Use a valid hex colour")
     .optional()
     .or(z.literal("")),
+  emailHeroOverlayEnabled: z.boolean(),
+  emailHeroEyebrow: z.string().trim().max(120).optional().or(z.literal("")),
+  emailHeroTitle: z.string().trim().max(160).optional().or(z.literal("")),
+  emailHeroDetail: z.string().trim().max(600).optional().or(z.literal("")),
+  emailHeroClosing: z.string().trim().max(160).optional().or(z.literal("")),
 });
 
 function revalidateBrandingPaths(orgSlug: string, eventId: string) {
   revalidatePath(`/app/${orgSlug}/events/${eventId}/branding`);
   revalidatePath(`/app/${orgSlug}/events/${eventId}/communications`);
   revalidatePath(`/app/${orgSlug}/events/${eventId}/settings`);
+}
+
+async function safeRegenerateHero(organisationId: string, eventId: string) {
+  try {
+    return await regenerateEventInviteHero({ organisationId, eventId });
+  } catch (error) {
+    console.error("invite hero regenerate failed", error);
+    return null;
+  }
 }
 
 export async function saveEmailBranding(
@@ -39,11 +54,26 @@ export async function saveEmailBranding(
   const ctx = await requireEvent(orgSlug, eventId, "event.update");
   const parsed = brandingSchema.parse({
     emailAccentColor: String(formData.get("emailAccentColor") ?? ""),
+    emailHeroOverlayEnabled: ["true", "on", "1"].includes(
+      String(formData.get("emailHeroOverlayEnabled") ?? ""),
+    ),
+    emailHeroEyebrow: String(formData.get("emailHeroEyebrow") ?? ""),
+    emailHeroTitle: String(formData.get("emailHeroTitle") ?? ""),
+    emailHeroDetail: String(formData.get("emailHeroDetail") ?? ""),
+    emailHeroClosing: String(formData.get("emailHeroClosing") ?? ""),
   });
 
   const emailAccentColor = parsed.emailAccentColor
     ? parseEmailHexColor(parsed.emailAccentColor)
     : null;
+
+  const heroFields = {
+    emailHeroOverlayEnabled: parsed.emailHeroOverlayEnabled,
+    emailHeroEyebrow: parsed.emailHeroEyebrow || null,
+    emailHeroTitle: parsed.emailHeroTitle || null,
+    emailHeroDetail: parsed.emailHeroDetail || null,
+    emailHeroClosing: parsed.emailHeroClosing || null,
+  };
 
   await prisma.eventSettings.upsert({
     where: { eventId },
@@ -51,10 +81,15 @@ export async function saveEmailBranding(
       organisationId: ctx.organisation.id,
       eventId,
       emailAccentColor,
+      ...heroFields,
     },
-    update: { emailAccentColor },
+    update: {
+      emailAccentColor,
+      ...heroFields,
+    },
   });
 
+  await safeRegenerateHero(ctx.organisation.id, eventId);
   invalidateEventMailContextCache(ctx.organisation.id, eventId);
 
   await writeAudit({
@@ -64,7 +99,10 @@ export async function saveEmailBranding(
     action: "communications.email_branding.update",
     resource: "event_settings",
     resourceId: eventId,
-    metadata: { emailAccentColor },
+    metadata: {
+      emailAccentColor,
+      emailHeroOverlayEnabled: parsed.emailHeroOverlayEnabled,
+    },
   });
 
   revalidateBrandingPaths(orgSlug, eventId);
@@ -110,6 +148,7 @@ export async function uploadEmailBanner(
     update: { emailBannerUrl: safeUrl },
   });
 
+  await safeRegenerateHero(ctx.organisation.id, eventId);
   invalidateEventMailContextCache(ctx.organisation.id, eventId);
 
   await writeAudit({
@@ -138,6 +177,7 @@ export async function removeEmailBanner(orgSlug: string, eventId: string) {
     update: { emailBannerUrl: null },
   });
 
+  await safeRegenerateHero(ctx.organisation.id, eventId);
   invalidateEventMailContextCache(ctx.organisation.id, eventId);
 
   await writeAudit({
@@ -150,4 +190,17 @@ export async function removeEmailBanner(orgSlug: string, eventId: string) {
   });
 
   revalidateBrandingPaths(orgSlug, eventId);
+}
+
+export async function regenerateInviteHeroAction(
+  orgSlug: string,
+  eventId: string,
+) {
+  const ctx = await requireEvent(orgSlug, eventId, "event.update");
+  const url = await regenerateEventInviteHero({
+    organisationId: ctx.organisation.id,
+    eventId,
+  });
+  revalidateBrandingPaths(orgSlug, eventId);
+  return { url };
 }

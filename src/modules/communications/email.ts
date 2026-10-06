@@ -228,7 +228,12 @@ export async function sendInvitationEmail(input: {
       footerKind: "invitation",
       href: input.acceptUrl,
       cta: "View your invitation",
-      body: `${p(`Hello ${escapeHtml(input.toName)},`)}
+      body: ctx.branding.heroCard
+        ? `${p(`Hello ${escapeHtml(input.toName)},`)}
+        ${p(`${escapeHtml(ctx.orgName)} is pleased to invite you.`)}
+        ${p("Open the personal link below to view your invitation and confirm whether you can attend.")}
+        ${p("This link is personal to you.", true)}`
+        : `${p(`Hello ${escapeHtml(input.toName)},`)}
         ${p(`${escapeHtml(ctx.orgName)} is pleased to invite you to attend <strong style="color:${aurora.text}">${escapeHtml(ctx.eventName)}</strong>.`)}
         ${purposeParagraph(
           ctx,

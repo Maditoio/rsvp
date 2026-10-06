@@ -7,6 +7,8 @@ export type EmailBranding = {
   accentSoft: string;
   accentBorder: string;
   accentShadow: string;
+  /** When true, emails use a full composed hero image (logo/text baked in). */
+  heroCard?: boolean;
 };
 
 /** Matches Aurora indigo used in email-layout. */
@@ -80,6 +82,8 @@ export function resolveEmailBranding(input: {
   bannerUrl?: string | null;
   emailAccentColor?: string | null;
   websiteConfig?: unknown;
+  heroImageUrl?: string | null;
+  heroOverlayEnabled?: boolean;
 }): EmailBranding {
   const accentColor = parseEmailHexColor(
     input.emailAccentColor?.trim() ||
@@ -88,10 +92,15 @@ export function resolveEmailBranding(input: {
   );
 
   const isDefault = accentColor === DEFAULT_EMAIL_ACCENT;
+  const heroCard = Boolean(
+    input.heroOverlayEnabled && emailSafeImageUrl(input.heroImageUrl),
+  );
+  const heroUrl = heroCard ? emailSafeImageUrl(input.heroImageUrl) : null;
 
   return {
-    logoUrl: emailSafeImageUrl(input.logoUrl),
-    bannerUrl: emailSafeImageUrl(input.bannerUrl),
+    // Hero card already includes the logo; hide the separate header logo.
+    logoUrl: heroCard ? null : emailSafeImageUrl(input.logoUrl),
+    bannerUrl: heroUrl ?? emailSafeImageUrl(input.bannerUrl),
     accentColor,
     accentSoft: isDefault
       ? DEFAULT_EMAIL_ACCENT_SOFT
@@ -102,6 +111,7 @@ export function resolveEmailBranding(input: {
     accentShadow: isDefault
       ? DEFAULT_EMAIL_ACCENT_SHADOW
       : `0 4px 12px ${accentColor}47`,
+    heroCard,
   };
 }
 

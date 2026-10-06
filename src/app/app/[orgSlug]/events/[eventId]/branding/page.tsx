@@ -13,12 +13,19 @@ export default async function BrandingPage({
   const event = await prisma.event.findFirst({
     where: { id: eventId, organisationId: ctx.organisation.id },
     select: {
+      name: true,
       logoUrl: true,
       settings: {
         select: {
           emailAccentColor: true,
           emailBannerUrl: true,
           websiteConfig: true,
+          emailHeroOverlayEnabled: true,
+          emailHeroEyebrow: true,
+          emailHeroTitle: true,
+          emailHeroDetail: true,
+          emailHeroClosing: true,
+          emailHeroImageUrl: true,
         },
       },
     },
@@ -29,6 +36,8 @@ export default async function BrandingPage({
     bannerUrl: event?.settings?.emailBannerUrl,
     emailAccentColor: event?.settings?.emailAccentColor,
     websiteConfig: event?.settings?.websiteConfig,
+    heroOverlayEnabled: event?.settings?.emailHeroOverlayEnabled,
+    heroImageUrl: event?.settings?.emailHeroImageUrl,
   });
 
   return (
@@ -40,6 +49,15 @@ export default async function BrandingPage({
       emailAccentColor={event?.settings?.emailAccentColor ?? null}
       logoUrl={event?.logoUrl ?? null}
       bannerUrl={event?.settings?.emailBannerUrl ?? null}
+      eventName={event?.name ?? "Event"}
+      hero={{
+        enabled: event?.settings?.emailHeroOverlayEnabled ?? false,
+        eyebrow: event?.settings?.emailHeroEyebrow ?? "",
+        title: event?.settings?.emailHeroTitle ?? "",
+        detail: event?.settings?.emailHeroDetail ?? "",
+        closing: event?.settings?.emailHeroClosing ?? "",
+        imageUrl: event?.settings?.emailHeroImageUrl ?? null,
+      }}
     />
   );
 }

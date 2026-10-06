@@ -51,4 +51,26 @@ describe("email branding", () => {
       }).bannerUrl,
     ).toBeNull();
   });
+
+  it("uses composed hero image when overlay is enabled", () => {
+    const branding = resolveEmailBranding({
+      logoUrl: "https://cdn.example.com/logo.png",
+      bannerUrl: "https://cdn.example.com/banner.jpg",
+      heroOverlayEnabled: true,
+      heroImageUrl: "https://cdn.example.com/invite-hero.png",
+    });
+    expect(branding.heroCard).toBe(true);
+    expect(branding.bannerUrl).toBe("https://cdn.example.com/invite-hero.png");
+    expect(branding.logoUrl).toBeNull();
+  });
+
+  it("ignores hero image when overlay is disabled", () => {
+    const branding = resolveEmailBranding({
+      bannerUrl: "https://cdn.example.com/banner.jpg",
+      heroOverlayEnabled: false,
+      heroImageUrl: "https://cdn.example.com/invite-hero.png",
+    });
+    expect(branding.heroCard).toBeFalsy();
+    expect(branding.bannerUrl).toBe("https://cdn.example.com/banner.jpg");
+  });
 });

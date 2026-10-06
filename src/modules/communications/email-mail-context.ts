@@ -56,6 +56,8 @@ async function fetchEventMailContext(
         select: {
           emailAccentColor: true,
           emailBannerUrl: true,
+          emailHeroOverlayEnabled: true,
+          emailHeroImageUrl: true,
           websiteConfig: true,
         },
       },
@@ -75,6 +77,8 @@ async function fetchEventMailContext(
       bannerUrl: loaded?.settings?.emailBannerUrl,
       emailAccentColor: loaded?.settings?.emailAccentColor,
       websiteConfig: loaded?.settings?.websiteConfig,
+      heroOverlayEnabled: loaded?.settings?.emailHeroOverlayEnabled,
+      heroImageUrl: loaded?.settings?.emailHeroImageUrl,
     }),
   };
 }

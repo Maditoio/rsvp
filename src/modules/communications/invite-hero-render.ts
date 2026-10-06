@@ -1,0 +1,206 @@
+/**
+ * Invite hero PNG composition — no server-only so Vitest can exercise rendering.
+ * Callers that touch DB/blob remain in invite-hero.ts (server-only).
+ */
+import sharp from "sharp";
+
+const WIDTH = 1120;
+const HEIGHT = 1480;
+
+function escapeXml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+}
+
+function wrapLines(text: string, maxChars: number): string[] {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [];
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length <= maxChars) {
+      current = next;
+    } else {
+      if (current) lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+async function fetchImageBuffer(url: string): Promise<Buffer | null> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) return null;
+    const type = res.headers.get("content-type") ?? "";
+    if (type && !type.startsWith("image/") && !type.includes("octet-stream")) {
+      return null;
+    }
+    return Buffer.from(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const normalized = hex.replace("#", "");
+  const full =
+    normalized.length === 3
+      ? normalized
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : normalized.padEnd(6, "0").slice(0, 6);
+  return {
+    r: Number.parseInt(full.slice(0, 2), 16) || 15,
+    g: Number.parseInt(full.slice(2, 4), 16) || 23,
+    b: Number.parseInt(full.slice(4, 6), 16) || 42,
+  };
+}
+
+export type InviteHeroRenderInput = {
+  backgroundUrl?: string | null;
+  logoUrl?: string | null;
+  accentColor: string;
+  eyebrow?: string | null;
+  title: string;
+  detailLines?: string[];
+  closing?: string | null;
+};
+
+/**
+ * Compose a portrait invitation hero: blurred photo (or brand colour),
+ * optional logo, and white overlay copy — one PNG for reliable email clients.
+ */
+export async function renderInviteHeroPng(
+  input: InviteHeroRenderInput,
+): Promise<Buffer> {
+  const accent = hexToRgb(input.accentColor);
+  let background = sharp({
+    create: {
+      width: WIDTH,
+      height: HEIGHT,
+      channels: 3,
+      background: {
+        r: Math.max(0, Math.round(accent.r * 0.25)),
+        g: Math.max(0, Math.round(accent.g * 0.25)),
+        b: Math.max(0, Math.round(accent.b * 0.28)),
+      },
+    },
+  }).png();
+
+  if (input.backgroundUrl) {
+    const raw = await fetchImageBuffer(input.backgroundUrl);
+    if (raw) {
+      background = sharp(raw)
+        .rotate()
+        .resize(WIDTH, HEIGHT, { fit: "cover", position: "centre" })
+        .blur(18)
+        .modulate({ brightness: 0.55, saturation: 0.85 });
+    }
+  }
+
+  const base = await background.png().toBuffer();
+
+  const composites: sharp.OverlayOptions[] = [
+    {
+      input: Buffer.from(
+        `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="veil" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#000000" stop-opacity="0.35"/>
+              <stop offset="45%" stop-color="#000000" stop-opacity="0.45"/>
+              <stop offset="100%" stop-color="#000000" stop-opacity="0.72"/>
+            </linearGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#veil)"/>
+        </svg>`,
+      ),
+      top: 0,
+      left: 0,
+    },
+  ];
+
+  let textTop = 220;
+  if (input.logoUrl) {
+    const logoRaw = await fetchImageBuffer(input.logoUrl);
+    if (logoRaw) {
+      const logo = await sharp(logoRaw)
+        .rotate()
+        .resize({
+          width: 280,
+          height: 140,
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .png()
+        .toBuffer();
+      const meta = await sharp(logo).metadata();
+      const lw = meta.width ?? 280;
+      const lh = meta.height ?? 140;
+      composites.push({
+        input: logo,
+        top: 120,
+        left: Math.round((WIDTH - lw) / 2),
+      });
+      textTop = 120 + lh + 48;
+    }
+  }
+
+  const eyebrow = input.eyebrow?.trim() || "";
+  const titleLines = wrapLines(input.title.trim() || "You're invited", 28);
+  const detailLines = (input.detailLines ?? [])
+    .flatMap((line) => wrapLines(line, 34))
+    .slice(0, 8);
+  const closing = input.closing?.trim() || "";
+
+  let y = textTop;
+  const tspans: string[] = [];
+  if (eyebrow) {
+    tspans.push(
+      `<text x="560" y="${y}" text-anchor="middle" fill="#FFFFFF" fill-opacity="0.88" font-family="Inter, Helvetica, Arial, sans-serif" font-size="28">${escapeXml(eyebrow)}</text>`,
+    );
+    y += 56;
+  }
+  for (const line of titleLines) {
+    tspans.push(
+      `<text x="560" y="${y}" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Helvetica, Arial, sans-serif" font-size="54" font-weight="700">${escapeXml(line)}</text>`,
+    );
+    y += 68;
+  }
+  if (detailLines.length > 0) {
+    y += 28;
+    tspans.push(
+      `<line x1="360" y1="${y}" x2="760" y2="${y}" stroke="#FFFFFF" stroke-opacity="0.85" stroke-width="4"/>`,
+    );
+    y += 52;
+    for (const line of detailLines) {
+      tspans.push(
+        `<text x="560" y="${y}" text-anchor="middle" fill="#FFFFFF" fill-opacity="0.92" font-family="Inter, Helvetica, Arial, sans-serif" font-size="30">${escapeXml(line)}</text>`,
+      );
+      y += 44;
+    }
+  }
+  if (closing) {
+    y += 36;
+    tspans.push(
+      `<text x="560" y="${y}" text-anchor="middle" fill="#FFFFFF" fill-opacity="0.88" font-family="Inter, Helvetica, Arial, sans-serif" font-size="28" font-style="italic">${escapeXml(closing)}</text>`,
+    );
+  }
+
+  composites.push({
+    input: Buffer.from(
+      `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">${tspans.join("")}</svg>`,
+    ),
+    top: 0,
+    left: 0,
+  });
+
+  return sharp(base).composite(composites).png().toBuffer();
+}
