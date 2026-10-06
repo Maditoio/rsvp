@@ -19,6 +19,12 @@ enum EventRole {
   CHECKIN_STAFF
 }
 
+enum EmailHeroBackgroundMode {
+  IMAGE
+  COLOR
+  GRADIENT
+}
+
 enum InvitationStatus {
   DRAFT
   SCHEDULED
@@ -420,6 +426,10 @@ model EventSettings {
   emailBannerUrl         String?
   /// When true, invitations use an in-app composed hero (blurred photo/colour + logo + copy).
   emailHeroOverlayEnabled Boolean @default(false)
+  /// Hero backdrop: uploaded banner, solid brand colour, or decorative gradient.
+  emailHeroBackgroundMode  EmailHeroBackgroundMode @default(COLOR)
+  /// When mode is GRADIENT: indigo | violet | teal (decorative presets).
+  emailHeroGradientStyle   String?
   /// Optional eyebrow above the hero title (e.g. "Join us as we attend the").
   emailHeroEyebrow       String?
   /// Optional hero title override; null uses the event name.

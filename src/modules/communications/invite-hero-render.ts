@@ -3,6 +3,13 @@
  * Callers that touch DB/blob remain in invite-hero.ts (server-only).
  */
 import sharp, { type OverlayOptions } from "sharp";
+import {
+  type EmailHeroBackgroundMode,
+  type EmailHeroGradientStyle,
+  gradientPreset,
+  parseEmailHeroBackgroundMode,
+  parseEmailHeroGradientStyle,
+} from "@/modules/communications/invite-hero-background";
 
 const WIDTH = 1120;
 const HEIGHT = 1480;
@@ -76,7 +83,11 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
 }
 
 export type InviteHeroRenderInput = {
+  /** Prefer this over fetching backgroundUrl when available (e.g. just-uploaded file). */
+  backgroundBuffer?: Buffer | null;
   backgroundUrl?: string | null;
+  backgroundMode?: EmailHeroBackgroundMode | null;
+  gradientStyle?: EmailHeroGradientStyle | null;
   logoUrl?: string | null;
   accentColor: string;
   eyebrow?: string | null;
@@ -99,34 +110,66 @@ export async function renderInviteHeroPng(
   input: InviteHeroRenderInput,
 ): Promise<InviteHeroRenderResult> {
   const accent = hexToRgb(input.accentColor);
-  let background = sharp({
-    create: {
-      width: WIDTH,
-      height: HEIGHT,
-      channels: 3,
-      background: {
-        r: Math.max(0, Math.round(accent.r * 0.45)),
-        g: Math.max(0, Math.round(accent.g * 0.45)),
-        b: Math.max(0, Math.round(accent.b * 0.5)),
-      },
-    },
-  }).png();
+  const mode = parseEmailHeroBackgroundMode(input.backgroundMode);
+  const gradient = gradientPreset(parseEmailHeroGradientStyle(input.gradientStyle));
 
   let usedBackgroundPhoto = false;
-  if (input.backgroundUrl) {
-    const raw = await fetchImageBuffer(input.backgroundUrl);
+  let base: Buffer;
+
+  if (mode === "GRADIENT") {
+    base = await sharp(
+      Buffer.from(
+        `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bg" x1="0" y1="0" x2="0.2" y2="1">
+              <stop offset="0%" stop-color="${gradient.top}"/>
+              <stop offset="100%" stop-color="${gradient.bottom}"/>
+            </linearGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#bg)"/>
+        </svg>`,
+      ),
+    )
+      .png()
+      .toBuffer();
+  } else if (mode === "COLOR") {
+    base = await sharp({
+      create: {
+        width: WIDTH,
+        height: HEIGHT,
+        channels: 3,
+        background: { r: accent.r, g: accent.g, b: accent.b },
+      },
+    })
+      .png()
+      .toBuffer();
+  } else {
+    let background = sharp({
+      create: {
+        width: WIDTH,
+        height: HEIGHT,
+        channels: 3,
+        background: { r: accent.r, g: accent.g, b: accent.b },
+      },
+    }).png();
+
+    const raw =
+      input.backgroundBuffer && input.backgroundBuffer.byteLength > 0
+        ? input.backgroundBuffer
+        : input.backgroundUrl
+          ? await fetchImageBuffer(input.backgroundUrl)
+          : null;
     if (raw) {
       background = sharp(raw)
         .rotate()
         .resize(WIDTH, HEIGHT, { fit: "cover", position: "centre" })
-        // Soft blur + slight darken so white text stays readable without turning muddy brown.
         .blur(6)
         .modulate({ brightness: 0.78, saturation: 0.95 });
       usedBackgroundPhoto = true;
     }
-  }
 
-  const base = await background.png().toBuffer();
+    base = await background.png().toBuffer();
+  }
 
   const composites: OverlayOptions[] = [
     {

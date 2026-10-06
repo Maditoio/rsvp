@@ -3,6 +3,10 @@ import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
 import { resolveEmailBranding } from "@/modules/communications/email-branding";
+import {
+  parseEmailHeroBackgroundMode,
+  parseEmailHeroGradientStyle,
+} from "@/modules/communications/invite-hero-background";
 import { BrandingPanel } from "./branding-panel";
 
 export default async function BrandingPage({
@@ -21,6 +25,8 @@ export default async function BrandingPage({
           emailBannerUrl: true,
           websiteConfig: true,
           emailHeroOverlayEnabled: true,
+          emailHeroBackgroundMode: true,
+          emailHeroGradientStyle: true,
           emailHeroEyebrow: true,
           emailHeroTitle: true,
           emailHeroDetail: true,
@@ -52,6 +58,12 @@ export default async function BrandingPage({
       eventName={event?.name ?? "Event"}
       hero={{
         enabled: event?.settings?.emailHeroOverlayEnabled ?? false,
+        backgroundMode: parseEmailHeroBackgroundMode(
+          event?.settings?.emailHeroBackgroundMode,
+        ),
+        gradientStyle: parseEmailHeroGradientStyle(
+          event?.settings?.emailHeroGradientStyle,
+        ),
         eyebrow: event?.settings?.emailHeroEyebrow ?? "",
         title: event?.settings?.emailHeroTitle ?? "",
         detail: event?.settings?.emailHeroDetail ?? "",
