@@ -71,7 +71,7 @@ export function InviteHeroLivePreview({
   return (
     <div className="space-y-2">
       <div
-        className="relative aspect-[3/4] overflow-hidden rounded-xl shadow-sm"
+        className="relative aspect-[3/4] overflow-hidden shadow-sm"
         style={backgroundStyle}
       >
         {backgroundMode === "IMAGE" && photoSrc ? (

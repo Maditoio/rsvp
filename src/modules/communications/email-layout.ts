@@ -120,6 +120,8 @@ export function letter(opts: {
   footerKind?: "invitation" | "message";
 }) {
   const branding = opts.branding ?? defaultEmailBranding();
+  const isInvitation = opts.footerKind === "invitation" || branding.heroCard;
+  const cardRadius = isInvitation ? "0" : "20px";
   const cta =
     opts.href && opts.cta && opts.href !== "#"
       ? `<p style="margin:28px 0 0">
@@ -132,7 +134,7 @@ export function letter(opts: {
   return `
     <div style="margin:0;padding:0;background:${aurora.canvas};font-family:${aurora.font}">
       <div style="padding:32px 16px">
-        <div style="max-width:560px;margin:0 auto;background:${aurora.surface};border-radius:20px;box-shadow:${aurora.shadow};overflow:hidden">
+        <div style="max-width:560px;margin:0 auto;background:${aurora.surface};border-radius:${cardRadius};box-shadow:${aurora.shadow};overflow:hidden">
           ${brandBanner(branding)}
           <div style="padding:32px 28px 28px">
             ${brandHeader(branding)}

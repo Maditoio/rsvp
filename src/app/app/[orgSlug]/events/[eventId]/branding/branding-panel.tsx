@@ -628,7 +628,7 @@ export function BrandingPanel({
             <p className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-slate-400">
               Email snippet
             </p>
-            <div className="mt-4 overflow-hidden rounded-xl bg-slate-50 shadow-sm">
+            <div className="mt-4 overflow-hidden bg-slate-50 shadow-sm">
               {!heroEnabled && hasBanner ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
