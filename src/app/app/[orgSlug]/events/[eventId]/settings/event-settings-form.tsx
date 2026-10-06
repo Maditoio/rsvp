@@ -26,6 +26,7 @@ export function EventSettingsForm({
     capacity: number | null;
     waitlistEnabled: boolean;
     allowPublicApplication: boolean;
+    showRegistrationAccountCtas: boolean;
     aiInsightsEnabled: boolean;
     automationsEnabled: boolean;
     meetingDurationMinutes: number;
@@ -128,6 +129,24 @@ export function EventSettingsForm({
             <span className="mt-1 block text-xs font-normal text-slate-500">
               Publishes an Apply to attend page. Approving creates an invitation,
               not a registration.
+            </span>
+          </span>
+        </label>
+        <label className="flex items-start gap-3 text-body text-slate-700">
+          <Checkbox
+            name="showRegistrationAccountCtas"
+            value="on"
+            defaultChecked={settings.showRegistrationAccountCtas}
+            className="mt-0.5"
+          />
+          <span>
+            <span className="font-semibold">
+              Show account setup after registration
+            </span>
+            <span className="mt-1 block text-xs font-normal text-slate-500">
+              When enabled, invitees see “Create your account” and “Open My
+              events” after registering. Turn off for a short thank-you that
+              closes the form.
             </span>
           </span>
         </label>

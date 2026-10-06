@@ -277,6 +277,7 @@ const eventSettingsSchema = z.object({
     }),
   waitlistEnabled: z.boolean(),
   allowPublicApplication: z.boolean(),
+  showRegistrationAccountCtas: z.boolean(),
   aiInsightsEnabled: z.boolean(),
   automationsEnabled: z.boolean(),
   meetingDurationMinutes: z.coerce.number().int().min(5).max(120),
@@ -295,6 +296,8 @@ export async function updateEventSettings(
     capacity: String(formData.get("capacity") ?? ""),
     waitlistEnabled: formData.get("waitlistEnabled") === "on",
     allowPublicApplication: formData.get("allowPublicApplication") === "on",
+    showRegistrationAccountCtas:
+      formData.get("showRegistrationAccountCtas") === "on",
     aiInsightsEnabled: formData.get("aiInsightsEnabled") === "on",
     automationsEnabled: formData.get("automationsEnabled") === "on",
     meetingDurationMinutes: formData.get("meetingDurationMinutes"),
@@ -307,6 +310,7 @@ export async function updateEventSettings(
     capacity: input.capacity,
     waitlistEnabled: input.waitlistEnabled,
     allowPublicApplication: input.allowPublicApplication,
+    showRegistrationAccountCtas: input.showRegistrationAccountCtas,
     aiInsightsEnabled: input.aiInsightsEnabled,
     automationsEnabled: input.automationsEnabled,
     meetingDurationMinutes: input.meetingDurationMinutes,
@@ -345,6 +349,7 @@ export async function updateEventSettings(
       capacity: input.capacity,
       waitlistEnabled: input.waitlistEnabled,
       allowPublicApplication: input.allowPublicApplication,
+      showRegistrationAccountCtas: input.showRegistrationAccountCtas,
       aiInsightsEnabled: input.aiInsightsEnabled,
     },
   });

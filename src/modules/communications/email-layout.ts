@@ -94,12 +94,11 @@ function brandHeader(branding: EmailBranding) {
   if (branding.logoUrl) {
     return `<div style="margin:0 0 20px">
       <img src="${escapeHtml(branding.logoUrl)}" alt="" width="160" style="display:block;max-width:160px;height:auto;border:0;outline:none;text-decoration:none" />
-      <p style="margin:10px 0 0;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:${aurora.muted}">Powered by Bizcon RSVP</p>
     </div>`;
   }
 
   if (branding.bannerUrl) {
-    return `<p style="margin:0 0 16px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:${aurora.muted}">Powered by Bizcon RSVP</p>`;
+    return "";
   }
 
   return `<p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:0.02em;color:${branding.accentColor}">Bizcon RSVP</p>`;

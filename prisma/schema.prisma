@@ -405,6 +405,8 @@ model EventSettings {
   eventId                String  @unique
   invitationExpiryDays   Int     @default(30)
   allowPublicApplication Boolean @default(false)
+  /// When true, registration success shows account / My events CTAs. When false, close with a simple thank-you.
+  showRegistrationAccountCtas Boolean @default(true)
   capacity               Int?
   waitlistEnabled        Boolean @default(false)
   aiInsightsEnabled      Boolean @default(false)

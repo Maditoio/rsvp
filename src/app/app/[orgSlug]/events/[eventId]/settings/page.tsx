@@ -19,6 +19,7 @@ const SETTINGS_DEFAULTS = {
   capacity: null as number | null,
   waitlistEnabled: false,
   allowPublicApplication: false,
+  showRegistrationAccountCtas: true,
   aiInsightsEnabled: false,
   automationsEnabled: true,
   meetingDurationMinutes: 15,

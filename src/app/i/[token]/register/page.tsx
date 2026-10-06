@@ -150,12 +150,22 @@ export default async function RegisterPage({
     event?.endsAt ?? null,
     event?.timezone ?? "UTC",
   );
+  const closeHref = `/i/${encodeURIComponent(token)}`;
+
+  const settings = await prisma.eventSettings.findFirst({
+    where: {
+      eventId: invitation.eventId,
+      organisationId: invitation.organisationId,
+    },
+    select: { showRegistrationAccountCtas: true },
+  });
+  const showAccountCtas = settings?.showRegistrationAccountCtas ?? true;
 
   return (
     <RouteDrawer
       title={`Register for ${invitation.eventName}`}
       description="Confirm or correct the details already associated with your invitation."
-      closeHref={`/i/${encodeURIComponent(token)}`}
+      closeHref={closeHref}
       size="lg"
     >
       <PublicEventHero
@@ -187,6 +197,8 @@ export default async function RegisterPage({
           eventDays={eventDays}
           defaults={defaults}
           accentColor={branding.accentColor}
+          showAccountCtas={showAccountCtas}
+          closeHref={closeHref}
         />
       </Card>
     </RouteDrawer>

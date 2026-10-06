@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { submitRegistration } from "@/modules/registrations/actions";
 import { Button } from "@/components/ui/button";
 import { TurnstileWidget } from "@/components/turnstile";
@@ -27,6 +28,8 @@ export function RegistrationForm({
   signUpHref,
   matchmakingHref,
   accentColor,
+  showAccountCtas = true,
+  closeHref,
 }: {
   token: string;
   siteKey: string;
@@ -38,7 +41,10 @@ export function RegistrationForm({
   signUpHref: string;
   matchmakingHref?: string | null;
   accentColor?: string | null;
+  showAccountCtas?: boolean;
+  closeHref: string;
 }) {
+  const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +54,15 @@ export function RegistrationForm({
   const onToken = useCallback((value: string | null) => {
     setTurnstileToken(value);
   }, []);
+
+  useEffect(() => {
+    if (!completed || showAccountCtas) return;
+    const timer = window.setTimeout(() => {
+      router.push(closeHref);
+      router.refresh();
+    }, 1800);
+    return () => window.clearTimeout(timer);
+  }, [closeHref, completed, router, showAccountCtas]);
 
   const standardFields = fields.filter((field) => !SPECIAL_FIELD_KEYS.has(field.key));
   const attendanceField = fields.find((field) => field.key === "attendanceDates");
@@ -64,6 +79,38 @@ export function RegistrationForm({
       : [];
 
   if (completed) {
+    if (!showAccountCtas) {
+      return (
+        <div className="text-center">
+          <p
+            className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em]"
+            style={{ color: accentColor || "#4F46E5" }}
+          >
+            Registered
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-[-0.02em] text-slate-900">
+            Registration complete
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-700">
+            Thank you. A confirmation email is on its way to{" "}
+            <span className="font-medium text-slate-900">{invitationEmail}</span>.
+          </p>
+          <div className="mt-8">
+            <Button
+              type="button"
+              accentColor={accentColor}
+              onClick={() => {
+                router.push(closeHref);
+                router.refresh();
+              }}
+            >
+              Done
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="text-center">
         <p

@@ -70,7 +70,7 @@ describe("outbound email templates", () => {
 
     expect(html).toContain('src="https://cdn.example.com/logo.png"');
     expect(html).toContain("background:#0D9488");
-    expect(html).toContain("Powered by Bizcon RSVP");
+    expect(html).not.toContain("Powered by Bizcon RSVP");
   });
 
   it("renders banner alone or with logo", () => {
