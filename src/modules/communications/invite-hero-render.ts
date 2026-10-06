@@ -2,7 +2,7 @@
  * Invite hero PNG composition — no server-only so Vitest can exercise rendering.
  * Callers that touch DB/blob remain in invite-hero.ts (server-only).
  */
-import sharp from "sharp";
+import sharp, { type OverlayOptions } from "sharp";
 
 const WIDTH = 1120;
 const HEIGHT = 1480;
@@ -108,7 +108,7 @@ export async function renderInviteHeroPng(
 
   const base = await background.png().toBuffer();
 
-  const composites: sharp.OverlayOptions[] = [
+  const composites: OverlayOptions[] = [
     {
       input: Buffer.from(
         `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
