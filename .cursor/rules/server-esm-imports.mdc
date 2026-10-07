@@ -1,0 +1,17 @@
+---
+description: Avoid Turbopack/Vercel build breaks from CJS/ESM default-import mismatches
+alwaysApply: true
+---
+
+# Server package imports (Turbopack)
+
+Next 16 / Turbopack fails the production build when a dependency’s ESM entry has **named exports only** but code uses a default import (`Export default doesn't exist in target module`).
+
+## Rules
+
+- Prefer **named imports** for Node libraries used on the server (`opentype.js`, etc.):
+  - ✅ `import { parse } from "opentype.js"`
+  - ❌ `import opentype from "opentype.js"`
+- Before assuming a default export exists, check the package’s `module` / `.mjs` `export { ... }` list (or run `npm run build` locally).
+- Put native / awkward server deps in `next.config.ts` → `serverExternalPackages` (already includes `prisma`, `opentype.js`, `sharp`).
+- After adding or changing server-only image/font/PDF/email dependencies, run **`npm run build`** (not only `vitest`) before push — Vitest can pass while Turbopack fails.

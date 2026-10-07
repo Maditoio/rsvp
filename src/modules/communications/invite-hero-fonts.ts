@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import opentype, { type Font } from "opentype.js";
+// opentype.js ESM build exposes named exports only (no default) — required for Turbopack.
+import { parse as parseOpenTypeFont, type Font } from "opentype.js";
 
 type HeroFontSet = {
   regular: Font;
@@ -13,7 +14,7 @@ let cached: HeroFontSet | null = null;
 function loadFont(filename: string): Font {
   const path = join(process.cwd(), "assets/fonts/invite-hero", filename);
   const buffer = readFileSync(path);
-  return opentype.parse(
+  return parseOpenTypeFont(
     buffer.buffer.slice(
       buffer.byteOffset,
       buffer.byteOffset + buffer.byteLength,
@@ -87,7 +88,6 @@ export function heroTextPath(opts: {
   const fill = opts.fill ?? "#FFFFFF";
   const opacity =
     opts.fillOpacity == null ? "" : ` fill-opacity="${opts.fillOpacity}"`;
-  // One path per glyph keeps commands valid without joining with spaces oddly.
   return segments
     .map((d) => `<path d="${d}" fill="${fill}"${opacity}/>`)
     .join("");
