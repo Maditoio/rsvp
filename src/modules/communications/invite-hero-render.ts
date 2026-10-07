@@ -10,18 +10,10 @@ import {
   parseEmailHeroBackgroundMode,
   parseEmailHeroGradientStyle,
 } from "@/modules/communications/invite-hero-background";
+import { heroTextPath } from "@/modules/communications/invite-hero-fonts";
 
 const WIDTH = 1120;
 const HEIGHT = 1480;
-
-function escapeXml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&apos;");
-}
 
 function wrapLines(text: string, maxChars: number): string[] {
   const words = text.trim().split(/\s+/).filter(Boolean);
@@ -224,42 +216,67 @@ export async function renderInviteHeroPng(
   const closing = input.closing?.trim() || "";
 
   let y = textTop;
-  const tspans: string[] = [];
+  const glyphs: string[] = [];
   if (eyebrow) {
-    tspans.push(
-      `<text x="560" y="${y}" text-anchor="middle" fill="#FFFFFF" fill-opacity="0.88" font-family="Inter, Helvetica, Arial, sans-serif" font-size="28">${escapeXml(eyebrow)}</text>`,
+    glyphs.push(
+      heroTextPath({
+        text: eyebrow,
+        x: 560,
+        y,
+        fontSize: 28,
+        fillOpacity: 0.88,
+      }),
     );
     y += 56;
   }
   for (const line of titleLines) {
-    tspans.push(
-      `<text x="560" y="${y}" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Helvetica, Arial, sans-serif" font-size="54" font-weight="700">${escapeXml(line)}</text>`,
+    glyphs.push(
+      heroTextPath({
+        text: line,
+        x: 560,
+        y,
+        fontSize: 54,
+        style: "bold",
+      }),
     );
     y += 68;
   }
   if (detailLines.length > 0) {
     y += 28;
-    tspans.push(
+    glyphs.push(
       `<line x1="360" y1="${y}" x2="760" y2="${y}" stroke="#FFFFFF" stroke-opacity="0.85" stroke-width="4"/>`,
     );
     y += 52;
     for (const line of detailLines) {
-      tspans.push(
-        `<text x="560" y="${y}" text-anchor="middle" fill="#FFFFFF" fill-opacity="0.92" font-family="Inter, Helvetica, Arial, sans-serif" font-size="30">${escapeXml(line)}</text>`,
+      glyphs.push(
+        heroTextPath({
+          text: line,
+          x: 560,
+          y,
+          fontSize: 30,
+          fillOpacity: 0.92,
+        }),
       );
       y += 44;
     }
   }
   if (closing) {
     y += 36;
-    tspans.push(
-      `<text x="560" y="${y}" text-anchor="middle" fill="#FFFFFF" fill-opacity="0.88" font-family="Inter, Helvetica, Arial, sans-serif" font-size="28" font-style="italic">${escapeXml(closing)}</text>`,
+    glyphs.push(
+      heroTextPath({
+        text: closing,
+        x: 560,
+        y,
+        fontSize: 28,
+        style: "italic",
+        fillOpacity: 0.88,
+      }),
     );
   }
 
   composites.push({
     input: Buffer.from(
-      `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">${tspans.join("")}</svg>`,
+      `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">${glyphs.join("")}</svg>`,
     ),
     top: 0,
     left: 0,
