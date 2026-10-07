@@ -14,7 +14,10 @@ import {
   matchmakingPath,
 } from "@/modules/matchmaking/questionnaire";
 import { eventDayOptions } from "@/lib/event-dates";
-import { loadPublicEventBrandingByIds } from "@/modules/branding/public-event-branding";
+import {
+  defaultPublicBanner,
+  loadPublicEventBrandingByIds,
+} from "@/modules/branding/public-event-branding";
 import { DEFAULT_EMAIL_ACCENT } from "@/modules/communications/email-branding";
 import { RegistrationForm } from "./registration-form";
 
@@ -40,6 +43,7 @@ export default async function RegisterPage({
       orgName: invitation.orgName,
       venue: invitation.venue,
       timezone: "UTC",
+      banner: defaultPublicBanner(),
     };
 
   if (

@@ -32,10 +32,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { BrandingSegmented } from "./branding-segmented";
 import { InviteHeroLivePreview } from "./invite-hero-live-preview";
 
+type BannerSettings = {
+  mode: EmailHeroBackgroundMode;
+  gradientStyle: EmailHeroGradientStyle;
+  blur: number;
+};
+
 type HeroSettings = {
   enabled: boolean;
   backgroundMode: EmailHeroBackgroundMode;
   gradientStyle: EmailHeroGradientStyle;
+  blur: number;
   eyebrow: string;
   title: string;
   detail: string;
@@ -75,6 +82,183 @@ function AuroraToggle({
   );
 }
 
+function BlurSlider({
+  id,
+  value,
+  disabled,
+  onChange,
+  hint,
+}: {
+  id: string;
+  value: number;
+  disabled?: boolean;
+  onChange: (next: number) => void;
+  hint: string;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <Label htmlFor={id}>Blur</Label>
+        <span className="font-mono text-xs text-slate-500">{value}px</span>
+      </div>
+      <input
+        id={id}
+        type="range"
+        min={0}
+        max={24}
+        step={1}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="mt-2 w-full accent-indigo-600"
+      />
+      <p className="mt-1 text-xs text-slate-400">{hint}</p>
+    </div>
+  );
+}
+
+function ModeControls({
+  mode,
+  gradientStyle,
+  blur,
+  canEdit,
+  pending,
+  hasPhoto,
+  photoUrl,
+  localPreview,
+  onModeChange,
+  onGradientChange,
+  onBlurChange,
+  onUpload,
+  onRemove,
+  blurId,
+  blurHint,
+}: {
+  mode: EmailHeroBackgroundMode;
+  gradientStyle: EmailHeroGradientStyle;
+  blur: number;
+  canEdit: boolean;
+  pending: boolean;
+  hasPhoto: boolean;
+  photoUrl: string | null;
+  localPreview: string | null;
+  onModeChange: (m: EmailHeroBackgroundMode) => void;
+  onGradientChange: (g: EmailHeroGradientStyle) => void;
+  onBlurChange: (n: number) => void;
+  onUpload: (file: File) => void;
+  onRemove: () => void;
+  blurId: string;
+  blurHint: string;
+}) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-slate-400">
+          Style
+        </p>
+        <div className="mt-2">
+          <BrandingSegmented
+            ariaLabel="Background style"
+            value={mode}
+            disabled={!canEdit || pending}
+            options={EMAIL_HERO_BACKGROUND_MODES}
+            onChange={onModeChange}
+          />
+        </div>
+      </div>
+
+      {mode === "IMAGE" ? (
+        <div className="rounded-xl bg-slate-50 p-4">
+          {hasPhoto || localPreview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={localPreview ?? photoUrl ?? ""}
+              alt="Background"
+              className="max-h-32 w-full rounded-lg object-cover"
+              style={
+                blur > 0
+                  ? { filter: `blur(${Math.min(blur, 12)}px)` }
+                  : undefined
+              }
+            />
+          ) : (
+            <p className="text-sm text-slate-600">
+              Upload a wide photo (~1200×630).
+            </p>
+          )}
+          {canEdit ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <label className="inline-flex cursor-pointer">
+                <span className="rounded-full bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
+                  {pending
+                    ? "Uploading…"
+                    : hasPhoto
+                      ? "Replace photo"
+                      : "Upload photo"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  disabled={pending}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (file) onUpload(file);
+                  }}
+                />
+              </label>
+              {hasPhoto ? (
+                <button
+                  type="button"
+                  disabled={pending}
+                  className="rounded-full px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                  onClick={onRemove}
+                >
+                  Remove
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="mt-4">
+            <BlurSlider
+              id={blurId}
+              value={blur}
+              disabled={!canEdit}
+              onChange={onBlurChange}
+              hint={blurHint}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {mode === "COLOR" ? (
+        <p className="text-sm text-slate-600">
+          Uses your brand colour as a solid backdrop.
+        </p>
+      ) : null}
+
+      {mode === "GRADIENT" ? (
+        <div>
+          <BrandingSegmented
+            ariaLabel="Gradient style"
+            value={gradientStyle}
+            disabled={!canEdit || pending}
+            options={EMAIL_HERO_GRADIENTS.map((g) => ({
+              id: g.id,
+              label: g.label,
+            }))}
+            onChange={onGradientChange}
+          />
+          <p className="mt-2 text-xs text-slate-400">
+            Decorative gradients — not used for buttons or links.
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function BrandingPanel({
   orgSlug,
   eventId,
@@ -84,6 +268,7 @@ export function BrandingPanel({
   logoUrl,
   bannerUrl,
   eventName,
+  banner,
   hero,
 }: {
   orgSlug: string;
@@ -94,13 +279,18 @@ export function BrandingPanel({
   logoUrl: string | null;
   bannerUrl: string | null;
   eventName: string;
+  banner: BannerSettings;
   hero: HeroSettings;
 }) {
   const router = useRouter();
   const [accent, setAccent] = useState(emailAccentColor ?? branding.accentColor);
+  const [bannerMode, setBannerMode] = useState(banner.mode);
+  const [bannerGradient, setBannerGradient] = useState(banner.gradientStyle);
+  const [bannerBlur, setBannerBlur] = useState(banner.blur);
   const [heroEnabled, setHeroEnabled] = useState(hero.enabled);
   const [backgroundMode, setBackgroundMode] = useState(hero.backgroundMode);
   const [gradientStyle, setGradientStyle] = useState(hero.gradientStyle);
+  const [heroBlur, setHeroBlur] = useState(hero.blur);
   const [heroEyebrow, setHeroEyebrow] = useState(hero.eyebrow);
   const [heroTitle, setHeroTitle] = useState(hero.title);
   const [heroDetail, setHeroDetail] = useState(hero.detail);
@@ -113,18 +303,26 @@ export function BrandingPanel({
   const [pending, start] = useTransition();
 
   useEffect(() => {
+    setBannerMode(banner.mode);
+    setBannerGradient(banner.gradientStyle);
+    setBannerBlur(banner.blur);
     setHeroEnabled(hero.enabled);
     setBackgroundMode(hero.backgroundMode);
     setGradientStyle(hero.gradientStyle);
+    setHeroBlur(hero.blur);
     setHeroEyebrow(hero.eyebrow);
     setHeroTitle(hero.title);
     setHeroDetail(hero.detail);
     setHeroClosing(hero.closing);
     setAccent(emailAccentColor ?? branding.accentColor);
   }, [
+    banner.mode,
+    banner.gradientStyle,
+    banner.blur,
     hero.enabled,
     hero.backgroundMode,
     hero.gradientStyle,
+    hero.blur,
     hero.eyebrow,
     hero.title,
     hero.detail,
@@ -145,17 +343,17 @@ export function BrandingPanel({
   const savedHeroUrl = hero.imageUrl;
 
   const previewDetailLines = useMemo(() => {
-    const custom = heroDetail
+    return heroDetail
       .split(/\r?\n/)
       .map((l) => l.trim())
       .filter(Boolean);
-    return custom;
   }, [heroDetail]);
 
   function uploadBannerFile(file: File) {
     setError(null);
     if (localBannerPreview) URL.revokeObjectURL(localBannerPreview);
     setLocalBannerPreview(URL.createObjectURL(file));
+    setBannerMode("IMAGE");
     start(async () => {
       try {
         const prepared = await prepareImageForUpload(file, "background");
@@ -169,8 +367,8 @@ export function BrandingPanel({
         await uploadEmailBanner(orgSlug, eventId, formData);
         setNotice(
           heroEnabled
-            ? "Background uploaded. Invitation hero rebuilt."
-            : "Email banner uploaded.",
+            ? "Photo uploaded. Invitation hero rebuilt."
+            : "Page banner photo uploaded.",
         );
         router.refresh();
       } catch (err) {
@@ -188,7 +386,9 @@ export function BrandingPanel({
     start(async () => {
       try {
         await setInvitationHeroEnabled(orgSlug, eventId, next);
-        setNotice(next ? "Invitation hero enabled." : "Invitation hero disabled.");
+        setNotice(
+          next ? "Invitation hero enabled." : "Invitation hero disabled.",
+        );
         router.refresh();
       } catch (e) {
         setHeroEnabled(!next);
@@ -203,9 +403,13 @@ export function BrandingPanel({
     setError(null);
     const formData = new FormData();
     formData.set("emailAccentColor", accent);
+    formData.set("emailBannerMode", bannerMode);
+    formData.set("emailBannerGradientStyle", bannerGradient);
+    formData.set("emailBannerBlur", String(bannerBlur));
     formData.set("emailHeroOverlayEnabled", heroEnabled ? "true" : "false");
     formData.set("emailHeroBackgroundMode", backgroundMode);
     formData.set("emailHeroGradientStyle", gradientStyle);
+    formData.set("emailHeroBlur", String(heroBlur));
     formData.set("emailHeroEyebrow", heroEyebrow);
     formData.set("emailHeroTitle", heroTitle);
     formData.set("emailHeroDetail", heroDetail);
@@ -232,7 +436,7 @@ export function BrandingPanel({
       <PageHeader
         eyebrow="Setup"
         title="Branding"
-        description="Logo, brand colour, and invitation hero for outbound emails. The sender remains Bizcon RSVP."
+        description="Logo, page banner, and invitation hero. The email sender remains Bizcon RSVP."
       />
 
       {notice ? <p className="text-sm text-success">{notice}</p> : null}
@@ -242,123 +446,115 @@ export function BrandingPanel({
         <div className="space-y-8">
           <section className="rounded-xl bg-white p-6 shadow-sm">
             <h2 className="text-[19px] font-bold tracking-tight text-slate-900">
-              Event assets
+              Logo
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              Logo and brand colour appear across emails, badges, and your event
-              site.
+              Used on emails, badges, and your public event pages.
             </p>
 
             <div className="mt-6 space-y-6">
-              <div>
-                <p className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-slate-400">
-                  Logo
-                </p>
-                <div className="mt-3 rounded-xl bg-slate-50 p-4">
-                  {hasLogo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={displayLogoUrl ?? ""}
-                      alt="Event logo"
-                      className="max-h-16 max-w-full object-contain"
-                    />
-                  ) : (
-                    <p className="text-sm text-slate-600">No logo uploaded.</p>
-                  )}
-                  {canEdit ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <label className="inline-flex cursor-pointer">
-                        <span className="rounded-full bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.28)] hover:bg-indigo-700">
-                          {pending
-                            ? "Working…"
-                            : hasLogo
-                              ? "Replace logo"
-                              : "Upload logo"}
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          className="sr-only"
-                          disabled={pending}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            e.target.value = "";
-                            if (!file) return;
-                            setError(null);
-                            start(async () => {
-                              try {
-                                const prepared = await prepareImageForUpload(
-                                  file,
+              <div className="rounded-xl bg-slate-50 p-4">
+                {hasLogo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={displayLogoUrl ?? ""}
+                    alt="Event logo"
+                    className="max-h-16 max-w-full object-contain"
+                  />
+                ) : (
+                  <p className="text-sm text-slate-600">No logo uploaded.</p>
+                )}
+                {canEdit ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <label className="inline-flex cursor-pointer">
+                      <span className="rounded-full bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(79,70,229,0.28)] hover:bg-indigo-700">
+                        {pending
+                          ? "Working…"
+                          : hasLogo
+                            ? "Replace logo"
+                            : "Upload logo"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="sr-only"
+                        disabled={pending}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = "";
+                          if (!file) return;
+                          setError(null);
+                          start(async () => {
+                            try {
+                              const prepared = await prepareImageForUpload(
+                                file,
+                                "logo",
+                              );
+                              if (!prepared.ok) {
+                                setError(prepared.error);
+                                return;
+                              }
+                              const formData = new FormData();
+                              formData.set("logo", prepared.file);
+                              const result = await uploadEventLogoAction(
+                                orgSlug,
+                                eventId,
+                                formData,
+                              );
+                              if (!result.ok) {
+                                setError(result.error);
+                                return;
+                              }
+                              setNotice("Event logo uploaded.");
+                              router.refresh();
+                            } catch (err) {
+                              setError(
+                                friendlyUploadFailure(
+                                  err,
                                   "logo",
-                                );
-                                if (!prepared.ok) {
-                                  setError(prepared.error);
-                                  return;
-                                }
-                                const formData = new FormData();
-                                formData.set("logo", prepared.file);
-                                const result = await uploadEventLogoAction(
-                                  orgSlug,
-                                  eventId,
-                                  formData,
-                                );
-                                if (!result.ok) {
-                                  setError(result.error);
-                                  return;
-                                }
-                                setNotice("Event logo uploaded.");
-                                router.refresh();
-                              } catch (err) {
-                                setError(
-                                  friendlyUploadFailure(
-                                    err,
-                                    "logo",
-                                    "Could not upload logo",
-                                  ),
-                                );
+                                  "Could not upload logo",
+                                ),
+                              );
+                            }
+                          });
+                        }}
+                      />
+                    </label>
+                    {hasLogo ? (
+                      <button
+                        type="button"
+                        disabled={pending}
+                        className="rounded-full px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                        onClick={() => {
+                          setError(null);
+                          start(async () => {
+                            try {
+                              const result = await removeEventLogoAction(
+                                orgSlug,
+                                eventId,
+                              );
+                              if (!result.ok) {
+                                setError(result.error);
+                                return;
                               }
-                            });
-                          }}
-                        />
-                      </label>
-                      {hasLogo ? (
-                        <button
-                          type="button"
-                          disabled={pending}
-                          className="rounded-full px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100"
-                          onClick={() => {
-                            setError(null);
-                            start(async () => {
-                              try {
-                                const result = await removeEventLogoAction(
-                                  orgSlug,
-                                  eventId,
-                                );
-                                if (!result.ok) {
-                                  setError(result.error);
-                                  return;
-                                }
-                                setNotice("Event logo removed.");
-                                router.refresh();
-                              } catch (err) {
-                                setError(
-                                  err instanceof Error
-                                    ? err.message
-                                    : "Could not remove logo",
-                                );
-                              }
-                            });
-                          }}
-                        >
-                          Remove
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  <p className="mt-2 text-xs text-slate-400">
-                    PNG, JPEG, or WebP.
-                  </p>
-                </div>
+                              setNotice("Event logo removed.");
+                              router.refresh();
+                            } catch (err) {
+                              setError(
+                                err instanceof Error
+                                  ? err.message
+                                  : "Could not remove logo",
+                              );
+                            }
+                          });
+                        }}
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+                <p className="mt-2 text-xs text-slate-400">PNG, JPEG, or WebP.</p>
               </div>
 
               <div>
@@ -399,6 +595,51 @@ export function BrandingPanel({
           </section>
 
           <section className="rounded-xl bg-white p-6 shadow-sm">
+            <h2 className="text-[19px] font-bold tracking-tight text-slate-900">
+              Page banner
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Strip at the top of public invitation, registration, and apply
+              pages. Separate from the email invitation hero.
+            </p>
+            <div className="mt-6">
+              <ModeControls
+                mode={bannerMode}
+                gradientStyle={bannerGradient}
+                blur={bannerBlur}
+                canEdit={canEdit}
+                pending={pending}
+                hasPhoto={hasBanner}
+                photoUrl={bannerUrl}
+                localPreview={localBannerPreview}
+                onModeChange={setBannerMode}
+                onGradientChange={setBannerGradient}
+                onBlurChange={setBannerBlur}
+                onUpload={uploadBannerFile}
+                onRemove={() => {
+                  setError(null);
+                  start(async () => {
+                    try {
+                      await removeEmailBanner(orgSlug, eventId);
+                      setLocalBannerPreview(null);
+                      setNotice("Banner photo removed.");
+                      router.refresh();
+                    } catch (err) {
+                      setError(
+                        err instanceof Error
+                          ? err.message
+                          : "Could not remove banner",
+                      );
+                    }
+                  });
+                }}
+                blurId="page-banner-blur"
+                blurHint="Softens the photo on public pages (0 = sharp)."
+              />
+            </div>
+          </section>
+
+          <section className="rounded-xl bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h2 className="text-[19px] font-bold tracking-tight text-slate-900">
@@ -424,112 +665,39 @@ export function BrandingPanel({
 
             {heroEnabled ? (
               <div className="mt-6 space-y-6">
-                <div>
-                  <p className="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-slate-400">
-                    Background
-                  </p>
-                  <div className="mt-2">
-                    <BrandingSegmented
-                      ariaLabel="Hero background style"
-                      value={backgroundMode}
-                      disabled={!canEdit || pending}
-                      options={EMAIL_HERO_BACKGROUND_MODES}
-                      onChange={setBackgroundMode}
-                    />
-                  </div>
-
-                  {backgroundMode === "IMAGE" ? (
-                    <div className="mt-4 rounded-xl bg-slate-50 p-4">
-                      {hasBanner || localBannerPreview ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={localBannerPreview ?? bannerUrl ?? ""}
-                          alt="Hero background"
-                          className="max-h-32 w-full rounded-lg object-cover"
-                        />
-                      ) : (
-                        <p className="text-sm text-slate-600">
-                          Upload a wide photo (~1200×630). It will be softly
-                          blurred behind the copy.
-                        </p>
-                      )}
-                      {canEdit ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <label className="inline-flex cursor-pointer">
-                            <span className="rounded-full bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
-                              {pending
-                                ? "Uploading…"
-                                : hasBanner
-                                  ? "Replace photo"
-                                  : "Upload photo"}
-                            </span>
-                            <input
-                              type="file"
-                              accept="image/png,image/jpeg,image/webp"
-                              className="sr-only"
-                              disabled={pending}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                e.target.value = "";
-                                if (file) uploadBannerFile(file);
-                              }}
-                            />
-                          </label>
-                          {hasBanner ? (
-                            <button
-                              type="button"
-                              disabled={pending}
-                              className="rounded-full px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100"
-                              onClick={() => {
-                                setError(null);
-                                start(async () => {
-                                  try {
-                                    await removeEmailBanner(orgSlug, eventId);
-                                    setLocalBannerPreview(null);
-                                    setNotice("Background photo removed.");
-                                    router.refresh();
-                                  } catch (err) {
-                                    setError(
-                                      err instanceof Error
-                                        ? err.message
-                                        : "Could not remove banner",
-                                    );
-                                  }
-                                });
-                              }}
-                            >
-                              Remove
-                            </button>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {backgroundMode === "COLOR" ? (
-                    <p className="mt-3 text-sm text-slate-600">
-                      Uses your brand colour above as a solid backdrop.
-                    </p>
-                  ) : null}
-
-                  {backgroundMode === "GRADIENT" ? (
-                    <div className="mt-4">
-                      <BrandingSegmented
-                        ariaLabel="Gradient style"
-                        value={gradientStyle}
-                        disabled={!canEdit || pending}
-                        options={EMAIL_HERO_GRADIENTS.map((g) => ({
-                          id: g.id,
-                          label: g.label,
-                        }))}
-                        onChange={setGradientStyle}
-                      />
-                      <p className="mt-2 text-xs text-slate-400">
-                        Decorative gradients — not used for buttons or links.
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
+                <ModeControls
+                  mode={backgroundMode}
+                  gradientStyle={gradientStyle}
+                  blur={heroBlur}
+                  canEdit={canEdit}
+                  pending={pending}
+                  hasPhoto={hasBanner}
+                  photoUrl={bannerUrl}
+                  localPreview={localBannerPreview}
+                  onModeChange={setBackgroundMode}
+                  onGradientChange={setGradientStyle}
+                  onBlurChange={setHeroBlur}
+                  onUpload={uploadBannerFile}
+                  onRemove={() => {
+                    setError(null);
+                    start(async () => {
+                      try {
+                        await removeEmailBanner(orgSlug, eventId);
+                        setLocalBannerPreview(null);
+                        setNotice("Background photo removed.");
+                        router.refresh();
+                      } catch (err) {
+                        setError(
+                          err instanceof Error
+                            ? err.message
+                            : "Could not remove banner",
+                        );
+                      }
+                    });
+                  }}
+                  blurId="invite-hero-blur"
+                  blurHint="Softens the photo behind email copy (0 = sharp)."
+                />
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
@@ -610,6 +778,7 @@ export function BrandingPanel({
                 enabled={heroEnabled}
                 backgroundMode={backgroundMode}
                 gradientStyle={gradientStyle}
+                blur={heroBlur}
                 accentColor={accent}
                 bannerUrl={bannerUrl}
                 bannerPreviewUrl={localBannerPreview}
@@ -629,7 +798,7 @@ export function BrandingPanel({
               Email snippet
             </p>
             <div className="mt-4 overflow-hidden bg-slate-50 shadow-sm">
-              {!heroEnabled && hasBanner ? (
+              {!heroEnabled && hasBanner && bannerMode === "IMAGE" ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={bannerUrl ?? ""}

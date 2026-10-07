@@ -9,6 +9,7 @@ import {
   gradientPreset,
   parseEmailHeroBackgroundMode,
   parseEmailHeroGradientStyle,
+  parseHeroBlur,
 } from "@/modules/communications/invite-hero-background";
 import { heroTextPath } from "@/modules/communications/invite-hero-fonts";
 
@@ -146,6 +147,8 @@ export type InviteHeroRenderInput = {
   backgroundUrl?: string | null;
   backgroundMode?: EmailHeroBackgroundMode | null;
   gradientStyle?: EmailHeroGradientStyle | null;
+  /** Sharp blur sigma when mode is IMAGE (0 = sharp photo). */
+  blur?: number | null;
   logoUrl?: string | null;
   accentColor: string;
   eyebrow?: string | null;
@@ -218,11 +221,14 @@ export async function renderInviteHeroPng(
           ? await fetchImageBuffer(input.backgroundUrl)
           : null;
     if (raw) {
-      background = sharp(raw)
+      const blur = parseHeroBlur(input.blur, 6);
+      let photo = sharp(raw)
         .rotate()
-        .resize(WIDTH, HEIGHT, { fit: "cover", position: "centre" })
-        .blur(6)
-        .modulate({ brightness: 0.78, saturation: 0.95 });
+        .resize(WIDTH, HEIGHT, { fit: "cover", position: "centre" });
+      if (blur > 0) {
+        photo = photo.blur(blur);
+      }
+      background = photo.modulate({ brightness: 0.78, saturation: 0.95 });
       usedBackgroundPhoto = true;
     }
 

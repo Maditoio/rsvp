@@ -11,6 +11,7 @@ export function InviteHeroLivePreview({
   enabled,
   backgroundMode,
   gradientStyle,
+  blur = 6,
   accentColor,
   bannerUrl,
   bannerPreviewUrl,
@@ -25,6 +26,8 @@ export function InviteHeroLivePreview({
   enabled: boolean;
   backgroundMode: EmailHeroBackgroundMode;
   gradientStyle: EmailHeroGradientStyle;
+  /** Soft blur behind copy when mode is Photo (0–24). */
+  blur?: number;
   accentColor: string;
   bannerUrl: string | null;
   /** Local object URL while a file is selected but not yet uploaded */
@@ -76,13 +79,13 @@ export function InviteHeroLivePreview({
       >
         {backgroundMode === "IMAGE" && photoSrc ? (
           <div
-            className="absolute inset-0 backdrop-blur-sm"
+            className="absolute inset-0"
             style={{
               backgroundImage: `url(${photoSrc})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
-              filter: "blur(12px) brightness(0.75)",
-              transform: "scale(1.08)",
+              filter: `blur(${Math.max(0, blur)}px) brightness(0.75)`,
+              transform: blur > 0 ? "scale(1.08)" : undefined,
             }}
             aria-hidden
           />

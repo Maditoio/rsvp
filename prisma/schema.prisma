@@ -422,14 +422,22 @@ model EventSettings {
   eventEndTime           String  @default("18:00")
   /// Accent colour for invitation / reminder emails (#RRGGBB). Null = Bizcon indigo or website theme.
   emailAccentColor       String?
-  /// Optional full-width header banner for outbound emails (HTTPS raster URL).
+  /// Optional full-width banner photo for public pages / hero IMAGE mode (HTTPS raster URL).
   emailBannerUrl         String?
+  /// Public page banner style: photo strip, solid colour, or decorative gradient.
+  emailBannerMode          EmailHeroBackgroundMode @default(COLOR)
+  /// When banner mode is GRADIENT: indigo | violet | teal.
+  emailBannerGradientStyle String?
+  /// CSS blur (px) applied to the public banner photo strip (0–24).
+  emailBannerBlur          Int                     @default(0)
   /// When true, invitations use an in-app composed hero (blurred photo/colour + logo + copy).
   emailHeroOverlayEnabled Boolean @default(false)
-  /// Hero backdrop: uploaded banner, solid brand colour, or decorative gradient.
+  /// Hero backdrop: uploaded banner photo, solid brand colour, or decorative gradient.
   emailHeroBackgroundMode  EmailHeroBackgroundMode @default(COLOR)
   /// When mode is GRADIENT: indigo | violet | teal (decorative presets).
   emailHeroGradientStyle   String?
+  /// Sharp blur sigma for hero IMAGE mode (0–24). Default 6.
+  emailHeroBlur            Int                     @default(6)
   /// Optional eyebrow above the hero title (e.g. "Join us as we attend the").
   emailHeroEyebrow       String?
   /// Optional hero title override; null uses the event name.

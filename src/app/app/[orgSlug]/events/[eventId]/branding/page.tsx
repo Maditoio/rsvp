@@ -4,8 +4,10 @@ import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
 import { resolveEmailBranding } from "@/modules/communications/email-branding";
 import {
+  parseBannerBlur,
   parseEmailHeroBackgroundMode,
   parseEmailHeroGradientStyle,
+  parseHeroBlur,
 } from "@/modules/communications/invite-hero-background";
 import { BrandingPanel } from "./branding-panel";
 
@@ -23,10 +25,14 @@ export default async function BrandingPage({
         select: {
           emailAccentColor: true,
           emailBannerUrl: true,
+          emailBannerMode: true,
+          emailBannerGradientStyle: true,
+          emailBannerBlur: true,
           websiteConfig: true,
           emailHeroOverlayEnabled: true,
           emailHeroBackgroundMode: true,
           emailHeroGradientStyle: true,
+          emailHeroBlur: true,
           emailHeroEyebrow: true,
           emailHeroTitle: true,
           emailHeroDetail: true,
@@ -56,6 +62,13 @@ export default async function BrandingPage({
       logoUrl={event?.logoUrl ?? null}
       bannerUrl={event?.settings?.emailBannerUrl ?? null}
       eventName={event?.name ?? "Event"}
+      banner={{
+        mode: parseEmailHeroBackgroundMode(event?.settings?.emailBannerMode),
+        gradientStyle: parseEmailHeroGradientStyle(
+          event?.settings?.emailBannerGradientStyle,
+        ),
+        blur: parseBannerBlur(event?.settings?.emailBannerBlur, 0),
+      }}
       hero={{
         enabled: event?.settings?.emailHeroOverlayEnabled ?? false,
         backgroundMode: parseEmailHeroBackgroundMode(
@@ -64,6 +77,7 @@ export default async function BrandingPage({
         gradientStyle: parseEmailHeroGradientStyle(
           event?.settings?.emailHeroGradientStyle,
         ),
+        blur: parseHeroBlur(event?.settings?.emailHeroBlur, 6),
         eyebrow: event?.settings?.emailHeroEyebrow ?? "",
         title: event?.settings?.emailHeroTitle ?? "",
         detail: event?.settings?.emailHeroDetail ?? "",

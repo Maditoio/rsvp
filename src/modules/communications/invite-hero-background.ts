@@ -66,3 +66,20 @@ export function gradientPreset(id: EmailHeroGradientStyle) {
     EMAIL_HERO_GRADIENTS.find((g) => g.id === id) ?? EMAIL_HERO_GRADIENTS[0]!
   );
 }
+
+/** Clamp blur for public CSS banner (0–24px). */
+export function parseBannerBlur(value: unknown, fallback = 0): number {
+  const n =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number.parseInt(value, 10)
+        : Number.NaN;
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(24, Math.max(0, Math.round(n)));
+}
+
+/** Clamp blur for sharp hero compose (0–24 sigma). */
+export function parseHeroBlur(value: unknown, fallback = 6): number {
+  return parseBannerBlur(value, fallback);
+}

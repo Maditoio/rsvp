@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { PublicEventHero } from "@/components/public/public-event-branding";
 import { getPublicInvitation } from "@/modules/invitations/public";
-import { loadPublicEventBrandingByIds } from "@/modules/branding/public-event-branding";
+import {
+  defaultPublicBanner,
+  loadPublicEventBrandingByIds,
+} from "@/modules/branding/public-event-branding";
 import { DEFAULT_EMAIL_ACCENT } from "@/modules/communications/email-branding";
 import { InvitationResponse } from "./invitation-response";
 
@@ -28,6 +31,7 @@ export default async function InvitationPage({
       orgName: invitation.orgName,
       venue: invitation.venue,
       timezone: "UTC",
+      banner: defaultPublicBanner(),
     };
 
   if (invitation.gate === "cancelled") {

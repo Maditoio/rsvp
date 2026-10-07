@@ -12,8 +12,10 @@ import {
 import { invalidateEventMailContextCache } from "@/modules/communications/email-mail-context";
 import { regenerateEventInviteHero } from "@/modules/communications/invite-hero";
 import {
+  parseBannerBlur,
   parseEmailHeroBackgroundMode,
   parseEmailHeroGradientStyle,
+  parseHeroBlur,
 } from "@/modules/communications/invite-hero-background";
 import {
   blobStorageNotConfiguredMessage,
@@ -35,12 +37,17 @@ const brandingSchema = z.object({
   emailHeroClosing: z.string().trim().max(160).optional().or(z.literal("")),
   emailHeroBackgroundMode: z.enum(["IMAGE", "COLOR", "GRADIENT"]),
   emailHeroGradientStyle: z.enum(["indigo", "violet", "teal"]),
+  emailHeroBlur: z.number().int().min(0).max(24),
+  emailBannerMode: z.enum(["IMAGE", "COLOR", "GRADIENT"]),
+  emailBannerGradientStyle: z.enum(["indigo", "violet", "teal"]),
+  emailBannerBlur: z.number().int().min(0).max(24),
 });
 
 function revalidateBrandingPaths(orgSlug: string, eventId: string) {
   revalidatePath(`/app/${orgSlug}/events/${eventId}/branding`);
   revalidatePath(`/app/${orgSlug}/events/${eventId}/communications`);
   revalidatePath(`/app/${orgSlug}/events/${eventId}/settings`);
+  revalidatePath(`/a/${orgSlug}`, "layout");
 }
 
 async function safeRegenerateHero(
@@ -126,13 +133,27 @@ export async function saveEmailBranding(
     emailHeroGradientStyle: parseEmailHeroGradientStyle(
       formData.get("emailHeroGradientStyle"),
     ),
+    emailHeroBlur: parseHeroBlur(formData.get("emailHeroBlur"), 6),
+    emailBannerMode: parseEmailHeroBackgroundMode(
+      formData.get("emailBannerMode"),
+    ),
+    emailBannerGradientStyle: parseEmailHeroGradientStyle(
+      formData.get("emailBannerGradientStyle"),
+    ),
+    emailBannerBlur: parseBannerBlur(formData.get("emailBannerBlur"), 0),
   });
 
   const emailAccentColor = parsed.emailAccentColor
     ? parseEmailHexColor(parsed.emailAccentColor)
     : null;
 
-  const heroFields = {
+  const brandingFields = {
+    emailBannerMode: parsed.emailBannerMode,
+    emailBannerGradientStyle:
+      parsed.emailBannerMode === "GRADIENT"
+        ? parsed.emailBannerGradientStyle
+        : null,
+    emailBannerBlur: parsed.emailBannerBlur,
     emailHeroOverlayEnabled: parsed.emailHeroOverlayEnabled,
     emailHeroEyebrow: parsed.emailHeroEyebrow || null,
     emailHeroTitle: parsed.emailHeroTitle || null,
@@ -143,6 +164,7 @@ export async function saveEmailBranding(
       parsed.emailHeroBackgroundMode === "GRADIENT"
         ? parsed.emailHeroGradientStyle
         : null,
+    emailHeroBlur: parsed.emailHeroBlur,
   };
 
   await prisma.eventSettings.upsert({
@@ -151,11 +173,11 @@ export async function saveEmailBranding(
       organisationId: ctx.organisation.id,
       eventId,
       emailAccentColor,
-      ...heroFields,
+      ...brandingFields,
     },
     update: {
       emailAccentColor,
-      ...heroFields,
+      ...brandingFields,
     },
   });
 
@@ -224,10 +246,12 @@ export async function uploadEmailBanner(
       organisationId: ctx.organisation.id,
       eventId,
       emailBannerUrl: safeUrl,
+      emailBannerMode: "IMAGE",
       emailHeroOverlayEnabled: enableHero,
     },
     update: {
       emailBannerUrl: safeUrl,
+      emailBannerMode: "IMAGE",
       ...(enableHero ? { emailHeroOverlayEnabled: true } : {}),
     },
   });

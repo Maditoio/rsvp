@@ -3,7 +3,10 @@ import { prisma } from "@/lib/db/prisma";
 import { Card } from "@/components/ui/card";
 import { PublicEventHero } from "@/components/public/public-event-branding";
 import { formatEventWindow, turnstileSiteKey } from "@/lib/utils";
-import { loadPublicEventBrandingBySlugs } from "@/modules/branding/public-event-branding";
+import {
+  defaultPublicBanner,
+  loadPublicEventBrandingBySlugs,
+} from "@/modules/branding/public-event-branding";
 import { PublicApplyForm } from "./apply-form";
 
 export default async function PublicApplyPage({
@@ -28,6 +31,7 @@ export default async function PublicApplyPage({
       orgName: event.organisation.name,
       venue: event.venue,
       timezone: event.timezone,
+      banner: defaultPublicBanner(),
     };
 
   return (

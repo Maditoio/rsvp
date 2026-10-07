@@ -9,7 +9,10 @@ import {
 } from "@/modules/files/blob-config";
 import { renderInviteHeroPng } from "@/modules/communications/invite-hero-render";
 import { invalidateEventMailContextCache } from "@/modules/communications/email-mail-context";
-import { parseEmailHeroGradientStyle } from "@/modules/communications/invite-hero-background";
+import {
+  parseEmailHeroGradientStyle,
+  parseHeroBlur,
+} from "@/modules/communications/invite-hero-background";
 
 function detailLinesFromSettings(detail: string | null | undefined): string[] {
   if (!detail?.trim()) return [];
@@ -63,6 +66,7 @@ export async function regenerateEventInviteHero(input: {
           emailHeroClosing: true,
           emailHeroBackgroundMode: true,
           emailHeroGradientStyle: true,
+          emailHeroBlur: true,
           websiteConfig: true,
         },
       },
@@ -104,6 +108,7 @@ export async function regenerateEventInviteHero(input: {
     gradientStyle: parseEmailHeroGradientStyle(
       event.settings.emailHeroGradientStyle,
     ),
+    blur: parseHeroBlur(event.settings.emailHeroBlur, 6),
     logoUrl: event.logoUrl,
     accentColor: accent,
     eyebrow:
