@@ -87,8 +87,11 @@ function trustFooter(
 
 function brandBanner(branding: EmailBranding) {
   if (!branding.bannerUrl) return "";
-  const maxHeight = branding.heroCard ? "720px" : "180px";
-  return `<img src="${escapeHtml(branding.bannerUrl)}" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto;max-height:${maxHeight};object-fit:cover;border:0;outline:none;text-decoration:none" />`;
+  // Hero cards are full portrait compositions — show the whole image (no crop).
+  if (branding.heroCard) {
+    return `<img src="${escapeHtml(branding.bannerUrl)}" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto;border:0;outline:none;text-decoration:none" />`;
+  }
+  return `<img src="${escapeHtml(branding.bannerUrl)}" alt="" width="560" style="display:block;width:100%;max-width:560px;height:auto;max-height:180px;object-fit:cover;border:0;outline:none;text-decoration:none" />`;
 }
 
 function brandHeader(branding: EmailBranding) {

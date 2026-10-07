@@ -91,32 +91,42 @@ export function InviteHeroLivePreview({
           className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/35 to-black/55"
           aria-hidden
         />
-        <div className="relative flex h-full flex-col items-center justify-center px-6 py-10 text-center text-white">
+        <div className="relative flex h-full flex-col items-center px-6 pb-10 pt-9 text-center text-white">
           {logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={logoUrl}
               alt=""
-              className="mb-6 max-h-14 max-w-[200px] object-contain drop-shadow-md"
+              className="max-h-14 max-w-[200px] object-contain drop-shadow-md"
             />
-          ) : null}
-          <p className="text-sm font-medium text-white/90">{displayEyebrow}</p>
-          <p className="mt-3 text-2xl font-bold leading-tight tracking-tight">
-            {displayTitle}
-          </p>
-          {detailLines.length > 0 ? (
-            <>
-              <div className="my-5 h-0.5 w-24 rounded-full bg-white/80" />
-              <div className="space-y-1 text-sm font-medium text-white/95">
-                {detailLines.map((line) => (
-                  <p key={line}>{line}</p>
-                ))}
+          ) : (
+            <div className="h-14" aria-hidden />
+          )}
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-evenly py-4">
+            <div>
+              <p className="text-sm font-medium text-white/90">{displayEyebrow}</p>
+              <p className="mt-3 text-2xl font-bold leading-tight tracking-tight">
+                {displayTitle}
+              </p>
+            </div>
+            {detailLines.length > 0 ? (
+              <div>
+                <div className="mx-auto mb-4 h-0.5 w-24 bg-white/80" />
+                <div className="space-y-1 text-sm font-medium text-white/95">
+                  {detailLines.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
+                </div>
               </div>
-            </>
-          ) : null}
-          {displayClosing ? (
-            <p className="mt-6 text-sm italic text-white/85">{displayClosing}</p>
-          ) : null}
+            ) : (
+              <div aria-hidden />
+            )}
+            {displayClosing ? (
+              <p className="text-sm italic text-white/85">{displayClosing}</p>
+            ) : (
+              <div aria-hidden />
+            )}
+          </div>
         </div>
       </div>
       {savedHeroUrl ? (

@@ -15,6 +15,72 @@ import { heroTextPath } from "@/modules/communications/invite-hero-fonts";
 const WIDTH = 1120;
 const HEIGHT = 1480;
 
+/** Logo sits near the top — not centered with the copy stack. */
+const LOGO_TOP = Math.round(HEIGHT * 0.09);
+const LOGO_MAX_W = 280;
+const LOGO_MAX_H = 140;
+/** Minimum breathing room between logo and the first copy line. */
+const LOGO_COPY_GAP = 72;
+const BOTTOM_PAD = Math.round(HEIGHT * 0.1);
+
+type CopyBlock =
+  | { kind: "eyebrow"; text: string; height: number }
+  | { kind: "title"; lines: string[]; height: number }
+  | { kind: "rule"; height: number }
+  | { kind: "details"; lines: string[]; height: number }
+  | { kind: "closing"; text: string; height: number };
+
+/**
+ * Place copy blocks through the vertical band under the logo so the poster
+ * reads top→middle→bottom instead of clustering under the logo.
+ */
+function layoutCopyBaselines(
+  blocks: CopyBlock[],
+  contentStart: number,
+): number[] {
+  if (blocks.length === 0) return [];
+
+  const contentBottom = HEIGHT - BOTTOM_PAD;
+  const intrinsic = blocks.reduce((sum, b) => sum + b.height, 0);
+  const free = Math.max(0, contentBottom - contentStart - intrinsic);
+
+  // Weight gaps: more air after the logo band and before closing.
+  const gapWeights = blocks.map((_, i) => {
+    if (i === 0) return 1.35; // space below logo / into title
+    if (i === blocks.length - 1) return 1.15; // space before closing
+    return 1;
+  });
+  // One trailing gap after the last block toward the bottom edge.
+  const weights = [...gapWeights, 1.1];
+  const weightSum = weights.reduce((a, b) => a + b, 0);
+
+  const firstLineBaseline = (block: CopyBlock) => {
+    switch (block.kind) {
+      case "eyebrow":
+        return 28;
+      case "title":
+        return 54;
+      case "rule":
+        return 0;
+      case "details":
+        return 30;
+      case "closing":
+        return 28;
+    }
+  };
+
+  const baselines: number[] = [];
+  let cursor = contentStart + (free * weights[0]!) / weightSum;
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]!;
+    baselines.push(cursor + firstLineBaseline(block));
+    cursor += block.height;
+    const gapAfter = (free * weights[i + 1]!) / weightSum;
+    cursor += gapAfter;
+  }
+  return baselines;
+}
+
 function wrapLines(text: string, maxChars: number): string[] {
   const words = text.trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
@@ -182,29 +248,29 @@ export async function renderInviteHeroPng(
     },
   ];
 
-  let textTop = 220;
+  let logoBottom = LOGO_TOP;
   if (input.logoUrl) {
     const logoRaw = await fetchImageBuffer(input.logoUrl);
     if (logoRaw) {
       const logo = await sharp(logoRaw)
         .rotate()
         .resize({
-          width: 280,
-          height: 140,
+          width: LOGO_MAX_W,
+          height: LOGO_MAX_H,
           fit: "inside",
           withoutEnlargement: true,
         })
         .png()
         .toBuffer();
       const meta = await sharp(logo).metadata();
-      const lw = meta.width ?? 280;
-      const lh = meta.height ?? 140;
+      const lw = meta.width ?? LOGO_MAX_W;
+      const lh = meta.height ?? LOGO_MAX_H;
       composites.push({
         input: logo,
-        top: 120,
+        top: LOGO_TOP,
         left: Math.round((WIDTH - lw) / 2),
       });
-      textTop = 120 + lh + 48;
+      logoBottom = LOGO_TOP + lh;
     }
   }
 
@@ -215,63 +281,93 @@ export async function renderInviteHeroPng(
     .slice(0, 8);
   const closing = input.closing?.trim() || "";
 
-  let y = textTop;
-  const glyphs: string[] = [];
+  const blocks: CopyBlock[] = [];
   if (eyebrow) {
-    glyphs.push(
-      heroTextPath({
-        text: eyebrow,
-        x: 560,
-        y,
-        fontSize: 28,
-        fillOpacity: 0.88,
-      }),
-    );
-    y += 56;
+    blocks.push({ kind: "eyebrow", text: eyebrow, height: 40 });
   }
-  for (const line of titleLines) {
-    glyphs.push(
-      heroTextPath({
-        text: line,
-        x: 560,
-        y,
-        fontSize: 54,
-        style: "bold",
-      }),
-    );
-    y += 68;
+  if (titleLines.length > 0) {
+    blocks.push({
+      kind: "title",
+      lines: titleLines,
+      height: titleLines.length * 64,
+    });
   }
   if (detailLines.length > 0) {
-    y += 28;
-    glyphs.push(
-      `<line x1="360" y1="${y}" x2="760" y2="${y}" stroke="#FFFFFF" stroke-opacity="0.85" stroke-width="4"/>`,
-    );
-    y += 52;
-    for (const line of detailLines) {
-      glyphs.push(
-        heroTextPath({
-          text: line,
-          x: 560,
-          y,
-          fontSize: 30,
-          fillOpacity: 0.92,
-        }),
-      );
-      y += 44;
-    }
+    blocks.push({ kind: "rule", height: 28 });
+    blocks.push({
+      kind: "details",
+      lines: detailLines,
+      height: detailLines.length * 42,
+    });
   }
   if (closing) {
-    y += 36;
-    glyphs.push(
-      heroTextPath({
-        text: closing,
-        x: 560,
-        y,
-        fontSize: 28,
-        style: "italic",
-        fillOpacity: 0.88,
-      }),
-    );
+    blocks.push({ kind: "closing", text: closing, height: 40 });
+  }
+
+  // Copy starts below the logo (or upper band if no logo), then spreads downward.
+  const contentStart = Math.max(
+    Math.round(HEIGHT * 0.28),
+    logoBottom + LOGO_COPY_GAP,
+  );
+  const baselines = layoutCopyBaselines(blocks, contentStart);
+
+  const glyphs: string[] = [];
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]!;
+    let y = baselines[i]!;
+
+    if (block.kind === "eyebrow") {
+      glyphs.push(
+        heroTextPath({
+          text: block.text,
+          x: WIDTH / 2,
+          y,
+          fontSize: 28,
+          fillOpacity: 0.88,
+        }),
+      );
+    } else if (block.kind === "title") {
+      for (const line of block.lines) {
+        glyphs.push(
+          heroTextPath({
+            text: line,
+            x: WIDTH / 2,
+            y,
+            fontSize: 54,
+            style: "bold",
+          }),
+        );
+        y += 64;
+      }
+    } else if (block.kind === "rule") {
+      glyphs.push(
+        `<line x1="360" y1="${y}" x2="760" y2="${y}" stroke="#FFFFFF" stroke-opacity="0.85" stroke-width="4"/>`,
+      );
+    } else if (block.kind === "details") {
+      for (const line of block.lines) {
+        glyphs.push(
+          heroTextPath({
+            text: line,
+            x: WIDTH / 2,
+            y,
+            fontSize: 30,
+            fillOpacity: 0.92,
+          }),
+        );
+        y += 42;
+      }
+    } else if (block.kind === "closing") {
+      glyphs.push(
+        heroTextPath({
+          text: block.text,
+          x: WIDTH / 2,
+          y,
+          fontSize: 28,
+          style: "italic",
+          fillOpacity: 0.88,
+        }),
+      );
+    }
   }
 
   composites.push({
