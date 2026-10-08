@@ -12,6 +12,12 @@ import {
 import { invalidateEventMailContextCache } from "@/modules/communications/email-mail-context";
 import { regenerateEventInviteHero } from "@/modules/communications/invite-hero";
 import {
+  parseBrandHeadingColor,
+  parseBrandHeadingFont,
+  parseBrandHeadingSize,
+  parseFocalPercent,
+} from "@/modules/branding/brand-heading-style";
+import {
   parseBannerBlur,
   parseEmailHeroBackgroundMode,
   parseEmailHeroGradientStyle,
@@ -38,9 +44,21 @@ const brandingSchema = z.object({
   emailHeroBackgroundMode: z.enum(["IMAGE", "COLOR", "GRADIENT"]),
   emailHeroGradientStyle: z.enum(["indigo", "violet", "teal"]),
   emailHeroBlur: z.number().int().min(0).max(24),
+  emailHeroFocalX: z.number().int().min(0).max(100),
+  emailHeroFocalY: z.number().int().min(0).max(100),
   emailBannerMode: z.enum(["IMAGE", "COLOR", "GRADIENT"]),
   emailBannerGradientStyle: z.enum(["indigo", "violet", "teal"]),
   emailBannerBlur: z.number().int().min(0).max(24),
+  emailBannerFocalX: z.number().int().min(0).max(100),
+  emailBannerFocalY: z.number().int().min(0).max(100),
+  brandHeadingColor: z
+    .string()
+    .trim()
+    .regex(/^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/, "Use a valid hex colour")
+    .optional()
+    .or(z.literal("")),
+  brandHeadingFont: z.enum(["inter", "serif", "modern"]),
+  brandHeadingSize: z.enum(["sm", "md", "lg"]),
 });
 
 function revalidateBrandingPaths(orgSlug: string, eventId: string) {
@@ -134,6 +152,8 @@ export async function saveEmailBranding(
       formData.get("emailHeroGradientStyle"),
     ),
     emailHeroBlur: parseHeroBlur(formData.get("emailHeroBlur"), 6),
+    emailHeroFocalX: parseFocalPercent(formData.get("emailHeroFocalX"), 50),
+    emailHeroFocalY: parseFocalPercent(formData.get("emailHeroFocalY"), 50),
     emailBannerMode: parseEmailHeroBackgroundMode(
       formData.get("emailBannerMode"),
     ),
@@ -141,11 +161,17 @@ export async function saveEmailBranding(
       formData.get("emailBannerGradientStyle"),
     ),
     emailBannerBlur: parseBannerBlur(formData.get("emailBannerBlur"), 0),
+    emailBannerFocalX: parseFocalPercent(formData.get("emailBannerFocalX"), 50),
+    emailBannerFocalY: parseFocalPercent(formData.get("emailBannerFocalY"), 50),
+    brandHeadingColor: String(formData.get("brandHeadingColor") ?? ""),
+    brandHeadingFont: parseBrandHeadingFont(formData.get("brandHeadingFont")),
+    brandHeadingSize: parseBrandHeadingSize(formData.get("brandHeadingSize")),
   });
 
   const emailAccentColor = parsed.emailAccentColor
     ? parseEmailHexColor(parsed.emailAccentColor)
     : null;
+  const brandHeadingColor = parseBrandHeadingColor(parsed.brandHeadingColor);
 
   const brandingFields = {
     emailBannerMode: parsed.emailBannerMode,
@@ -154,6 +180,8 @@ export async function saveEmailBranding(
         ? parsed.emailBannerGradientStyle
         : null,
     emailBannerBlur: parsed.emailBannerBlur,
+    emailBannerFocalX: parsed.emailBannerFocalX,
+    emailBannerFocalY: parsed.emailBannerFocalY,
     emailHeroOverlayEnabled: parsed.emailHeroOverlayEnabled,
     emailHeroEyebrow: parsed.emailHeroEyebrow || null,
     emailHeroTitle: parsed.emailHeroTitle || null,
@@ -165,6 +193,11 @@ export async function saveEmailBranding(
         ? parsed.emailHeroGradientStyle
         : null,
     emailHeroBlur: parsed.emailHeroBlur,
+    emailHeroFocalX: parsed.emailHeroFocalX,
+    emailHeroFocalY: parsed.emailHeroFocalY,
+    brandHeadingColor,
+    brandHeadingFont: parsed.brandHeadingFont,
+    brandHeadingSize: parsed.brandHeadingSize,
   };
 
   await prisma.eventSettings.upsert({

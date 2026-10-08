@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
-import { Inter, Playfair_Display, DM_Serif_Display, Space_Mono, Outfit } from "next/font/google";
+import localFont from "next/font/local";
+import {
+  Inter,
+  Playfair_Display,
+  DM_Serif_Display,
+  Space_Mono,
+  Outfit,
+} from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -7,6 +14,40 @@ const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+});
+
+const brandSerif = localFont({
+  src: [
+    {
+      path: "../../assets/fonts/invite-hero/SourceSerif4-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../assets/fonts/invite-hero/SourceSerif4-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-brand-serif",
+  display: "swap",
+});
+
+const brandModern = localFont({
+  src: [
+    {
+      path: "../../assets/fonts/invite-hero/DMSans-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../assets/fonts/invite-hero/DMSans-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-brand-modern",
+  display: "swap",
 });
 
 const playfair = Playfair_Display({
@@ -56,7 +97,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable} ${dmSerif.variable} ${spaceMono.variable} ${outfit.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${brandSerif.variable} ${brandModern.variable} ${playfair.variable} ${dmSerif.variable} ${spaceMono.variable} ${outfit.variable} h-full antialiased`}
+    >
       <body className="min-h-full font-sans">
         <Providers>{children}</Providers>
       </body>

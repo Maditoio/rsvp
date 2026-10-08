@@ -2,6 +2,13 @@ import "server-only";
 
 import { prisma } from "@/lib/db/prisma";
 import {
+  brandHeadingCssFamily,
+  objectPositionCss,
+  parseFocalPercent,
+  resolveBrandHeadingStyle,
+  type BrandHeadingStyle,
+} from "@/modules/branding/brand-heading-style";
+import {
   emailSafeImageUrl,
   resolveEmailBranding,
   type EmailBranding,
@@ -20,6 +27,9 @@ export type PublicBannerBranding = {
   /** Photo URL when mode is IMAGE */
   imageUrl: string | null;
   blur: number;
+  focalX: number;
+  focalY: number;
+  objectPosition: string;
   gradientStyle: EmailHeroGradientStyle;
   gradientCss: string;
 };
@@ -30,6 +40,7 @@ export type PublicEventBranding = EmailBranding & {
   venue: string | null;
   timezone: string;
   banner: PublicBannerBranding;
+  heading: BrandHeadingStyle & { cssFamily: string };
 };
 
 /** Fallback when branding cannot be loaded (cancelled invites, etc.). */
@@ -38,9 +49,17 @@ export function defaultPublicBanner(): PublicBannerBranding {
     mode: "COLOR",
     imageUrl: null,
     blur: 0,
+    focalX: 50,
+    focalY: 50,
+    objectPosition: objectPositionCss(50, 50),
     gradientStyle: "indigo",
     gradientCss: gradientPreset("indigo").css,
   };
+}
+
+export function defaultPublicHeading(): PublicEventBranding["heading"] {
+  const heading = resolveBrandHeadingStyle({});
+  return { ...heading, cssFamily: brandHeadingCssFamily(heading.font) };
 }
 
 export async function loadPublicEventBrandingByIds(input: {
@@ -65,6 +84,11 @@ export async function loadPublicEventBrandingByIds(input: {
           emailBannerMode: true,
           emailBannerGradientStyle: true,
           emailBannerBlur: true,
+          emailBannerFocalX: true,
+          emailBannerFocalY: true,
+          brandHeadingColor: true,
+          brandHeadingFont: true,
+          brandHeadingSize: true,
           websiteConfig: true,
         },
       },
@@ -88,6 +112,14 @@ export async function loadPublicEventBrandingByIds(input: {
   const resolvedMode: EmailHeroBackgroundMode =
     mode === "IMAGE" && !imageUrl ? "COLOR" : mode;
 
+  const focalX = parseFocalPercent(event.settings?.emailBannerFocalX, 50);
+  const focalY = parseFocalPercent(event.settings?.emailBannerFocalY, 50);
+  const heading = resolveBrandHeadingStyle({
+    color: event.settings?.brandHeadingColor,
+    font: event.settings?.brandHeadingFont,
+    size: event.settings?.brandHeadingSize,
+  });
+
   return {
     ...branding,
     // Keep legacy bannerUrl for callers that only show a photo strip.
@@ -100,8 +132,15 @@ export async function loadPublicEventBrandingByIds(input: {
       mode: resolvedMode,
       imageUrl,
       blur: parseBannerBlur(event.settings?.emailBannerBlur, 0),
+      focalX,
+      focalY,
+      objectPosition: objectPositionCss(focalX, focalY),
       gradientStyle,
       gradientCss: gradientPreset(gradientStyle).css,
+    },
+    heading: {
+      ...heading,
+      cssFamily: brandHeadingCssFamily(heading.font),
     },
   };
 }

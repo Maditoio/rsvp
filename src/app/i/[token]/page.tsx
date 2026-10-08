@@ -4,6 +4,7 @@ import { PublicEventHero } from "@/components/public/public-event-branding";
 import { getPublicInvitation } from "@/modules/invitations/public";
 import {
   defaultPublicBanner,
+  defaultPublicHeading,
   loadPublicEventBrandingByIds,
 } from "@/modules/branding/public-event-branding";
 import { DEFAULT_EMAIL_ACCENT } from "@/modules/communications/email-branding";
@@ -32,6 +33,7 @@ export default async function InvitationPage({
       venue: invitation.venue,
       timezone: "UTC",
       banner: defaultPublicBanner(),
+      heading: defaultPublicHeading(),
     };
 
   if (invitation.gate === "cancelled") {

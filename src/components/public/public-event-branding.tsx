@@ -2,12 +2,19 @@ import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { EmailBranding } from "@/modules/communications/email-branding";
 import type { PublicBannerBranding } from "@/modules/branding/public-event-branding";
+import {
+  brandHeadingEyebrowClass,
+  brandHeadingTitleClass,
+  defaultHeadingColor,
+  type BrandHeadingStyle,
+} from "@/modules/branding/brand-heading-style";
 
 export type PublicBrandTokens = Pick<
   EmailBranding,
   "accentColor" | "accentSoft" | "accentBorder" | "logoUrl" | "bannerUrl"
 > & {
   banner?: PublicBannerBranding;
+  heading?: BrandHeadingStyle & { cssFamily?: string };
 };
 
 export function publicBrandStyle(branding: PublicBrandTokens): CSSProperties {
@@ -33,8 +40,14 @@ function HeroCopy({
   children?: ReactNode;
   onAccent: boolean;
 }) {
+  const heading = branding.heading;
+  const size = heading?.size ?? "md";
+  const textColor =
+    heading?.color ?? defaultHeadingColor(onAccent);
+  const fontFamily = heading?.cssFamily;
+
   return (
-    <div className={cn("space-y-2", onAccent ? "text-white" : "text-slate-900")}>
+    <div className="space-y-2" style={{ color: textColor, fontFamily }}>
       {branding.logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -49,28 +62,37 @@ function HeroCopy({
       {eyebrow ? (
         <p
           className={cn(
-            "text-[0.6875rem] font-semibold uppercase tracking-[0.06em]",
-            onAccent ? "text-white/75" : "text-slate-500",
+            "font-semibold uppercase tracking-[0.06em]",
+            brandHeadingEyebrowClass(size),
           )}
-          style={onAccent ? undefined : { color: branding.accentColor }}
+          style={{
+            color: heading?.color
+              ? textColor
+              : onAccent
+                ? "rgba(255,255,255,0.75)"
+                : branding.accentColor,
+            opacity: heading?.color ? 0.85 : undefined,
+          }}
         >
           {eyebrow}
         </p>
       ) : null}
       <h1
         className={cn(
-          "text-3xl font-semibold tracking-[-0.02em] sm:text-4xl",
-          onAccent ? "text-white" : "text-slate-900",
+          "font-semibold tracking-[-0.02em]",
+          brandHeadingTitleClass(size),
         )}
+        style={{ color: textColor, fontFamily }}
       >
         {title}
       </h1>
       {description ? (
         <div
-          className={cn(
-            "text-sm sm:text-base",
-            onAccent ? "text-white/90" : "text-slate-600",
-          )}
+          className="text-sm sm:text-base"
+          style={{
+            color: textColor,
+            opacity: onAccent || heading?.color ? 0.9 : undefined,
+          }}
         >
           {description}
         </div>
@@ -91,6 +113,7 @@ function BannerStrip({
   if (mode === "IMAGE" && (banner?.imageUrl || branding.bannerUrl)) {
     const src = banner?.imageUrl ?? branding.bannerUrl ?? "";
     const blur = banner?.blur ?? 0;
+    const objectPosition = banner?.objectPosition ?? "50% 50%";
     return (
       <div
         className="relative overflow-hidden border-b"
@@ -104,14 +127,15 @@ function BannerStrip({
           src={src}
           alt=""
           className="mx-auto block h-auto w-full max-h-64 object-cover"
-          style={
-            blur > 0
+          style={{
+            objectPosition,
+            ...(blur > 0
               ? {
                   filter: `blur(${blur}px)`,
                   transform: "scale(1.06)",
                 }
-              : undefined
-          }
+              : {}),
+          }}
         />
       </div>
     );

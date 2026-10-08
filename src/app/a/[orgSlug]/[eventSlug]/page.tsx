@@ -5,6 +5,7 @@ import { PublicEventHero } from "@/components/public/public-event-branding";
 import { formatEventWindow, turnstileSiteKey } from "@/lib/utils";
 import {
   defaultPublicBanner,
+  defaultPublicHeading,
   loadPublicEventBrandingBySlugs,
 } from "@/modules/branding/public-event-branding";
 import { PublicApplyForm } from "./apply-form";
@@ -32,6 +33,7 @@ export default async function PublicApplyPage({
       venue: event.venue,
       timezone: event.timezone,
       banner: defaultPublicBanner(),
+      heading: defaultPublicHeading(),
     };
 
   return (

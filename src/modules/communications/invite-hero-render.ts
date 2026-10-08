@@ -4,6 +4,17 @@
  */
 import sharp, { type OverlayOptions } from "sharp";
 import {
+  type BrandHeadingFont,
+  type BrandHeadingSize,
+  defaultHeadingColor,
+  heroTypeScale,
+  parseBrandHeadingFont,
+  parseBrandHeadingSize,
+  parseFocalPercent,
+  parseBrandHeadingColor,
+} from "@/modules/branding/brand-heading-style";
+import { coverCropFromFocal } from "@/modules/branding/cover-focal";
+import {
   type EmailHeroBackgroundMode,
   type EmailHeroGradientStyle,
   gradientPreset,
@@ -38,6 +49,7 @@ type CopyBlock =
 function layoutCopyBaselines(
   blocks: CopyBlock[],
   contentStart: number,
+  scale: ReturnType<typeof heroTypeScale>,
 ): number[] {
   if (blocks.length === 0) return [];
 
@@ -58,15 +70,15 @@ function layoutCopyBaselines(
   const firstLineBaseline = (block: CopyBlock) => {
     switch (block.kind) {
       case "eyebrow":
-        return 28;
+        return scale.eyebrow;
       case "title":
-        return 54;
+        return scale.title;
       case "rule":
         return 0;
       case "details":
-        return 30;
+        return scale.detail;
       case "closing":
-        return 28;
+        return scale.closing;
     }
   };
 
@@ -149,12 +161,18 @@ export type InviteHeroRenderInput = {
   gradientStyle?: EmailHeroGradientStyle | null;
   /** Sharp blur sigma when mode is IMAGE (0 = sharp photo). */
   blur?: number | null;
+  /** Photo focal point 0–100 (which part of the image stays in frame). */
+  focalX?: number | null;
+  focalY?: number | null;
   logoUrl?: string | null;
   accentColor: string;
   eyebrow?: string | null;
   title: string;
   detailLines?: string[];
   closing?: string | null;
+  headingColor?: string | null;
+  headingFont?: BrandHeadingFont | string | null;
+  headingSize?: BrandHeadingSize | string | null;
 };
 
 export type InviteHeroRenderResult = {
@@ -173,6 +191,13 @@ export async function renderInviteHeroPng(
   const accent = hexToRgb(input.accentColor);
   const mode = parseEmailHeroBackgroundMode(input.backgroundMode);
   const gradient = gradientPreset(parseEmailHeroGradientStyle(input.gradientStyle));
+  const headingFont = parseBrandHeadingFont(input.headingFont);
+  const headingSize = parseBrandHeadingSize(input.headingSize);
+  const typeScale = heroTypeScale(headingSize);
+  const textFill =
+    parseBrandHeadingColor(input.headingColor) ?? defaultHeadingColor(true);
+  const focalX = parseFocalPercent(input.focalX, 50);
+  const focalY = parseFocalPercent(input.focalY, 50);
 
   let usedBackgroundPhoto = false;
   let base: Buffer;
@@ -222,9 +247,26 @@ export async function renderInviteHeroPng(
           : null;
     if (raw) {
       const blur = parseHeroBlur(input.blur, 6);
-      let photo = sharp(raw)
-        .rotate()
-        .resize(WIDTH, HEIGHT, { fit: "cover", position: "centre" });
+      const rotated = sharp(raw).rotate();
+      const meta = await rotated.metadata();
+      const srcW = meta.width ?? WIDTH;
+      const srcH = meta.height ?? HEIGHT;
+      const crop = coverCropFromFocal({
+        srcWidth: srcW,
+        srcHeight: srcH,
+        outWidth: WIDTH,
+        outHeight: HEIGHT,
+        focalX,
+        focalY,
+      });
+      let photo = rotated
+        .resize(crop.width, crop.height)
+        .extract({
+          left: crop.left,
+          top: crop.top,
+          width: WIDTH,
+          height: HEIGHT,
+        });
       if (blur > 0) {
         photo = photo.blur(blur);
       }
@@ -281,21 +323,28 @@ export async function renderInviteHeroPng(
   }
 
   const eyebrow = input.eyebrow?.trim() || "";
-  const titleLines = wrapLines(input.title.trim() || "You're invited", 28);
+  const titleLines = wrapLines(
+    input.title.trim() || "You're invited",
+    typeScale.wrapTitle,
+  );
   const detailLines = (input.detailLines ?? [])
-    .flatMap((line) => wrapLines(line, 34))
+    .flatMap((line) => wrapLines(line, typeScale.wrapDetail))
     .slice(0, 8);
   const closing = input.closing?.trim() || "";
 
   const blocks: CopyBlock[] = [];
   if (eyebrow) {
-    blocks.push({ kind: "eyebrow", text: eyebrow, height: 40 });
+    blocks.push({
+      kind: "eyebrow",
+      text: eyebrow,
+      height: Math.round(typeScale.eyebrow * 1.4),
+    });
   }
   if (titleLines.length > 0) {
     blocks.push({
       kind: "title",
       lines: titleLines,
-      height: titleLines.length * 64,
+      height: titleLines.length * typeScale.titleLine,
     });
   }
   if (detailLines.length > 0) {
@@ -303,11 +352,15 @@ export async function renderInviteHeroPng(
     blocks.push({
       kind: "details",
       lines: detailLines,
-      height: detailLines.length * 42,
+      height: detailLines.length * typeScale.detailLine,
     });
   }
   if (closing) {
-    blocks.push({ kind: "closing", text: closing, height: 40 });
+    blocks.push({
+      kind: "closing",
+      text: closing,
+      height: Math.round(typeScale.closing * 1.4),
+    });
   }
 
   // Copy starts below the logo (or upper band if no logo), then spreads downward.
@@ -315,7 +368,7 @@ export async function renderInviteHeroPng(
     Math.round(HEIGHT * 0.28),
     logoBottom + LOGO_COPY_GAP,
   );
-  const baselines = layoutCopyBaselines(blocks, contentStart);
+  const baselines = layoutCopyBaselines(blocks, contentStart, typeScale);
 
   const glyphs: string[] = [];
   for (let i = 0; i < blocks.length; i++) {
@@ -328,8 +381,10 @@ export async function renderInviteHeroPng(
           text: block.text,
           x: WIDTH / 2,
           y,
-          fontSize: 28,
+          fontSize: typeScale.eyebrow,
+          fill: textFill,
           fillOpacity: 0.88,
+          fontFamily: headingFont,
         }),
       );
     } else if (block.kind === "title") {
@@ -339,15 +394,17 @@ export async function renderInviteHeroPng(
             text: line,
             x: WIDTH / 2,
             y,
-            fontSize: 54,
+            fontSize: typeScale.title,
             style: "bold",
+            fill: textFill,
+            fontFamily: headingFont,
           }),
         );
-        y += 64;
+        y += typeScale.titleLine;
       }
     } else if (block.kind === "rule") {
       glyphs.push(
-        `<line x1="360" y1="${y}" x2="760" y2="${y}" stroke="#FFFFFF" stroke-opacity="0.85" stroke-width="4"/>`,
+        `<line x1="360" y1="${y}" x2="760" y2="${y}" stroke="${textFill}" stroke-opacity="0.85" stroke-width="4"/>`,
       );
     } else if (block.kind === "details") {
       for (const line of block.lines) {
@@ -356,11 +413,13 @@ export async function renderInviteHeroPng(
             text: line,
             x: WIDTH / 2,
             y,
-            fontSize: 30,
+            fontSize: typeScale.detail,
+            fill: textFill,
             fillOpacity: 0.92,
+            fontFamily: headingFont,
           }),
         );
-        y += 42;
+        y += typeScale.detailLine;
       }
     } else if (block.kind === "closing") {
       glyphs.push(
@@ -368,9 +427,11 @@ export async function renderInviteHeroPng(
           text: block.text,
           x: WIDTH / 2,
           y,
-          fontSize: 28,
+          fontSize: typeScale.closing,
           style: "italic",
+          fill: textFill,
           fillOpacity: 0.88,
+          fontFamily: headingFont,
         }),
       );
     }

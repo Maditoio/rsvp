@@ -2,6 +2,10 @@ import { prisma } from "@/lib/db/prisma";
 import { requireEvent } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
 import { hasPermission } from "@/lib/authz/permissions";
+import {
+  parseFocalPercent,
+  resolveBrandHeadingStyle,
+} from "@/modules/branding/brand-heading-style";
 import { resolveEmailBranding } from "@/modules/communications/email-branding";
 import {
   parseBannerBlur,
@@ -28,16 +32,23 @@ export default async function BrandingPage({
           emailBannerMode: true,
           emailBannerGradientStyle: true,
           emailBannerBlur: true,
+          emailBannerFocalX: true,
+          emailBannerFocalY: true,
           websiteConfig: true,
           emailHeroOverlayEnabled: true,
           emailHeroBackgroundMode: true,
           emailHeroGradientStyle: true,
           emailHeroBlur: true,
+          emailHeroFocalX: true,
+          emailHeroFocalY: true,
           emailHeroEyebrow: true,
           emailHeroTitle: true,
           emailHeroDetail: true,
           emailHeroClosing: true,
           emailHeroImageUrl: true,
+          brandHeadingColor: true,
+          brandHeadingFont: true,
+          brandHeadingSize: true,
         },
       },
     },
@@ -50,6 +61,12 @@ export default async function BrandingPage({
     websiteConfig: event?.settings?.websiteConfig,
     heroOverlayEnabled: event?.settings?.emailHeroOverlayEnabled,
     heroImageUrl: event?.settings?.emailHeroImageUrl,
+  });
+
+  const heading = resolveBrandHeadingStyle({
+    color: event?.settings?.brandHeadingColor,
+    font: event?.settings?.brandHeadingFont,
+    size: event?.settings?.brandHeadingSize,
   });
 
   return (
@@ -68,6 +85,8 @@ export default async function BrandingPage({
           event?.settings?.emailBannerGradientStyle,
         ),
         blur: parseBannerBlur(event?.settings?.emailBannerBlur, 0),
+        focalX: parseFocalPercent(event?.settings?.emailBannerFocalX, 50),
+        focalY: parseFocalPercent(event?.settings?.emailBannerFocalY, 50),
       }}
       hero={{
         enabled: event?.settings?.emailHeroOverlayEnabled ?? false,
@@ -78,12 +97,15 @@ export default async function BrandingPage({
           event?.settings?.emailHeroGradientStyle,
         ),
         blur: parseHeroBlur(event?.settings?.emailHeroBlur, 6),
+        focalX: parseFocalPercent(event?.settings?.emailHeroFocalX, 50),
+        focalY: parseFocalPercent(event?.settings?.emailHeroFocalY, 50),
         eyebrow: event?.settings?.emailHeroEyebrow ?? "",
         title: event?.settings?.emailHeroTitle ?? "",
         detail: event?.settings?.emailHeroDetail ?? "",
         closing: event?.settings?.emailHeroClosing ?? "",
         imageUrl: event?.settings?.emailHeroImageUrl ?? null,
       }}
+      heading={heading}
     />
   );
 }

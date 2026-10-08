@@ -67,6 +67,11 @@ export async function regenerateEventInviteHero(input: {
           emailHeroBackgroundMode: true,
           emailHeroGradientStyle: true,
           emailHeroBlur: true,
+          emailHeroFocalX: true,
+          emailHeroFocalY: true,
+          brandHeadingColor: true,
+          brandHeadingFont: true,
+          brandHeadingSize: true,
           websiteConfig: true,
         },
       },
@@ -109,6 +114,8 @@ export async function regenerateEventInviteHero(input: {
       event.settings.emailHeroGradientStyle,
     ),
     blur: parseHeroBlur(event.settings.emailHeroBlur, 6),
+    focalX: event.settings.emailHeroFocalX,
+    focalY: event.settings.emailHeroFocalY,
     logoUrl: event.logoUrl,
     accentColor: accent,
     eyebrow:
@@ -117,6 +124,9 @@ export async function regenerateEventInviteHero(input: {
     detailLines: customDetail.length > 0 ? customDetail : autoDetail,
     closing:
       event.settings.emailHeroClosing?.trim() || "Can't wait to see you there!",
+    headingColor: event.settings.brandHeadingColor,
+    headingFont: event.settings.brandHeadingFont,
+    headingSize: event.settings.brandHeadingSize,
   });
 
   if (

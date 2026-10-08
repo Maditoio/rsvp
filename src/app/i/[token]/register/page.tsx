@@ -16,6 +16,7 @@ import {
 import { eventDayOptions } from "@/lib/event-dates";
 import {
   defaultPublicBanner,
+  defaultPublicHeading,
   loadPublicEventBrandingByIds,
 } from "@/modules/branding/public-event-branding";
 import { DEFAULT_EMAIL_ACCENT } from "@/modules/communications/email-branding";
@@ -44,6 +45,7 @@ export default async function RegisterPage({
       venue: invitation.venue,
       timezone: "UTC",
       banner: defaultPublicBanner(),
+      heading: defaultPublicHeading(),
     };
 
   if (

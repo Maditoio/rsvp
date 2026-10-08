@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 // opentype.js ESM build exposes named exports only (no default) — required for Turbopack.
 import { parse as parseOpenTypeFont, type Font } from "opentype.js";
+import type { BrandHeadingFont } from "@/modules/branding/brand-heading-style";
 
 type HeroFontSet = {
   regular: Font;
@@ -9,7 +10,7 @@ type HeroFontSet = {
   italic: Font;
 };
 
-let cached: HeroFontSet | null = null;
+const cache = new Map<BrandHeadingFont, HeroFontSet>();
 
 function loadFont(filename: string): Font {
   const path = join(process.cwd(), "assets/fonts/invite-hero", filename);
@@ -22,15 +23,28 @@ function loadFont(filename: string): Font {
   );
 }
 
-function fonts(): HeroFontSet {
-  if (!cached) {
-    cached = {
+function fontsFor(family: BrandHeadingFont): HeroFontSet {
+  const hit = cache.get(family);
+  if (hit) return hit;
+
+  let set: HeroFontSet;
+  if (family === "serif") {
+    const regular = loadFont("SourceSerif4-Regular.ttf");
+    const bold = loadFont("SourceSerif4-Bold.ttf");
+    set = { regular, bold, italic: regular };
+  } else if (family === "modern") {
+    const regular = loadFont("DMSans-Regular.ttf");
+    const bold = loadFont("DMSans-Bold.ttf");
+    set = { regular, bold, italic: regular };
+  } else {
+    set = {
       regular: loadFont("Inter-Regular.ttf"),
       bold: loadFont("Inter-Bold.ttf"),
       italic: loadFont("Inter-Italic.ttf"),
     };
   }
-  return cached;
+  cache.set(family, set);
+  return set;
 }
 
 export type HeroTextStyle = "regular" | "bold" | "italic";
@@ -60,9 +74,10 @@ export function heroTextPath(opts: {
   style?: HeroTextStyle;
   fill?: string;
   fillOpacity?: number;
+  fontFamily?: BrandHeadingFont;
 }): string {
   if (!opts.text) return "";
-  const set = fonts();
+  const set = fontsFor(opts.fontFamily ?? "inter");
   const font =
     opts.style === "bold"
       ? set.bold
