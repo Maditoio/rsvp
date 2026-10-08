@@ -275,7 +275,7 @@ export async function moderateMeetingRequest(
   if (decision === "decline") {
     await prisma.meetingRequest.update({
       where: { id: request.id },
-      data: { status: "DECLINED", responseTokenHash: null },
+      data: { status: "DECLINED" },
     });
     await writeAudit({
       organisationId: ctx.organisation.id,
@@ -356,7 +356,7 @@ export async function moderateMeetingRequest(
   const meeting = await prisma.$transaction(async (tx) => {
     await tx.meetingRequest.update({
       where: { id: request.id },
-      data: { status: "ACCEPTED", responseTokenHash: null },
+      data: { status: "ACCEPTED" },
     });
     const m = await tx.meeting.create({
       data: {

@@ -87,9 +87,11 @@ export async function applyMeetingRequestDecision(input: {
   }
 
   if (input.decision === "decline") {
+    // Keep responseTokenHash so the email link can re-open a confirmation
+    // instead of 404ing after the first click or a refresh.
     await prisma.meetingRequest.update({
       where: { id: request.id },
-      data: { status: "DECLINED", responseTokenHash: null },
+      data: { status: "DECLINED" },
     });
     try {
       await refreshMatchScoresForPair(
@@ -137,9 +139,11 @@ export async function applyMeetingRequestDecision(input: {
   const resolvedRoomId = autoSlot?.roomId ?? roomId;
 
   const meeting = await prisma.$transaction(async (tx) => {
+    // Keep responseTokenHash so /m/[token] stays resolvable after accept
+    // (refresh, email scanners, double-open) and can show confirmation.
     await tx.meetingRequest.update({
       where: { id: request.id },
-      data: { status: "ACCEPTED", responseTokenHash: null },
+      data: { status: "ACCEPTED" },
     });
     const m = await tx.meeting.create({
       data: {

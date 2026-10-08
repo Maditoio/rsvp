@@ -1,12 +1,13 @@
+import Link from "next/link";
+import { Suspense } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { requireUser } from "@/lib/authz/require";
 import { safe } from "@/lib/authz/safe";
-import { AuthzError } from "@/lib/db/tenant";
+import { Card } from "@/components/ui/card";
 import {
   peerDisplayName,
   redactAttendeeForViewer,
 } from "@/modules/privacy";
-import { Suspense } from "react";
 import { MeetingsResponseToast } from "@/components/meetings-response-toast";
 import { AttendeeMeetingsPanel } from "./meetings-panel";
 
@@ -86,10 +87,31 @@ export default async function AttendeeMeetingsPage({
     },
   });
   if (!attendee) {
-    await safe(async () => {
-      throw new AuthzError("You are not registered for this event", 403);
+    const event = await prisma.event.findFirst({
+      where: { id: eventId },
+      select: { name: true },
     });
-    return null;
+    return (
+      <Card className="mx-auto max-w-lg">
+        <p className="text-[0.71875rem] font-semibold uppercase tracking-[0.04em] text-indigo-600">
+          Meetings
+        </p>
+        <h1 className="mt-2 font-display text-3xl text-slate-900">
+          Sign in with your attendee account
+        </h1>
+        <p className="mt-3 text-sm text-slate-700">
+          {event
+            ? `You're signed in, but this account is not linked to a registration for ${event.name}. Use the same email you registered with, or open My Events to find your invitations.`
+            : "You're signed in, but this account is not linked to a registration for that event. Open My Events to find your invitations."}
+        </p>
+        <Link
+          href="/me"
+          className="mt-6 inline-flex h-10 items-center rounded-full bg-indigo-600 px-5 text-sm font-semibold text-white shadow-accent hover:bg-indigo-700"
+        >
+          Go to My Events
+        </Link>
+      </Card>
+    );
   }
 
   const timezone = attendee.event.timezone || "UTC";
