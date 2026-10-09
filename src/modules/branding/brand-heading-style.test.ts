@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  parseBrandHeadingAlign,
+  parseBrandHeadingEyebrowUppercase,
   parseBrandHeadingFont,
+  parseBrandHeadingLineHeight,
   parseBrandHeadingSize,
+  parseBrandHeadingTracking,
+  parseBrandHeadingWeight,
   parseFocalPercent,
   resolveBrandHeadingStyle,
 } from "./brand-heading-style";
@@ -9,10 +14,25 @@ import { coverCropFromFocal } from "./cover-focal";
 
 describe("brand heading style", () => {
   it("parses fonts and sizes", () => {
-    expect(parseBrandHeadingFont("serif")).toBe("serif");
+    expect(parseBrandHeadingFont("serif")).toBe("source-serif");
+    expect(parseBrandHeadingFont("modern")).toBe("dm-sans");
+    expect(parseBrandHeadingFont("manrope")).toBe("manrope");
     expect(parseBrandHeadingFont("nope")).toBe("inter");
-    expect(parseBrandHeadingSize("lg")).toBe("lg");
-    expect(parseBrandHeadingSize(undefined)).toBe("md");
+    expect(parseBrandHeadingSize("xl")).toBe(72);
+    expect(parseBrandHeadingSize("54")).toBe(54);
+    expect(parseBrandHeadingSize(60)).toBe(60);
+    expect(parseBrandHeadingSize(200)).toBe(120);
+    expect(parseBrandHeadingSize(undefined)).toBe(54);
+    expect(parseBrandHeadingWeight("medium")).toBe("medium");
+    expect(parseBrandHeadingWeight(undefined)).toBe("bold");
+    expect(parseBrandHeadingTracking("wide")).toBe("wide");
+    expect(parseBrandHeadingTracking(undefined)).toBe("normal");
+    expect(parseBrandHeadingAlign("left")).toBe("left");
+    expect(parseBrandHeadingAlign(undefined)).toBe("center");
+    expect(parseBrandHeadingLineHeight("relaxed")).toBe("relaxed");
+    expect(parseBrandHeadingLineHeight(undefined)).toBe("normal");
+    expect(parseBrandHeadingEyebrowUppercase("false")).toBe(false);
+    expect(parseBrandHeadingEyebrowUppercase(undefined)).toBe(true);
   });
 
   it("clamps focal percents", () => {
@@ -25,7 +45,12 @@ describe("brand heading style", () => {
     expect(resolveBrandHeadingStyle({})).toEqual({
       color: null,
       font: "inter",
-      size: "md",
+      size: 54,
+      weight: "bold",
+      tracking: "normal",
+      align: "center",
+      lineHeight: "normal",
+      eyebrowUppercase: true,
     });
   });
 });
@@ -49,5 +74,28 @@ describe("coverCropFromFocal", () => {
       focalY: 50,
     });
     expect(right.left).toBeGreaterThan(center.left);
+  });
+
+  it("zooms into a smaller crop region", () => {
+    const fit = coverCropFromFocal({
+      srcWidth: 2000,
+      srcHeight: 1000,
+      outWidth: 1120,
+      outHeight: 1480,
+      focalX: 50,
+      focalY: 50,
+      zoom: 100,
+    });
+    const zoomed = coverCropFromFocal({
+      srcWidth: 2000,
+      srcHeight: 1000,
+      outWidth: 1120,
+      outHeight: 1480,
+      focalX: 50,
+      focalY: 50,
+      zoom: 200,
+    });
+    expect(zoomed.width).toBeGreaterThan(fit.width);
+    expect(zoomed.height).toBeGreaterThan(fit.height);
   });
 });

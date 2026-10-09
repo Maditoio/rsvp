@@ -83,3 +83,15 @@ export function parseBannerBlur(value: unknown, fallback = 0): number {
 export function parseHeroBlur(value: unknown, fallback = 6): number {
   return parseBannerBlur(value, fallback);
 }
+
+/** Clamp hero dark veil strength (0–100). Default 55 matches the original overlay. */
+export function parseHeroOverlay(value: unknown, fallback = 55): number {
+  const n =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number.parseInt(value, 10)
+        : Number.NaN;
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(100, Math.max(0, Math.round(n)));
+}

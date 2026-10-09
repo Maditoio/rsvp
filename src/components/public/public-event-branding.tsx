@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 import type { EmailBranding } from "@/modules/communications/email-branding";
 import type { PublicBannerBranding } from "@/modules/branding/public-event-branding";
 import {
-  brandHeadingEyebrowClass,
-  brandHeadingTitleClass,
+  brandHeadingPublicEyebrowPx,
+  brandHeadingPublicTitlePx,
   defaultHeadingColor,
   type BrandHeadingStyle,
 } from "@/modules/branding/brand-heading-style";
@@ -14,7 +14,13 @@ export type PublicBrandTokens = Pick<
   "accentColor" | "accentSoft" | "accentBorder" | "logoUrl" | "bannerUrl"
 > & {
   banner?: PublicBannerBranding;
-  heading?: BrandHeadingStyle & { cssFamily?: string };
+  heading?: BrandHeadingStyle & {
+    cssFamily?: string;
+    cssWeight?: number;
+    cssTracking?: string;
+    cssLineHeight?: number;
+    cssTextAlign?: "left" | "center";
+  };
 };
 
 export function publicBrandStyle(branding: PublicBrandTokens): CSSProperties {
@@ -41,13 +47,23 @@ function HeroCopy({
   onAccent: boolean;
 }) {
   const heading = branding.heading;
-  const size = heading?.size ?? "md";
+  const size = heading?.size ?? 54;
   const textColor =
     heading?.color ?? defaultHeadingColor(onAccent);
   const fontFamily = heading?.cssFamily;
+  const fontWeight = heading?.cssWeight ?? 700;
+  const letterSpacing = heading?.cssTracking ?? "-0.02em";
+  const lineHeight = heading?.cssLineHeight ?? 1.18;
+  const textAlign = heading?.cssTextAlign ?? "left";
+  const eyebrowUppercase = heading?.eyebrowUppercase ?? true;
+  const titlePx = brandHeadingPublicTitlePx(size);
+  const eyebrowPx = brandHeadingPublicEyebrowPx(size);
 
   return (
-    <div className="space-y-2" style={{ color: textColor, fontFamily }}>
+    <div
+      className="space-y-2"
+      style={{ color: textColor, fontFamily, textAlign }}
+    >
       {branding.logoUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -56,33 +72,41 @@ function HeroCopy({
           className={cn(
             "max-h-12 max-w-[180px] object-contain",
             onAccent ? "mb-3" : "mb-1",
+            textAlign === "center" && "mx-auto",
           )}
         />
       ) : null}
       {eyebrow ? (
         <p
-          className={cn(
-            "font-semibold uppercase tracking-[0.06em]",
-            brandHeadingEyebrowClass(size),
-          )}
+          className={cn("font-semibold", eyebrowUppercase && "uppercase")}
           style={{
+            fontSize: eyebrowPx,
             color: heading?.color
               ? textColor
               : onAccent
                 ? "rgba(255,255,255,0.75)"
                 : branding.accentColor,
             opacity: heading?.color ? 0.85 : undefined,
+            letterSpacing:
+              heading?.tracking === "wide"
+                ? "0.08em"
+                : heading?.tracking === "tight"
+                  ? "0.04em"
+                  : "0.06em",
           }}
         >
           {eyebrow}
         </p>
       ) : null}
       <h1
-        className={cn(
-          "font-semibold tracking-[-0.02em]",
-          brandHeadingTitleClass(size),
-        )}
-        style={{ color: textColor, fontFamily }}
+        style={{
+          fontSize: titlePx,
+          color: textColor,
+          fontFamily,
+          fontWeight,
+          letterSpacing,
+          lineHeight,
+        }}
       >
         {title}
       </h1>
@@ -113,7 +137,9 @@ function BannerStrip({
   if (mode === "IMAGE" && (banner?.imageUrl || branding.bannerUrl)) {
     const src = banner?.imageUrl ?? branding.bannerUrl ?? "";
     const blur = banner?.blur ?? 0;
+    const zoom = Math.min(200, Math.max(100, banner?.zoom ?? 100));
     const objectPosition = banner?.objectPosition ?? "50% 50%";
+    const scale = (zoom / 100) * (blur > 0 ? 1.06 : 1);
     return (
       <div
         className="relative overflow-hidden border-b"
@@ -129,12 +155,9 @@ function BannerStrip({
           className="mx-auto block h-auto w-full max-h-64 object-cover"
           style={{
             objectPosition,
-            ...(blur > 0
-              ? {
-                  filter: `blur(${blur}px)`,
-                  transform: "scale(1.06)",
-                }
-              : {}),
+            transform: `scale(${scale})`,
+            transformOrigin: objectPosition,
+            ...(blur > 0 ? { filter: `blur(${blur}px)` } : {}),
           }}
         />
       </div>

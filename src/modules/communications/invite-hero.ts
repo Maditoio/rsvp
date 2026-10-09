@@ -29,7 +29,7 @@ function detailLinesFromSettings(detail: string | null | undefined): string[] {
 export async function regenerateEventInviteHero(input: {
   organisationId: string;
   eventId: string;
-  /** Optional: use this buffer instead of re-fetching the banner URL. */
+  /** Optional: use this buffer instead of re-fetching the hero photo URL. */
   backgroundBuffer?: Buffer | null;
   /** When true, turn overlay on before generating (e.g. upload while UI toggle is on). */
   enableOverlay?: boolean;
@@ -58,7 +58,7 @@ export async function regenerateEventInviteHero(input: {
       settings: {
         select: {
           emailAccentColor: true,
-          emailBannerUrl: true,
+          emailHeroPhotoUrl: true,
           emailHeroOverlayEnabled: true,
           emailHeroEyebrow: true,
           emailHeroTitle: true,
@@ -67,11 +67,18 @@ export async function regenerateEventInviteHero(input: {
           emailHeroBackgroundMode: true,
           emailHeroGradientStyle: true,
           emailHeroBlur: true,
+          emailHeroOverlay: true,
           emailHeroFocalX: true,
           emailHeroFocalY: true,
+          emailHeroZoom: true,
           brandHeadingColor: true,
           brandHeadingFont: true,
           brandHeadingSize: true,
+          brandHeadingWeight: true,
+          brandHeadingTracking: true,
+          brandHeadingAlign: true,
+          brandHeadingLineHeight: true,
+          brandHeadingEyebrowUppercase: true,
           websiteConfig: true,
         },
       },
@@ -104,7 +111,7 @@ export async function regenerateEventInviteHero(input: {
   ].filter(Boolean) as string[];
 
   const customDetail = detailLinesFromSettings(event.settings.emailHeroDetail);
-  const backgroundUrl = event.settings.emailBannerUrl;
+  const backgroundUrl = event.settings.emailHeroPhotoUrl;
   const backgroundMode = event.settings.emailHeroBackgroundMode ?? "COLOR";
   const { png, usedBackgroundPhoto } = await renderInviteHeroPng({
     backgroundBuffer: input.backgroundBuffer,
@@ -114,8 +121,10 @@ export async function regenerateEventInviteHero(input: {
       event.settings.emailHeroGradientStyle,
     ),
     blur: parseHeroBlur(event.settings.emailHeroBlur, 6),
+    overlay: event.settings.emailHeroOverlay,
     focalX: event.settings.emailHeroFocalX,
     focalY: event.settings.emailHeroFocalY,
+    zoom: event.settings.emailHeroZoom,
     logoUrl: event.logoUrl,
     accentColor: accent,
     eyebrow:
@@ -127,6 +136,11 @@ export async function regenerateEventInviteHero(input: {
     headingColor: event.settings.brandHeadingColor,
     headingFont: event.settings.brandHeadingFont,
     headingSize: event.settings.brandHeadingSize,
+    headingWeight: event.settings.brandHeadingWeight,
+    headingTracking: event.settings.brandHeadingTracking,
+    headingAlign: event.settings.brandHeadingAlign,
+    headingLineHeight: event.settings.brandHeadingLineHeight,
+    headingEyebrowUppercase: event.settings.brandHeadingEyebrowUppercase,
   });
 
   if (
@@ -135,7 +149,7 @@ export async function regenerateEventInviteHero(input: {
     !usedBackgroundPhoto
   ) {
     throw new Error(
-      "Could not load the banner image for the invitation hero. Re-upload a PNG, JPEG, or WebP banner and try again.",
+      "Could not load the hero photo for the invitation. Re-upload a PNG, JPEG, or WebP photo and try again.",
     );
   }
 
@@ -154,12 +168,12 @@ export async function regenerateEventInviteHero(input: {
       eventId: input.eventId,
       emailHeroOverlayEnabled: true,
       emailHeroImageUrl: blob.url,
+      emailHeroPhotoUrl: event.settings.emailHeroPhotoUrl,
       emailHeroEyebrow: event.settings.emailHeroEyebrow,
       emailHeroTitle: event.settings.emailHeroTitle,
       emailHeroDetail: event.settings.emailHeroDetail,
       emailHeroClosing: event.settings.emailHeroClosing,
       emailAccentColor: event.settings.emailAccentColor,
-      emailBannerUrl: event.settings.emailBannerUrl,
     },
     update: { emailHeroImageUrl: blob.url },
   });

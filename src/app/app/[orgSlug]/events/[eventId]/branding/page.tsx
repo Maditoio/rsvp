@@ -6,12 +6,14 @@ import {
   parseFocalPercent,
   resolveBrandHeadingStyle,
 } from "@/modules/branding/brand-heading-style";
+import { parsePhotoZoom } from "@/modules/branding/cover-focal";
 import { resolveEmailBranding } from "@/modules/communications/email-branding";
 import {
   parseBannerBlur,
   parseEmailHeroBackgroundMode,
   parseEmailHeroGradientStyle,
   parseHeroBlur,
+  parseHeroOverlay,
 } from "@/modules/communications/invite-hero-background";
 import { BrandingPanel } from "./branding-panel";
 
@@ -34,13 +36,17 @@ export default async function BrandingPage({
           emailBannerBlur: true,
           emailBannerFocalX: true,
           emailBannerFocalY: true,
+          emailBannerZoom: true,
           websiteConfig: true,
           emailHeroOverlayEnabled: true,
+          emailHeroPhotoUrl: true,
           emailHeroBackgroundMode: true,
           emailHeroGradientStyle: true,
           emailHeroBlur: true,
+          emailHeroOverlay: true,
           emailHeroFocalX: true,
           emailHeroFocalY: true,
+          emailHeroZoom: true,
           emailHeroEyebrow: true,
           emailHeroTitle: true,
           emailHeroDetail: true,
@@ -49,6 +55,11 @@ export default async function BrandingPage({
           brandHeadingColor: true,
           brandHeadingFont: true,
           brandHeadingSize: true,
+          brandHeadingWeight: true,
+          brandHeadingTracking: true,
+          brandHeadingAlign: true,
+          brandHeadingLineHeight: true,
+          brandHeadingEyebrowUppercase: true,
         },
       },
     },
@@ -67,6 +78,11 @@ export default async function BrandingPage({
     color: event?.settings?.brandHeadingColor,
     font: event?.settings?.brandHeadingFont,
     size: event?.settings?.brandHeadingSize,
+    weight: event?.settings?.brandHeadingWeight,
+    tracking: event?.settings?.brandHeadingTracking,
+    align: event?.settings?.brandHeadingAlign,
+    lineHeight: event?.settings?.brandHeadingLineHeight,
+    eyebrowUppercase: event?.settings?.brandHeadingEyebrowUppercase,
   });
 
   return (
@@ -87,9 +103,11 @@ export default async function BrandingPage({
         blur: parseBannerBlur(event?.settings?.emailBannerBlur, 0),
         focalX: parseFocalPercent(event?.settings?.emailBannerFocalX, 50),
         focalY: parseFocalPercent(event?.settings?.emailBannerFocalY, 50),
+        zoom: parsePhotoZoom(event?.settings?.emailBannerZoom, 100),
       }}
       hero={{
         enabled: event?.settings?.emailHeroOverlayEnabled ?? false,
+        photoUrl: event?.settings?.emailHeroPhotoUrl ?? null,
         backgroundMode: parseEmailHeroBackgroundMode(
           event?.settings?.emailHeroBackgroundMode,
         ),
@@ -97,8 +115,10 @@ export default async function BrandingPage({
           event?.settings?.emailHeroGradientStyle,
         ),
         blur: parseHeroBlur(event?.settings?.emailHeroBlur, 6),
+        overlay: parseHeroOverlay(event?.settings?.emailHeroOverlay, 55),
         focalX: parseFocalPercent(event?.settings?.emailHeroFocalX, 50),
         focalY: parseFocalPercent(event?.settings?.emailHeroFocalY, 50),
+        zoom: parsePhotoZoom(event?.settings?.emailHeroZoom, 100),
         eyebrow: event?.settings?.emailHeroEyebrow ?? "",
         title: event?.settings?.emailHeroTitle ?? "",
         detail: event?.settings?.emailHeroDetail ?? "",

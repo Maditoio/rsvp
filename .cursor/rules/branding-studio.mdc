@@ -1,0 +1,40 @@
+---
+description: Branding studio UX and invite-hero conventions (additive to Aurora)
+globs: "**/branding/**/*.{ts,tsx},**/modules/branding/**/*,**/communications/invite-hero*.ts,**/communications/email-branding*.ts,**/communications/email-layout.ts,**/ui/slider.tsx"
+alwaysApply: false
+---
+
+# Branding studio
+
+Additive to [design-system.mdc](design-system.mdc) / Aurora. Organiser chrome stays indigo/slate; event brand colour is for public/email surfaces only. Do not mix Ministerial (ink/stone/bronze).
+
+## Studio UX
+
+- Dense controls studio (not sparse marketing layouts).
+- Pill tabs: **Identity · Page banner · Invite hero · Typography**.
+- Sticky live preview; sticky save bar; Desktop | Mobile preview toggle.
+- Unsaved dirty state + Cmd/Ctrl+S; warn on unload when dirty.
+- “More options” disclosures for advanced controls — keep primary controls uncluttered.
+- Fade/indigo `Slider` track (see `slider.tsx`); no sample/shortcut chip clutter on type controls.
+- Success/error via **toasts/dialogs only** — never inline page notice/error copy.
+- No decorative page/section eyebrows (no `PageHeader` eyebrow; no uppercase eyebrow chrome above sections). Keep necessary form `FieldsetLabel`s.
+- “Send me a preview” email only after save (disabled while dirty).
+
+## Typography
+
+- Canva-style: font dropdowns + numeric size field; size slider under More options.
+- Medium/Semibold must match live preview **and** invite-hero PNG — real weight TTFs in `assets/fonts/invite-hero/`.
+- Under More options: text align, line height, eyebrow uppercase toggle.
+- Counters: Title ≤160 (`HERO_TITLE_MAX`), Eyebrow ≤120 (`HERO_EYEBROW_MAX`).
+
+## Photo / colours
+
+- Page banner (`emailBannerUrl`) and invitation hero source photo (`emailHeroPhotoUrl`) are **separate uploads** — do not share one image field. `emailHeroImageUrl` is the composed PNG cache only.
+- Drag-and-drop upload onto banner/hero frame; independent local previews; focal pan + Zoom 100–200% per surface.
+- Low-res warning when photo width < ~1200px (`PHOTO_MIN_RECOMMENDED_WIDTH`).
+- Invite-hero overlay darkness slider; contrast warning + one-click heading fix vs backdrop.
+- Suggest colours from uploaded logo; recent custom colours row (localStorage OK).
+
+## Email truth
+
+Invitation hero PNG is source of truth for outbound email; keep live preview visually close to the rendered PNG.

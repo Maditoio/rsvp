@@ -4,16 +4,31 @@
  */
 import sharp, { type OverlayOptions } from "sharp";
 import {
+  type BrandHeadingAlign,
   type BrandHeadingFont,
+  type BrandHeadingLineHeight,
   type BrandHeadingSize,
+  type BrandHeadingTracking,
+  type BrandHeadingWeight,
+  brandHeadingHeroTrackingEm,
   defaultHeadingColor,
   heroTypeScale,
-  parseBrandHeadingFont,
-  parseBrandHeadingSize,
-  parseFocalPercent,
+  heroWeightStyle,
+  parseBrandHeadingAlign,
   parseBrandHeadingColor,
+  parseBrandHeadingEyebrowUppercase,
+  parseBrandHeadingFont,
+  parseBrandHeadingLineHeight,
+  parseBrandHeadingSize,
+  parseBrandHeadingTracking,
+  parseBrandHeadingWeight,
+  parseFocalPercent,
 } from "@/modules/branding/brand-heading-style";
-import { coverCropFromFocal } from "@/modules/branding/cover-focal";
+import {
+  coverCropFromFocal,
+  parsePhotoZoom,
+} from "@/modules/branding/cover-focal";
+import { heroOverlayStops } from "@/modules/branding/heading-contrast";
 import {
   type EmailHeroBackgroundMode,
   type EmailHeroGradientStyle,
@@ -21,6 +36,7 @@ import {
   parseEmailHeroBackgroundMode,
   parseEmailHeroGradientStyle,
   parseHeroBlur,
+  parseHeroOverlay,
 } from "@/modules/communications/invite-hero-background";
 import { heroTextPath } from "@/modules/communications/invite-hero-fonts";
 
@@ -34,6 +50,9 @@ const LOGO_MAX_H = 140;
 /** Minimum breathing room between logo and the first copy line. */
 const LOGO_COPY_GAP = 72;
 const BOTTOM_PAD = Math.round(HEIGHT * 0.1);
+const TEXT_LEFT = 120;
+const TEXT_CENTER = Math.round(WIDTH / 2);
+const RULE_WIDTH = 400;
 
 type CopyBlock =
   | { kind: "eyebrow"; text: string; height: number }
@@ -161,9 +180,13 @@ export type InviteHeroRenderInput = {
   gradientStyle?: EmailHeroGradientStyle | null;
   /** Sharp blur sigma when mode is IMAGE (0 = sharp photo). */
   blur?: number | null;
+  /** Dark veil strength 0–100 (bottom stop opacity). */
+  overlay?: number | null;
   /** Photo focal point 0–100 (which part of the image stays in frame). */
   focalX?: number | null;
   focalY?: number | null;
+  /** Photo zoom percent 100–200. */
+  zoom?: number | null;
   logoUrl?: string | null;
   accentColor: string;
   eyebrow?: string | null;
@@ -173,6 +196,11 @@ export type InviteHeroRenderInput = {
   headingColor?: string | null;
   headingFont?: BrandHeadingFont | string | null;
   headingSize?: BrandHeadingSize | string | null;
+  headingWeight?: BrandHeadingWeight | string | null;
+  headingTracking?: BrandHeadingTracking | string | null;
+  headingAlign?: BrandHeadingAlign | string | null;
+  headingLineHeight?: BrandHeadingLineHeight | string | null;
+  headingEyebrowUppercase?: boolean | string | null;
 };
 
 export type InviteHeroRenderResult = {
@@ -193,11 +221,25 @@ export async function renderInviteHeroPng(
   const gradient = gradientPreset(parseEmailHeroGradientStyle(input.gradientStyle));
   const headingFont = parseBrandHeadingFont(input.headingFont);
   const headingSize = parseBrandHeadingSize(input.headingSize);
-  const typeScale = heroTypeScale(headingSize);
+  const headingWeight = parseBrandHeadingWeight(input.headingWeight);
+  const headingTracking = parseBrandHeadingTracking(input.headingTracking);
+  const headingAlign = parseBrandHeadingAlign(input.headingAlign);
+  const headingLineHeight = parseBrandHeadingLineHeight(input.headingLineHeight);
+  const eyebrowUppercase = parseBrandHeadingEyebrowUppercase(
+    input.headingEyebrowUppercase ?? true,
+  );
+  const typeScale = heroTypeScale(headingSize, headingLineHeight);
+  const titleStyle = heroWeightStyle(headingWeight);
+  const trackingEm = brandHeadingHeroTrackingEm(headingTracking);
+  const textX = headingAlign === "left" ? TEXT_LEFT : TEXT_CENTER;
+  const overlayStops = heroOverlayStops(
+    parseHeroOverlay(input.overlay, 55),
+  );
   const textFill =
     parseBrandHeadingColor(input.headingColor) ?? defaultHeadingColor(true);
   const focalX = parseFocalPercent(input.focalX, 50);
   const focalY = parseFocalPercent(input.focalY, 50);
+  const zoom = parsePhotoZoom(input.zoom, 100);
 
   let usedBackgroundPhoto = false;
   let base: Buffer;
@@ -258,6 +300,7 @@ export async function renderInviteHeroPng(
         outHeight: HEIGHT,
         focalX,
         focalY,
+        zoom,
       });
       let photo = rotated
         .resize(crop.width, crop.height)
@@ -283,9 +326,9 @@ export async function renderInviteHeroPng(
         `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="veil" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
-              <stop offset="40%" stop-color="#000000" stop-opacity="0.28"/>
-              <stop offset="100%" stop-color="#000000" stop-opacity="0.55"/>
+              <stop offset="0%" stop-color="#000000" stop-opacity="${overlayStops.top.toFixed(3)}"/>
+              <stop offset="40%" stop-color="#000000" stop-opacity="${overlayStops.mid.toFixed(3)}"/>
+              <stop offset="100%" stop-color="#000000" stop-opacity="${overlayStops.bottom.toFixed(3)}"/>
             </linearGradient>
           </defs>
           <rect width="100%" height="100%" fill="url(#veil)"/>
@@ -322,7 +365,8 @@ export async function renderInviteHeroPng(
     }
   }
 
-  const eyebrow = input.eyebrow?.trim() || "";
+  const eyebrowRaw = input.eyebrow?.trim() || "";
+  const eyebrow = eyebrowUppercase ? eyebrowRaw.toUpperCase() : eyebrowRaw;
   const titleLines = wrapLines(
     input.title.trim() || "You're invited",
     typeScale.wrapTitle,
@@ -379,12 +423,14 @@ export async function renderInviteHeroPng(
       glyphs.push(
         heroTextPath({
           text: block.text,
-          x: WIDTH / 2,
+          x: textX,
           y,
           fontSize: typeScale.eyebrow,
           fill: textFill,
           fillOpacity: 0.88,
           fontFamily: headingFont,
+          trackingEm,
+          align: headingAlign,
         }),
       );
     } else if (block.kind === "title") {
@@ -392,31 +438,38 @@ export async function renderInviteHeroPng(
         glyphs.push(
           heroTextPath({
             text: line,
-            x: WIDTH / 2,
+            x: textX,
             y,
             fontSize: typeScale.title,
-            style: "bold",
+            style: titleStyle,
             fill: textFill,
             fontFamily: headingFont,
+            trackingEm,
+            align: headingAlign,
           }),
         );
         y += typeScale.titleLine;
       }
     } else if (block.kind === "rule") {
+      const x1 =
+        headingAlign === "left" ? TEXT_LEFT : TEXT_CENTER - RULE_WIDTH / 2;
+      const x2 = x1 + RULE_WIDTH;
       glyphs.push(
-        `<line x1="360" y1="${y}" x2="760" y2="${y}" stroke="${textFill}" stroke-opacity="0.85" stroke-width="4"/>`,
+        `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${textFill}" stroke-opacity="0.85" stroke-width="4"/>`,
       );
     } else if (block.kind === "details") {
       for (const line of block.lines) {
         glyphs.push(
           heroTextPath({
             text: line,
-            x: WIDTH / 2,
+            x: textX,
             y,
             fontSize: typeScale.detail,
             fill: textFill,
             fillOpacity: 0.92,
             fontFamily: headingFont,
+            trackingEm,
+            align: headingAlign,
           }),
         );
         y += typeScale.detailLine;
@@ -425,13 +478,15 @@ export async function renderInviteHeroPng(
       glyphs.push(
         heroTextPath({
           text: block.text,
-          x: WIDTH / 2,
+          x: textX,
           y,
           fontSize: typeScale.closing,
           style: "italic",
           fill: textFill,
           fillOpacity: 0.88,
           fontFamily: headingFont,
+          trackingEm,
+          align: headingAlign,
         }),
       );
     }

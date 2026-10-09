@@ -203,4 +203,5 @@ export const OUTBOUND_EMAIL_TEMPLATES = [
   "sendPostMeetingFollowUpEmail",
   "sendPostEventFollowUpEmail",
   "sendApplicationDecisionEmail",
+  "sendBrandingPreviewEmail",
 ] as const;

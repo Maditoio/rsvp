@@ -24,6 +24,16 @@ const brandSerif = localFont({
       style: "normal",
     },
     {
+      path: "../../assets/fonts/invite-hero/SourceSerif4-Medium.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../assets/fonts/invite-hero/SourceSerif4-SemiBold.ttf",
+      weight: "600",
+      style: "normal",
+    },
+    {
       path: "../../assets/fonts/invite-hero/SourceSerif4-Bold.ttf",
       weight: "700",
       style: "normal",
@@ -41,12 +51,103 @@ const brandModern = localFont({
       style: "normal",
     },
     {
+      path: "../../assets/fonts/invite-hero/DMSans-Medium.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../assets/fonts/invite-hero/DMSans-SemiBold.ttf",
+      weight: "600",
+      style: "normal",
+    },
+    {
       path: "../../assets/fonts/invite-hero/DMSans-Bold.ttf",
       weight: "700",
       style: "normal",
     },
   ],
   variable: "--font-brand-modern",
+  display: "swap",
+});
+
+const brandManrope = localFont({
+  src: [
+    {
+      path: "../../assets/fonts/invite-hero/Manrope-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../assets/fonts/invite-hero/Manrope-Medium.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../assets/fonts/invite-hero/Manrope-SemiBold.ttf",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../../assets/fonts/invite-hero/Manrope-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-brand-manrope",
+  display: "swap",
+});
+
+const brandJakarta = localFont({
+  src: [
+    {
+      path: "../../assets/fonts/invite-hero/PlusJakartaSans-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../assets/fonts/invite-hero/PlusJakartaSans-Medium.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../assets/fonts/invite-hero/PlusJakartaSans-SemiBold.ttf",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../../assets/fonts/invite-hero/PlusJakartaSans-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-brand-jakarta",
+  display: "swap",
+});
+
+const brandSpaceGrotesk = localFont({
+  src: [
+    {
+      path: "../../assets/fonts/invite-hero/SpaceGrotesk-Regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../assets/fonts/invite-hero/SpaceGrotesk-Medium.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../assets/fonts/invite-hero/SpaceGrotesk-SemiBold.ttf",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../../assets/fonts/invite-hero/SpaceGrotesk-Bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-brand-space-grotesk",
   display: "swap",
 });
 
@@ -99,7 +200,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${brandSerif.variable} ${brandModern.variable} ${playfair.variable} ${dmSerif.variable} ${spaceMono.variable} ${outfit.variable} h-full antialiased`}
+      className={`${inter.variable} ${brandSerif.variable} ${brandModern.variable} ${brandManrope.variable} ${brandJakarta.variable} ${brandSpaceGrotesk.variable} ${playfair.variable} ${dmSerif.variable} ${spaceMono.variable} ${outfit.variable} h-full antialiased`}
     >
       <body className="min-h-full font-sans">
         <Providers>{children}</Providers>

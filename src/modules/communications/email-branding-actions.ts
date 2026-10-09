@@ -10,11 +10,18 @@ import {
   parseEmailHexColor,
 } from "@/modules/communications/email-branding";
 import { invalidateEventMailContextCache } from "@/modules/communications/email-mail-context";
+import { sendBrandingPreviewEmail } from "@/modules/communications/email";
 import { regenerateEventInviteHero } from "@/modules/communications/invite-hero";
 import {
+  formatBrandHeadingSize,
+  parseBrandHeadingAlign,
   parseBrandHeadingColor,
+  parseBrandHeadingEyebrowUppercase,
   parseBrandHeadingFont,
+  parseBrandHeadingLineHeight,
   parseBrandHeadingSize,
+  parseBrandHeadingTracking,
+  parseBrandHeadingWeight,
   parseFocalPercent,
 } from "@/modules/branding/brand-heading-style";
 import {
@@ -22,7 +29,9 @@ import {
   parseEmailHeroBackgroundMode,
   parseEmailHeroGradientStyle,
   parseHeroBlur,
+  parseHeroOverlay,
 } from "@/modules/communications/invite-hero-background";
+import { parsePhotoZoom } from "@/modules/branding/cover-focal";
 import {
   blobStorageNotConfiguredMessage,
   isBlobStorageConfigured,
@@ -44,21 +53,40 @@ const brandingSchema = z.object({
   emailHeroBackgroundMode: z.enum(["IMAGE", "COLOR", "GRADIENT"]),
   emailHeroGradientStyle: z.enum(["indigo", "violet", "teal"]),
   emailHeroBlur: z.number().int().min(0).max(24),
+  emailHeroOverlay: z.number().int().min(0).max(100),
   emailHeroFocalX: z.number().int().min(0).max(100),
   emailHeroFocalY: z.number().int().min(0).max(100),
+  emailHeroZoom: z.number().int().min(100).max(200),
   emailBannerMode: z.enum(["IMAGE", "COLOR", "GRADIENT"]),
   emailBannerGradientStyle: z.enum(["indigo", "violet", "teal"]),
   emailBannerBlur: z.number().int().min(0).max(24),
   emailBannerFocalX: z.number().int().min(0).max(100),
   emailBannerFocalY: z.number().int().min(0).max(100),
+  emailBannerZoom: z.number().int().min(100).max(200),
   brandHeadingColor: z
     .string()
     .trim()
     .regex(/^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/, "Use a valid hex colour")
     .optional()
     .or(z.literal("")),
-  brandHeadingFont: z.enum(["inter", "serif", "modern"]),
-  brandHeadingSize: z.enum(["sm", "md", "lg"]),
+  brandHeadingFont: z.enum([
+    "inter",
+    "dm-sans",
+    "source-serif",
+    "manrope",
+    "jakarta",
+    "space-grotesk",
+    "playfair",
+    "outfit",
+    "serif",
+    "modern",
+  ]),
+  brandHeadingSize: z.number().int().min(24).max(120),
+  brandHeadingWeight: z.enum(["regular", "medium", "semibold", "bold"]),
+  brandHeadingTracking: z.enum(["tight", "normal", "wide"]),
+  brandHeadingAlign: z.enum(["left", "center"]),
+  brandHeadingLineHeight: z.enum(["tight", "normal", "relaxed"]),
+  brandHeadingEyebrowUppercase: z.boolean(),
 });
 
 function revalidateBrandingPaths(orgSlug: string, eventId: string) {
@@ -152,8 +180,10 @@ export async function saveEmailBranding(
       formData.get("emailHeroGradientStyle"),
     ),
     emailHeroBlur: parseHeroBlur(formData.get("emailHeroBlur"), 6),
+    emailHeroOverlay: parseHeroOverlay(formData.get("emailHeroOverlay"), 55),
     emailHeroFocalX: parseFocalPercent(formData.get("emailHeroFocalX"), 50),
     emailHeroFocalY: parseFocalPercent(formData.get("emailHeroFocalY"), 50),
+    emailHeroZoom: parsePhotoZoom(formData.get("emailHeroZoom"), 100),
     emailBannerMode: parseEmailHeroBackgroundMode(
       formData.get("emailBannerMode"),
     ),
@@ -163,9 +193,25 @@ export async function saveEmailBranding(
     emailBannerBlur: parseBannerBlur(formData.get("emailBannerBlur"), 0),
     emailBannerFocalX: parseFocalPercent(formData.get("emailBannerFocalX"), 50),
     emailBannerFocalY: parseFocalPercent(formData.get("emailBannerFocalY"), 50),
+    emailBannerZoom: parsePhotoZoom(formData.get("emailBannerZoom"), 100),
     brandHeadingColor: String(formData.get("brandHeadingColor") ?? ""),
     brandHeadingFont: parseBrandHeadingFont(formData.get("brandHeadingFont")),
     brandHeadingSize: parseBrandHeadingSize(formData.get("brandHeadingSize")),
+    brandHeadingWeight: parseBrandHeadingWeight(
+      formData.get("brandHeadingWeight"),
+    ),
+    brandHeadingTracking: parseBrandHeadingTracking(
+      formData.get("brandHeadingTracking"),
+    ),
+    brandHeadingAlign: parseBrandHeadingAlign(
+      formData.get("brandHeadingAlign"),
+    ),
+    brandHeadingLineHeight: parseBrandHeadingLineHeight(
+      formData.get("brandHeadingLineHeight"),
+    ),
+    brandHeadingEyebrowUppercase: parseBrandHeadingEyebrowUppercase(
+      formData.get("brandHeadingEyebrowUppercase"),
+    ),
   });
 
   const emailAccentColor = parsed.emailAccentColor
@@ -182,6 +228,7 @@ export async function saveEmailBranding(
     emailBannerBlur: parsed.emailBannerBlur,
     emailBannerFocalX: parsed.emailBannerFocalX,
     emailBannerFocalY: parsed.emailBannerFocalY,
+    emailBannerZoom: parsed.emailBannerZoom,
     emailHeroOverlayEnabled: parsed.emailHeroOverlayEnabled,
     emailHeroEyebrow: parsed.emailHeroEyebrow || null,
     emailHeroTitle: parsed.emailHeroTitle || null,
@@ -193,11 +240,18 @@ export async function saveEmailBranding(
         ? parsed.emailHeroGradientStyle
         : null,
     emailHeroBlur: parsed.emailHeroBlur,
+    emailHeroOverlay: parsed.emailHeroOverlay,
     emailHeroFocalX: parsed.emailHeroFocalX,
     emailHeroFocalY: parsed.emailHeroFocalY,
+    emailHeroZoom: parsed.emailHeroZoom,
     brandHeadingColor,
     brandHeadingFont: parsed.brandHeadingFont,
-    brandHeadingSize: parsed.brandHeadingSize,
+    brandHeadingSize: formatBrandHeadingSize(parsed.brandHeadingSize),
+    brandHeadingWeight: parsed.brandHeadingWeight,
+    brandHeadingTracking: parsed.brandHeadingTracking,
+    brandHeadingAlign: parsed.brandHeadingAlign,
+    brandHeadingLineHeight: parsed.brandHeadingLineHeight,
+    brandHeadingEyebrowUppercase: parsed.brandHeadingEyebrowUppercase,
   };
 
   await prisma.eventSettings.upsert({
@@ -248,13 +302,9 @@ export async function uploadEmailBanner(
     throw new Error("Choose a banner image to upload.");
   }
 
-  const enableHero = ["true", "on", "1"].includes(
-    String(formData.get("enableHero") ?? ""),
-  );
-
-  const backgroundBuffer = Buffer.from(await file.arrayBuffer());
+  const bytes = Buffer.from(await file.arrayBuffer());
   // Re-wrap — reading arrayBuffer consumes the original File in some runtimes.
-  const uploadFile = new File([backgroundBuffer], file.name || "banner.jpg", {
+  const uploadFile = new File([bytes], file.name || "banner.jpg", {
     type: file.type || "image/jpeg",
   });
 
@@ -269,7 +319,7 @@ export async function uploadEmailBanner(
   const safeUrl = emailSafeImageUrl(url);
   if (!safeUrl) {
     throw new Error(
-      "Upload a PNG, JPEG, or WebP banner (SVG is not supported in email).",
+      "Upload a PNG, JPEG, or WebP banner (SVG is not supported).",
     );
   }
 
@@ -280,20 +330,12 @@ export async function uploadEmailBanner(
       eventId,
       emailBannerUrl: safeUrl,
       emailBannerMode: "IMAGE",
-      emailHeroOverlayEnabled: enableHero,
     },
     update: {
       emailBannerUrl: safeUrl,
       emailBannerMode: "IMAGE",
-      ...(enableHero ? { emailHeroOverlayEnabled: true } : {}),
     },
   });
-
-  const heroImageUrl = await safeRegenerateHero(ctx.organisation.id, eventId, {
-    backgroundBuffer,
-    enableOverlay: enableHero,
-  });
-  invalidateEventMailContextCache(ctx.organisation.id, eventId);
 
   await writeAudit({
     organisationId: ctx.organisation.id,
@@ -305,7 +347,7 @@ export async function uploadEmailBanner(
   });
 
   revalidateBrandingPaths(orgSlug, eventId);
-  return { url: safeUrl, heroImageUrl };
+  return { url: safeUrl };
 }
 
 export async function removeEmailBanner(orgSlug: string, eventId: string) {
@@ -321,6 +363,108 @@ export async function removeEmailBanner(orgSlug: string, eventId: string) {
     update: { emailBannerUrl: null },
   });
 
+  await writeAudit({
+    organisationId: ctx.organisation.id,
+    eventId,
+    userId: ctx.user.id,
+    action: "communications.email_banner.remove",
+    resource: "event_settings",
+    resourceId: eventId,
+  });
+
+  revalidateBrandingPaths(orgSlug, eventId);
+}
+
+/** Upload the invitation hero backdrop photo (separate from the public page banner). */
+export async function uploadEmailHeroPhoto(
+  orgSlug: string,
+  eventId: string,
+  formData: FormData,
+) {
+  const ctx = await requireEvent(orgSlug, eventId, "event.update");
+  if (!isBlobStorageConfigured()) {
+    throw new Error(blobStorageNotConfiguredMessage());
+  }
+
+  const file = formData.get("heroPhoto");
+  if (!(file instanceof File) || file.size === 0) {
+    throw new Error("Choose a hero photo to upload.");
+  }
+
+  const enableHero = ["true", "on", "1"].includes(
+    String(formData.get("enableHero") ?? ""),
+  );
+
+  const backgroundBuffer = Buffer.from(await file.arrayBuffer());
+  const uploadFile = new File(
+    [backgroundBuffer],
+    file.name || "hero-photo.jpg",
+    { type: file.type || "image/jpeg" },
+  );
+
+  const { url } = await uploadEventAssetImage({
+    organisationId: ctx.organisation.id,
+    eventId,
+    file: uploadFile,
+    pathnameSuffix: "email-hero-photo",
+    kind: "background",
+  });
+
+  const safeUrl = emailSafeImageUrl(url);
+  if (!safeUrl) {
+    throw new Error(
+      "Upload a PNG, JPEG, or WebP photo (SVG is not supported in email).",
+    );
+  }
+
+  await prisma.eventSettings.upsert({
+    where: { eventId },
+    create: {
+      organisationId: ctx.organisation.id,
+      eventId,
+      emailHeroPhotoUrl: safeUrl,
+      emailHeroBackgroundMode: "IMAGE",
+      emailHeroOverlayEnabled: enableHero,
+    },
+    update: {
+      emailHeroPhotoUrl: safeUrl,
+      emailHeroBackgroundMode: "IMAGE",
+      ...(enableHero ? { emailHeroOverlayEnabled: true } : {}),
+    },
+  });
+
+  const heroImageUrl = await safeRegenerateHero(ctx.organisation.id, eventId, {
+    backgroundBuffer,
+    enableOverlay: enableHero,
+  });
+  invalidateEventMailContextCache(ctx.organisation.id, eventId);
+
+  await writeAudit({
+    organisationId: ctx.organisation.id,
+    eventId,
+    userId: ctx.user.id,
+    action: "communications.email_hero_photo.upload",
+    resource: "event_settings",
+    resourceId: eventId,
+  });
+
+  revalidateBrandingPaths(orgSlug, eventId);
+  return { url: safeUrl, heroImageUrl };
+}
+
+export async function removeEmailHeroPhoto(orgSlug: string, eventId: string) {
+  const ctx = await requireEvent(orgSlug, eventId, "event.update");
+
+  await prisma.eventSettings.upsert({
+    where: { eventId },
+    create: {
+      organisationId: ctx.organisation.id,
+      eventId,
+      emailHeroPhotoUrl: null,
+    },
+    update: { emailHeroPhotoUrl: null },
+  });
+
   await safeRegenerateHero(ctx.organisation.id, eventId);
   invalidateEventMailContextCache(ctx.organisation.id, eventId);
 
@@ -328,7 +472,7 @@ export async function removeEmailBanner(orgSlug: string, eventId: string) {
     organisationId: ctx.organisation.id,
     eventId,
     userId: ctx.user.id,
-    action: "communications.email_banner.remove",
+    action: "communications.email_hero_photo.remove",
     resource: "event_settings",
     resourceId: eventId,
   });
@@ -347,4 +491,60 @@ export async function regenerateInviteHeroAction(
   });
   revalidateBrandingPaths(orgSlug, eventId);
   return { url };
+}
+
+/** Email a branding sample to the signed-in organiser (not a real invitation). */
+export async function sendBrandingPreviewAction(
+  orgSlug: string,
+  eventId: string,
+): Promise<{ ok: true; to: string; simulated: boolean } | { ok: false; error: string }> {
+  const ctx = await requireEvent(orgSlug, eventId, "event.update");
+  const toEmail = ctx.user.email?.trim();
+  if (!toEmail) {
+    return { ok: false, error: "Your account has no email address." };
+  }
+
+  try {
+    if (await prisma.eventSettings.findFirst({
+      where: {
+        eventId,
+        organisationId: ctx.organisation.id,
+        emailHeroOverlayEnabled: true,
+      },
+      select: { eventId: true },
+    })) {
+      await safeRegenerateHero(ctx.organisation.id, eventId);
+    }
+    invalidateEventMailContextCache(ctx.organisation.id, eventId);
+
+    const toName =
+      [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(" ") ||
+      "there";
+    const result = await sendBrandingPreviewEmail({
+      organisationId: ctx.organisation.id,
+      eventId,
+      toEmail,
+      toName,
+    });
+
+    await writeAudit({
+      organisationId: ctx.organisation.id,
+      eventId,
+      userId: ctx.user.id,
+      action: "communications.email_branding.preview",
+      resource: "event_settings",
+      resourceId: eventId,
+      metadata: { toEmail, simulated: result.simulated },
+    });
+
+    return { ok: true, to: toEmail, simulated: result.simulated };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Could not send branding preview.",
+    };
+  }
 }

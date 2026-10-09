@@ -793,3 +793,39 @@ export async function sendApplicationDecisionEmail(input: {
     }),
   });
 }
+
+/** Organiser-only sample invitation using current event branding (hero + accent). */
+export async function sendBrandingPreviewEmail(input: {
+  organisationId: string;
+  eventId: string;
+  toEmail: string;
+  toName: string;
+}) {
+  const ctx = await resolveEventMailContext(input.organisationId, input.eventId);
+  return deliver({
+    organisationId: input.organisationId,
+    eventId: input.eventId,
+    toEmail: input.toEmail,
+    orgName: ctx.orgName,
+    subject: `[Preview] ${ctx.orgName} · ${ctx.eventName} invitation`,
+    html: letter({
+      title: ctx.eventName,
+      eyebrow: "Branding preview",
+      orgName: ctx.orgName,
+      toEmail: input.toEmail,
+      branding: ctx.branding,
+      footerKind: "invitation",
+      href: "#",
+      cta: "Sample button",
+      body: `${p(`Hello ${escapeHtml(input.toName)},`)}
+        ${p("This is a branding preview — not a real invitation. Guests will not receive this message.")}
+        ${p(
+          ctx.branding.heroCard
+            ? "The composed invitation hero above is what guests see at the top of invitation emails."
+            : "Turn on the invitation hero in Branding to include a composed image at the top of emails.",
+        )}
+        ${eventFactsBlock(ctx)}
+        ${p("You can discard this email.", true)}`,
+    }),
+  });
+}

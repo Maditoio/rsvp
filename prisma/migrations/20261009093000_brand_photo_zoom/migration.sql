@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "EventSettings" ADD COLUMN "emailBannerZoom" INTEGER NOT NULL DEFAULT 100;
+ALTER TABLE "EventSettings" ADD COLUMN "emailHeroZoom" INTEGER NOT NULL DEFAULT 100;

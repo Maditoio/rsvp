@@ -3,25 +3,39 @@
 import type { CSSProperties } from "react";
 import {
   brandHeadingCssFamily,
+  brandHeadingCssLineHeight,
+  brandHeadingCssTextAlign,
+  brandHeadingCssTracking,
+  brandHeadingCssWeight,
+  brandHeadingPreviewTitlePx,
+  type BrandHeadingAlign,
   type BrandHeadingFont,
+  type BrandHeadingLineHeight,
   type BrandHeadingSize,
+  type BrandHeadingTracking,
+  type BrandHeadingWeight,
 } from "@/modules/branding/brand-heading-style";
+import { parsePhotoZoom } from "@/modules/branding/cover-focal";
+import { heroOverlayStops } from "@/modules/branding/heading-contrast";
 import {
   type EmailHeroBackgroundMode,
   type EmailHeroGradientStyle,
   gradientPreset,
 } from "@/modules/communications/invite-hero-background";
+import { cn } from "@/lib/utils";
 
 export function InviteHeroLivePreview({
   enabled,
   backgroundMode,
   gradientStyle,
   blur = 6,
+  overlay = 55,
   focalX = 50,
   focalY = 50,
+  zoom = 100,
   accentColor,
-  bannerUrl,
-  bannerPreviewUrl,
+  photoUrl,
+  photoPreviewUrl,
   logoUrl,
   eyebrow,
   title,
@@ -31,19 +45,29 @@ export function InviteHeroLivePreview({
   savedHeroUrl,
   headingColor = "#FFFFFF",
   headingFont = "inter",
-  headingSize = "md",
+  headingSize = 54,
+  headingWeight = "bold",
+  headingTracking = "normal",
+  headingAlign = "center",
+  headingLineHeight = "normal",
+  eyebrowUppercase = true,
 }: {
   enabled: boolean;
   backgroundMode: EmailHeroBackgroundMode;
   gradientStyle: EmailHeroGradientStyle;
   /** Soft blur behind copy when mode is Photo (0–24). */
   blur?: number;
+  /** Dark veil strength 0–100. */
+  overlay?: number;
   focalX?: number;
   focalY?: number;
+  /** Photo zoom percent 100–200. */
+  zoom?: number;
   accentColor: string;
-  bannerUrl: string | null;
+  /** Source photo for hero IMAGE mode (not the composed PNG). */
+  photoUrl: string | null;
   /** Local object URL while a file is selected but not yet uploaded */
-  bannerPreviewUrl?: string | null;
+  photoPreviewUrl?: string | null;
   logoUrl: string | null;
   eyebrow: string;
   title: string;
@@ -54,6 +78,11 @@ export function InviteHeroLivePreview({
   headingColor?: string;
   headingFont?: BrandHeadingFont;
   headingSize?: BrandHeadingSize;
+  headingWeight?: BrandHeadingWeight;
+  headingTracking?: BrandHeadingTracking;
+  headingAlign?: BrandHeadingAlign;
+  headingLineHeight?: BrandHeadingLineHeight;
+  eyebrowUppercase?: boolean;
 }) {
   if (!enabled) {
     return (
@@ -64,26 +93,28 @@ export function InviteHeroLivePreview({
   }
 
   const displayTitle = title.trim() || eventName;
-  const displayEyebrow = eyebrow.trim() || "You are invited to";
+  const eyebrowRaw = eyebrow.trim() || "You are invited to";
+  const displayEyebrow = eyebrowUppercase
+    ? eyebrowRaw.toUpperCase()
+    : eyebrowRaw;
   const displayClosing = closing.trim();
-  const photoSrc = bannerPreviewUrl || bannerUrl;
+  const photoSrc = photoPreviewUrl || photoUrl;
   const gradient = gradientPreset(gradientStyle);
   const objectPosition = `${focalX}% ${focalY}%`;
-  const titleClass =
-    headingSize === "sm"
-      ? "text-xl"
-      : headingSize === "lg"
-        ? "text-3xl"
-        : "text-2xl";
+  const zoomPct = parsePhotoZoom(zoom, 100);
+  const photoScale = (zoomPct / 100) * (blur > 0 ? 1.08 : 1);
+  const titlePx = brandHeadingPreviewTitlePx(headingSize);
+  const veil = heroOverlayStops(overlay);
+  const textAlign = brandHeadingCssTextAlign(headingAlign);
+  const lineHeight = brandHeadingCssLineHeight(headingLineHeight);
+  const centered = textAlign === "center";
 
   let backgroundStyle: CSSProperties = {
     backgroundColor: accentColor,
   };
   if (backgroundMode === "IMAGE" && photoSrc) {
     backgroundStyle = {
-      backgroundImage: `url(${photoSrc})`,
-      backgroundSize: "cover",
-      backgroundPosition: objectPosition,
+      backgroundColor: accentColor,
     };
   } else if (backgroundMode === "GRADIENT") {
     backgroundStyle = { background: gradient.css };
@@ -107,17 +138,24 @@ export function InviteHeroLivePreview({
               backgroundSize: "cover",
               backgroundPosition: objectPosition,
               filter: `blur(${Math.max(0, blur)}px) brightness(0.75)`,
-              transform: blur > 0 ? "scale(1.08)" : undefined,
+              transform: `scale(${photoScale})`,
+              transformOrigin: objectPosition,
             }}
             aria-hidden
           />
         ) : null}
         <div
-          className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/35 to-black/55"
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(to bottom, rgba(0,0,0,${veil.top.toFixed(3)}) 0%, rgba(0,0,0,${veil.mid.toFixed(3)}) 40%, rgba(0,0,0,${veil.bottom.toFixed(3)}) 100%)`,
+          }}
           aria-hidden
         />
         <div
-          className="relative flex h-full flex-col items-center px-6 pb-10 pt-9 text-center"
+          className={cn(
+            "relative flex h-full flex-col px-6 pb-10 pt-9",
+            centered ? "items-center text-center" : "items-start text-left",
+          )}
           style={{
             color: headingColor,
             fontFamily: brandHeadingCssFamily(headingFont),
@@ -133,11 +171,22 @@ export function InviteHeroLivePreview({
           ) : (
             <div className="h-14" aria-hidden />
           )}
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-evenly py-4">
+          <div
+            className={cn(
+              "flex min-h-0 flex-1 flex-col justify-evenly py-4",
+              centered ? "items-center" : "items-start",
+            )}
+          >
             <div>
               <p className="text-sm font-medium opacity-90">{displayEyebrow}</p>
               <p
-                className={`mt-3 font-bold leading-tight tracking-tight ${titleClass}`}
+                className="mt-3"
+                style={{
+                  fontSize: titlePx,
+                  fontWeight: brandHeadingCssWeight(headingWeight),
+                  letterSpacing: brandHeadingCssTracking(headingTracking),
+                  lineHeight,
+                }}
               >
                 {displayTitle}
               </p>
@@ -145,7 +194,10 @@ export function InviteHeroLivePreview({
             {detailLines.length > 0 ? (
               <div>
                 <div
-                  className="mx-auto mb-4 h-0.5 w-24 opacity-80"
+                  className={cn(
+                    "mb-4 h-0.5 w-24 opacity-80",
+                    centered && "mx-auto",
+                  )}
                   style={{ backgroundColor: headingColor }}
                 />
                 <div className="space-y-1 text-sm font-medium opacity-95">

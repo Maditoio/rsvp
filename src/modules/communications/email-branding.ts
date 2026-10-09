@@ -114,13 +114,3 @@ export function resolveEmailBranding(input: {
     heroCard,
   };
 }
-
-export const EMAIL_ACCENT_SWATCHES = [
-  { label: "Bizcon indigo", value: "#4F46E5" },
-  { label: "Indigo 700", value: "#4338CA" },
-  { label: "Slate 900", value: "#0F172A" },
-  { label: "Teal", value: "#0D9488" },
-  { label: "Rose", value: "#E11D48" },
-  { label: "Amber", value: "#D97706" },
-  { label: "Bronze", value: "#92400E" },
-] as const;

@@ -3,11 +3,16 @@ import "server-only";
 import { prisma } from "@/lib/db/prisma";
 import {
   brandHeadingCssFamily,
+  brandHeadingCssLineHeight,
+  brandHeadingCssTextAlign,
+  brandHeadingCssTracking,
+  brandHeadingCssWeight,
   objectPositionCss,
   parseFocalPercent,
   resolveBrandHeadingStyle,
   type BrandHeadingStyle,
 } from "@/modules/branding/brand-heading-style";
+import { parsePhotoZoom } from "@/modules/branding/cover-focal";
 import {
   emailSafeImageUrl,
   resolveEmailBranding,
@@ -29,6 +34,8 @@ export type PublicBannerBranding = {
   blur: number;
   focalX: number;
   focalY: number;
+  /** Photo zoom percent 100–200. */
+  zoom: number;
   objectPosition: string;
   gradientStyle: EmailHeroGradientStyle;
   gradientCss: string;
@@ -40,7 +47,13 @@ export type PublicEventBranding = EmailBranding & {
   venue: string | null;
   timezone: string;
   banner: PublicBannerBranding;
-  heading: BrandHeadingStyle & { cssFamily: string };
+  heading: BrandHeadingStyle & {
+    cssFamily: string;
+    cssWeight: number;
+    cssTracking: string;
+    cssLineHeight: number;
+    cssTextAlign: "left" | "center";
+  };
 };
 
 /** Fallback when branding cannot be loaded (cancelled invites, etc.). */
@@ -51,6 +64,7 @@ export function defaultPublicBanner(): PublicBannerBranding {
     blur: 0,
     focalX: 50,
     focalY: 50,
+    zoom: 100,
     objectPosition: objectPositionCss(50, 50),
     gradientStyle: "indigo",
     gradientCss: gradientPreset("indigo").css,
@@ -59,7 +73,14 @@ export function defaultPublicBanner(): PublicBannerBranding {
 
 export function defaultPublicHeading(): PublicEventBranding["heading"] {
   const heading = resolveBrandHeadingStyle({});
-  return { ...heading, cssFamily: brandHeadingCssFamily(heading.font) };
+  return {
+    ...heading,
+    cssFamily: brandHeadingCssFamily(heading.font),
+    cssWeight: brandHeadingCssWeight(heading.weight),
+    cssTracking: brandHeadingCssTracking(heading.tracking),
+    cssLineHeight: brandHeadingCssLineHeight(heading.lineHeight),
+    cssTextAlign: brandHeadingCssTextAlign(heading.align),
+  };
 }
 
 export async function loadPublicEventBrandingByIds(input: {
@@ -86,9 +107,15 @@ export async function loadPublicEventBrandingByIds(input: {
           emailBannerBlur: true,
           emailBannerFocalX: true,
           emailBannerFocalY: true,
+          emailBannerZoom: true,
           brandHeadingColor: true,
           brandHeadingFont: true,
           brandHeadingSize: true,
+          brandHeadingWeight: true,
+          brandHeadingTracking: true,
+          brandHeadingAlign: true,
+          brandHeadingLineHeight: true,
+          brandHeadingEyebrowUppercase: true,
           websiteConfig: true,
         },
       },
@@ -114,10 +141,16 @@ export async function loadPublicEventBrandingByIds(input: {
 
   const focalX = parseFocalPercent(event.settings?.emailBannerFocalX, 50);
   const focalY = parseFocalPercent(event.settings?.emailBannerFocalY, 50);
+  const zoom = parsePhotoZoom(event.settings?.emailBannerZoom, 100);
   const heading = resolveBrandHeadingStyle({
     color: event.settings?.brandHeadingColor,
     font: event.settings?.brandHeadingFont,
     size: event.settings?.brandHeadingSize,
+    weight: event.settings?.brandHeadingWeight,
+    tracking: event.settings?.brandHeadingTracking,
+    align: event.settings?.brandHeadingAlign,
+    lineHeight: event.settings?.brandHeadingLineHeight,
+    eyebrowUppercase: event.settings?.brandHeadingEyebrowUppercase,
   });
 
   return {
@@ -134,6 +167,7 @@ export async function loadPublicEventBrandingByIds(input: {
       blur: parseBannerBlur(event.settings?.emailBannerBlur, 0),
       focalX,
       focalY,
+      zoom,
       objectPosition: objectPositionCss(focalX, focalY),
       gradientStyle,
       gradientCss: gradientPreset(gradientStyle).css,
@@ -141,6 +175,10 @@ export async function loadPublicEventBrandingByIds(input: {
     heading: {
       ...heading,
       cssFamily: brandHeadingCssFamily(heading.font),
+      cssWeight: brandHeadingCssWeight(heading.weight),
+      cssTracking: brandHeadingCssTracking(heading.tracking),
+      cssLineHeight: brandHeadingCssLineHeight(heading.lineHeight),
+      cssTextAlign: brandHeadingCssTextAlign(heading.align),
     },
   };
 }
