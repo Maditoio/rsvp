@@ -59,7 +59,7 @@ type CopyBlock =
   | { kind: "title"; lines: string[]; height: number }
   | { kind: "rule"; height: number }
   | { kind: "details"; lines: string[]; height: number }
-  | { kind: "closing"; text: string; height: number };
+  | { kind: "closing"; lines: string[]; height: number };
 
 /**
  * Place copy blocks through the vertical band under the logo so the poster
@@ -374,7 +374,10 @@ export async function renderInviteHeroPng(
   const detailLines = (input.detailLines ?? [])
     .flatMap((line) => wrapLines(line, typeScale.wrapDetail))
     .slice(0, 8);
-  const closing = input.closing?.trim() || "";
+  const closingLines = wrapLines(
+    input.closing?.trim() || "",
+    typeScale.wrapDetail,
+  );
 
   const blocks: CopyBlock[] = [];
   if (eyebrow) {
@@ -399,11 +402,12 @@ export async function renderInviteHeroPng(
       height: detailLines.length * typeScale.detailLine,
     });
   }
-  if (closing) {
+  if (closingLines.length > 0) {
+    const closingLine = Math.round(typeScale.closing * 1.35);
     blocks.push({
       kind: "closing",
-      text: closing,
-      height: Math.round(typeScale.closing * 1.4),
+      lines: closingLines,
+      height: closingLines.length * closingLine,
     });
   }
 
@@ -475,20 +479,24 @@ export async function renderInviteHeroPng(
         y += typeScale.detailLine;
       }
     } else if (block.kind === "closing") {
-      glyphs.push(
-        heroTextPath({
-          text: block.text,
-          x: textX,
-          y,
-          fontSize: typeScale.closing,
-          style: "italic",
-          fill: textFill,
-          fillOpacity: 0.88,
-          fontFamily: headingFont,
-          trackingEm,
-          align: headingAlign,
-        }),
-      );
+      const closingLine = Math.round(typeScale.closing * 1.35);
+      for (const line of block.lines) {
+        glyphs.push(
+          heroTextPath({
+            text: line,
+            x: textX,
+            y,
+            fontSize: typeScale.closing,
+            style: "italic",
+            fill: textFill,
+            fillOpacity: 0.88,
+            fontFamily: headingFont,
+            trackingEm,
+            align: headingAlign,
+          }),
+        );
+        y += closingLine;
+      }
     }
   }
 

@@ -153,7 +153,7 @@ export function InviteHeroLivePreview({
         />
         <div
           className={cn(
-            "relative flex h-full flex-col px-6 pb-10 pt-9",
+            "relative flex h-full min-w-0 flex-col overflow-hidden px-6 pb-10 pt-9",
             centered ? "items-center text-center" : "items-start text-left",
           )}
           style={{
@@ -173,14 +173,16 @@ export function InviteHeroLivePreview({
           )}
           <div
             className={cn(
-              "flex min-h-0 flex-1 flex-col justify-evenly py-4",
-              centered ? "items-center" : "items-start",
+              "flex min-h-0 w-full min-w-0 flex-1 flex-col justify-evenly py-4",
+              centered ? "items-center text-center" : "items-start text-left",
             )}
           >
-            <div>
-              <p className="text-sm font-medium opacity-90">{displayEyebrow}</p>
+            <div className="w-full min-w-0 max-w-full">
+              <p className="break-words text-sm font-medium opacity-90">
+                {displayEyebrow}
+              </p>
               <p
-                className="mt-3"
+                className="mt-3 break-words"
                 style={{
                   fontSize: titlePx,
                   fontWeight: brandHeadingCssWeight(headingWeight),
@@ -192,7 +194,7 @@ export function InviteHeroLivePreview({
               </p>
             </div>
             {detailLines.length > 0 ? (
-              <div>
+              <div className="w-full min-w-0 max-w-full">
                 <div
                   className={cn(
                     "mb-4 h-0.5 w-24 opacity-80",
@@ -200,7 +202,7 @@ export function InviteHeroLivePreview({
                   )}
                   style={{ backgroundColor: headingColor }}
                 />
-                <div className="space-y-1 text-sm font-medium opacity-95">
+                <div className="space-y-1 break-words text-sm font-medium opacity-95">
                   {detailLines.map((line) => (
                     <p key={line}>{line}</p>
                   ))}
@@ -210,7 +212,9 @@ export function InviteHeroLivePreview({
               <div aria-hidden />
             )}
             {displayClosing ? (
-              <p className="text-sm italic opacity-85">{displayClosing}</p>
+              <p className="w-full min-w-0 max-w-full break-words text-sm italic opacity-85">
+                {displayClosing}
+              </p>
             ) : (
               <div aria-hidden />
             )}
