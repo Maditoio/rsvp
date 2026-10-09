@@ -51,6 +51,7 @@ export default async function BrandingPage({
           emailHeroTitle: true,
           emailHeroDetail: true,
           emailHeroClosing: true,
+          emailInviteHighlights: true,
           emailHeroImageUrl: true,
           brandHeadingColor: true,
           brandHeadingFont: true,
@@ -126,6 +127,7 @@ export default async function BrandingPage({
         imageUrl: event?.settings?.emailHeroImageUrl ?? null,
       }}
       heading={heading}
+      inviteHighlights={event?.settings?.emailInviteHighlights ?? ""}
     />
   );
 }

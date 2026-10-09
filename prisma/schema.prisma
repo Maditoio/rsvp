@@ -462,6 +462,8 @@ model EventSettings {
   emailHeroDetail        String?
   /// Optional closing line on the hero (e.g. "Can't wait to see you there!").
   emailHeroClosing       String?
+  /// Invitation email body bullet insights (newline-separated). Not hero PNG copy.
+  emailInviteHighlights  String?
   /// Cached composed invitation hero PNG URL for emails (HTTPS raster). Not the source photo.
   emailHeroImageUrl      String?
   /// Heading text colour for invite hero + public pages (#RRGGBB). Null = smart default.

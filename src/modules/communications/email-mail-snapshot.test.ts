@@ -21,6 +21,7 @@ describe("event mail snapshot", () => {
       startsAt: new Date("2026-11-01T08:00:00.000Z"),
       endsAt: new Date("2026-11-01T17:00:00.000Z"),
       description: "Annual summit",
+      inviteHighlights: "Discover innovations\nNetwork with peers",
       branding,
     };
     const restored = eventMailContextFromSnapshot(
@@ -32,6 +33,9 @@ describe("event mail snapshot", () => {
       "https://cdn.example.com/banner.jpg",
     );
     expect(restored.branding.accentColor).toBe("#0D9488");
+    expect(restored.inviteHighlights).toBe(
+      "Discover innovations\nNetwork with peers",
+    );
   });
 
   it("resolves from a mail snapshot without needing the database", () => {
@@ -46,6 +50,7 @@ describe("event mail snapshot", () => {
       startsAt: null,
       endsAt: null,
       description: null,
+      inviteHighlights: null,
       branding,
     });
 

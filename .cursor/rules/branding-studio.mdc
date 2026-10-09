@@ -35,6 +35,11 @@ Additive to [design-system.mdc](design-system.mdc) / Aurora. Organiser chrome st
 - Invite-hero overlay darkness slider; contrast warning + one-click heading fix vs backdrop.
 - Suggest colours from uploaded logo; recent custom colours row (localStorage OK).
 
+## Invitation email body
+
+- `emailInviteHighlights` — newline-separated bullet insights in the HTML invitation body (under the greeting). Max 8 lines × 120 chars.
+- Separate from `emailHeroDetail` (hero PNG copy only). Empty highlights keep the short invite body.
+
 ## Email truth
 
-Invitation hero PNG is source of truth for outbound email; keep live preview visually close to the rendered PNG.
+Invitation hero PNG is source of truth for the top graphic; HTML body highlights are separate. Keep live preview visually close to the rendered PNG.

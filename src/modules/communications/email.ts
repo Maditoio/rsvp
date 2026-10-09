@@ -16,6 +16,7 @@ import {
   letter,
   letterPair,
   p,
+  ul,
 } from "@/modules/communications/email-layout";
 import {
   type EmailBranding,
@@ -25,6 +26,7 @@ import {
   type EventMailContext,
   type EventMailSnapshot,
 } from "@/modules/communications/email-mail-context";
+import { parseInviteHighlights } from "@/modules/communications/invite-highlights";
 import {
   reminderEmailSubject,
   type ReminderEmailKind,
@@ -194,6 +196,10 @@ function purposeParagraph(ctx: EventMailContext, fallback: string) {
   return p(escapeHtml(text));
 }
 
+function inviteHighlightsBlock(ctx: EventMailContext) {
+  return ul(parseInviteHighlights(ctx.inviteHighlights));
+}
+
 export async function sendInvitationEmail(input: {
   organisationId: string;
   eventId: string;
@@ -231,10 +237,12 @@ export async function sendInvitationEmail(input: {
       body: ctx.branding.heroCard
         ? `${p(`Hello ${escapeHtml(input.toName)},`)}
         ${p(`${escapeHtml(ctx.orgName)} is pleased to invite you.`)}
+        ${inviteHighlightsBlock(ctx)}
         ${p("Open the personal link below to view your invitation and confirm whether you can attend.")}
         ${p("This link is personal to you.", true)}`
         : `${p(`Hello ${escapeHtml(input.toName)},`)}
         ${p(`${escapeHtml(ctx.orgName)} is pleased to invite you to attend <strong style="color:${aurora.text}">${escapeHtml(ctx.eventName)}</strong>.`)}
+        ${inviteHighlightsBlock(ctx)}
         ${purposeParagraph(
           ctx,
           "Open the link below to view your invitation and confirm whether you can attend.",
@@ -824,6 +832,7 @@ export async function sendBrandingPreviewEmail(input: {
             ? "The composed invitation hero above is what guests see at the top of invitation emails."
             : "Turn on the invitation hero in Branding to include a composed image at the top of emails.",
         )}
+        ${inviteHighlightsBlock(ctx)}
         ${eventFactsBlock(ctx)}
         ${p("You can discard this email.", true)}`,
     }),

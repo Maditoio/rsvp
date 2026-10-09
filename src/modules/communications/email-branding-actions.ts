@@ -33,6 +33,10 @@ import {
 } from "@/modules/communications/invite-hero-background";
 import { parsePhotoZoom } from "@/modules/branding/cover-focal";
 import {
+  formatInviteHighlights,
+  INVITE_HIGHLIGHT_MAX_RAW,
+} from "@/modules/communications/invite-highlights";
+import {
   blobStorageNotConfiguredMessage,
   isBlobStorageConfigured,
 } from "@/modules/files/blob-config";
@@ -50,6 +54,12 @@ const brandingSchema = z.object({
   emailHeroTitle: z.string().trim().max(160).optional().or(z.literal("")),
   emailHeroDetail: z.string().trim().max(600).optional().or(z.literal("")),
   emailHeroClosing: z.string().trim().max(160).optional().or(z.literal("")),
+  emailInviteHighlights: z
+    .string()
+    .trim()
+    .max(INVITE_HIGHLIGHT_MAX_RAW)
+    .optional()
+    .or(z.literal("")),
   emailHeroBackgroundMode: z.enum(["IMAGE", "COLOR", "GRADIENT"]),
   emailHeroGradientStyle: z.enum(["indigo", "violet", "teal"]),
   emailHeroBlur: z.number().int().min(0).max(24),
@@ -173,6 +183,7 @@ export async function saveEmailBranding(
     emailHeroTitle: String(formData.get("emailHeroTitle") ?? ""),
     emailHeroDetail: String(formData.get("emailHeroDetail") ?? ""),
     emailHeroClosing: String(formData.get("emailHeroClosing") ?? ""),
+    emailInviteHighlights: String(formData.get("emailInviteHighlights") ?? ""),
     emailHeroBackgroundMode: parseEmailHeroBackgroundMode(
       formData.get("emailHeroBackgroundMode"),
     ),
@@ -234,6 +245,7 @@ export async function saveEmailBranding(
     emailHeroTitle: parsed.emailHeroTitle || null,
     emailHeroDetail: parsed.emailHeroDetail || null,
     emailHeroClosing: parsed.emailHeroClosing || null,
+    emailInviteHighlights: formatInviteHighlights(parsed.emailInviteHighlights),
     emailHeroBackgroundMode: parsed.emailHeroBackgroundMode,
     emailHeroGradientStyle:
       parsed.emailHeroBackgroundMode === "GRADIENT"

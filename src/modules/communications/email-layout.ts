@@ -43,6 +43,18 @@ export function p(html: string, muted = false) {
   return `<p style="margin:0 0 12px;font-size:${size};line-height:1.55;color:${color}">${html}</p>`;
 }
 
+/** Bullet list for invitation email highlights (plain text lines, escaped). */
+export function ul(lines: string[]) {
+  if (lines.length === 0) return "";
+  const items = lines
+    .map(
+      (line) =>
+        `<li style="margin:0 0 8px;padding:0;font-size:14px;line-height:1.5;color:${aurora.body}">${escapeHtml(line)}</li>`,
+    )
+    .join("");
+  return `<ul style="margin:0 0 16px;padding:0 0 0 20px">${items}</ul>`;
+}
+
 export function escapeHtml(value: string) {
   return value
     .replaceAll("&", "&amp;")

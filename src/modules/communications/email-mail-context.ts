@@ -58,6 +58,7 @@ async function fetchEventMailContext(
           emailBannerUrl: true,
           emailHeroOverlayEnabled: true,
           emailHeroImageUrl: true,
+          emailInviteHighlights: true,
           websiteConfig: true,
         },
       },
@@ -72,6 +73,7 @@ async function fetchEventMailContext(
     startsAt: loaded?.startsAt ?? null,
     endsAt: loaded?.endsAt ?? null,
     description: loaded?.description ?? null,
+    inviteHighlights: loaded?.settings?.emailInviteHighlights ?? null,
     branding: resolveEmailBranding({
       logoUrl: loaded?.logoUrl,
       bannerUrl: loaded?.settings?.emailBannerUrl,
@@ -136,6 +138,10 @@ export async function resolveEventMailContext(
       partial.description !== undefined
         ? partial.description
         : loaded.description,
+    inviteHighlights:
+      partial.inviteHighlights !== undefined
+        ? partial.inviteHighlights
+        : loaded.inviteHighlights,
     branding: partial.branding ?? loaded.branding,
   };
 }

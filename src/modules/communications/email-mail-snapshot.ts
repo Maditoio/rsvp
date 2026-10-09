@@ -11,10 +11,12 @@ export type EventMailContext = {
   startsAt: Date | null;
   endsAt: Date | null;
   description: string | null;
+  /** Newline-separated invitation email body bullets. */
+  inviteHighlights: string | null;
   branding: EmailBranding;
 };
 
-/** JSON-safe snapshot for Inngest / queue payloads — load once, reuse for every recipient. */
+/** JSON-safe snapshot for Inngest / cloud payloads — load once, reuse for every recipient. */
 export type EventMailSnapshot = {
   eventName: string;
   orgName: string;
@@ -23,6 +25,7 @@ export type EventMailSnapshot = {
   startsAt: string | null;
   endsAt: string | null;
   description: string | null;
+  inviteHighlights: string | null;
   branding: EmailBranding;
 };
 
@@ -37,6 +40,7 @@ export function eventMailContextToSnapshot(
     startsAt: ctx.startsAt?.toISOString() ?? null,
     endsAt: ctx.endsAt?.toISOString() ?? null,
     description: ctx.description,
+    inviteHighlights: ctx.inviteHighlights,
     branding: ctx.branding,
   };
 }
@@ -52,6 +56,7 @@ export function eventMailContextFromSnapshot(
     startsAt: snapshot.startsAt ? new Date(snapshot.startsAt) : null,
     endsAt: snapshot.endsAt ? new Date(snapshot.endsAt) : null,
     description: snapshot.description,
+    inviteHighlights: snapshot.inviteHighlights ?? null,
     branding: snapshot.branding,
   };
 }
@@ -77,7 +82,8 @@ export function resolveMailContextFromPartial(
     typeof partial.timezone === "string" &&
     partial.startsAt !== undefined &&
     partial.endsAt !== undefined &&
-    partial.description !== undefined
+    partial.description !== undefined &&
+    partial.inviteHighlights !== undefined
   ) {
     return {
       eventName: partial.eventName,
@@ -87,6 +93,7 @@ export function resolveMailContextFromPartial(
       startsAt: partial.startsAt ?? null,
       endsAt: partial.endsAt ?? null,
       description: partial.description ?? null,
+      inviteHighlights: partial.inviteHighlights ?? null,
       branding: partial.branding,
     };
   }
@@ -105,6 +112,7 @@ export function emptyEventMailContext(
     startsAt: partial.startsAt ?? null,
     endsAt: partial.endsAt ?? null,
     description: partial.description ?? null,
+    inviteHighlights: partial.inviteHighlights ?? null,
     branding: partial.branding ?? resolveEmailBranding({}),
   };
 }

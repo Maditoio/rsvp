@@ -61,6 +61,11 @@ import {
   PHOTO_MIN_RECOMMENDED_WIDTH,
 } from "@/modules/branding/cover-focal";
 import {
+  INVITE_HIGHLIGHT_MAX_LINES,
+  INVITE_HIGHLIGHT_MAX_RAW,
+  parseInviteHighlights,
+} from "@/modules/communications/invite-highlights";
+import {
   blendHex,
   headingContrastOk,
   photoOverlayBackground,
@@ -853,6 +858,7 @@ export function BrandingPanel({
   banner,
   hero,
   heading,
+  inviteHighlights: inviteHighlightsProp,
 }: {
   orgSlug: string;
   eventId: string;
@@ -865,6 +871,8 @@ export function BrandingPanel({
   banner: BannerSettings;
   hero: HeroSettings;
   heading: HeadingSettings;
+  /** Invitation email body bullets (one per line). */
+  inviteHighlights?: string;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<TabId>("identity");
@@ -908,6 +916,9 @@ export function BrandingPanel({
   const [heroTitle, setHeroTitle] = useState(hero.title);
   const [heroDetail, setHeroDetail] = useState(hero.detail);
   const [heroClosing, setHeroClosing] = useState(hero.closing);
+  const [inviteHighlights, setInviteHighlights] = useState(
+    inviteHighlightsProp ?? "",
+  );
   const [localBannerPreview, setLocalBannerPreview] = useState<string | null>(
     null,
   );
@@ -966,6 +977,7 @@ export function BrandingPanel({
     setHeroTitle(hero.title);
     setHeroDetail(hero.detail);
     setHeroClosing(hero.closing);
+    setInviteHighlights(inviteHighlightsProp ?? "");
     setAccent(emailAccentColor ?? branding.accentColor);
   }, [
     banner.mode,
@@ -986,6 +998,7 @@ export function BrandingPanel({
     hero.title,
     hero.detail,
     hero.closing,
+    inviteHighlightsProp,
     heading.color,
     heading.font,
     heading.size,
@@ -1039,6 +1052,7 @@ export function BrandingPanel({
         heroTitle: hero.title,
         heroDetail: hero.detail,
         heroClosing: hero.closing,
+        inviteHighlights: inviteHighlightsProp ?? "",
       }),
     [
       emailAccentColor,
@@ -1046,6 +1060,7 @@ export function BrandingPanel({
       banner,
       hero,
       heading,
+      inviteHighlightsProp,
     ],
   );
 
@@ -1078,6 +1093,7 @@ export function BrandingPanel({
         heroTitle,
         heroDetail,
         heroClosing,
+        inviteHighlights,
       }),
     [
       accent,
@@ -1106,6 +1122,7 @@ export function BrandingPanel({
       heroTitle,
       heroDetail,
       heroClosing,
+      inviteHighlights,
     ],
   );
 
@@ -1274,6 +1291,7 @@ export function BrandingPanel({
     setHeroTitle(hero.title);
     setHeroDetail(hero.detail);
     setHeroClosing(hero.closing);
+    setInviteHighlights(inviteHighlightsProp ?? "");
     setJustSaved(false);
   }
 
@@ -1310,6 +1328,10 @@ export function BrandingPanel({
     formData.set("emailHeroTitle", heroTitle.slice(0, HERO_TITLE_MAX));
     formData.set("emailHeroDetail", heroDetail);
     formData.set("emailHeroClosing", heroClosing);
+    formData.set(
+      "emailInviteHighlights",
+      inviteHighlights.slice(0, INVITE_HIGHLIGHT_MAX_RAW),
+    );
     start(async () => {
       try {
         await saveEmailBranding(orgSlug, eventId, formData);
@@ -1747,6 +1769,45 @@ export function BrandingPanel({
                   image. Plain emails still use your logo and brand colour.
                 </p>
               )}
+
+              <div className="border-t border-slate-100 pt-4">
+                <FieldsetLabel>Email body highlights</FieldsetLabel>
+                <p className="mb-2 text-[12px] text-slate-500">
+                  Bullet insights in the invitation email (under the greeting).
+                  Separate from hero image detail lines. One point per line.
+                </p>
+                <Field
+                  label="Highlights"
+                  htmlFor="emailInviteHighlights"
+                  hint={`Up to ${INVITE_HIGHLIGHT_MAX_LINES} lines. Leave blank for a short invite.`}
+                >
+                  <Textarea
+                    id="emailInviteHighlights"
+                    value={inviteHighlights}
+                    disabled={!canEdit}
+                    rows={5}
+                    maxLength={INVITE_HIGHLIGHT_MAX_RAW}
+                    onChange={(e) =>
+                      setInviteHighlights(
+                        e.target.value.slice(0, INVITE_HIGHLIGHT_MAX_RAW),
+                      )
+                    }
+                    placeholder={
+                      "Discover the latest innovations in fire, safety and security technology.\nExperience technology in action through interactive demonstrations.\nConnect with industry specialists, technology partners and peers."
+                    }
+                  />
+                  <div className="mt-1 flex justify-between gap-2 text-[11px] text-slate-400">
+                    <span>
+                      {parseInviteHighlights(inviteHighlights).length}/
+                      {INVITE_HIGHLIGHT_MAX_LINES} lines
+                    </span>
+                    <CharCount
+                      value={inviteHighlights}
+                      max={INVITE_HIGHLIGHT_MAX_RAW}
+                    />
+                  </div>
+                </Field>
+              </div>
             </SectionCard>
           ) : null}
 
