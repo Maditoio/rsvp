@@ -131,7 +131,10 @@ type HeroSettings = {
 };
 
 type HeadingSettings = {
+  /** Invitation hero / email PNG heading colour. */
   color: string | null;
+  /** Public invite / registration page heading colour. */
+  colorPublic: string | null;
   font: BrandHeadingFont;
   size: BrandHeadingSize;
   weight: BrandHeadingWeight;
@@ -898,6 +901,9 @@ export function BrandingPanel({
   const [heroZoom, setHeroZoom] = useState(hero.zoom);
   const [justSaved, setJustSaved] = useState(false);
   const [headingColor, setHeadingColor] = useState(heading.color ?? "#FFFFFF");
+  const [headingColorPublic, setHeadingColorPublic] = useState(
+    heading.colorPublic ?? "#0F172A",
+  );
   const [headingFont, setHeadingFont] = useState(
     normalizeBrandHeadingFont(heading.font),
   );
@@ -965,6 +971,7 @@ export function BrandingPanel({
     setHeroFocalY(hero.focalY);
     setHeroZoom(hero.zoom);
     setHeadingColor(heading.color ?? "#FFFFFF");
+    setHeadingColorPublic(heading.colorPublic ?? "#0F172A");
     setHeadingFont(normalizeBrandHeadingFont(heading.font));
     setHeadingSize(heading.size);
     setSizeDraft(String(heading.size));
@@ -1000,6 +1007,7 @@ export function BrandingPanel({
     hero.closing,
     inviteHighlightsProp,
     heading.color,
+    heading.colorPublic,
     heading.font,
     heading.size,
     heading.weight,
@@ -1041,6 +1049,7 @@ export function BrandingPanel({
         heroFocalY: hero.focalY,
         heroZoom: hero.zoom,
         headingColor: heading.color ?? "#FFFFFF",
+        headingColorPublic: heading.colorPublic ?? "#0F172A",
         headingFont: normalizeBrandHeadingFont(heading.font),
         headingSize: heading.size,
         headingWeight: heading.weight,
@@ -1082,6 +1091,7 @@ export function BrandingPanel({
         heroFocalY,
         heroZoom,
         headingColor,
+        headingColorPublic,
         headingFont,
         headingSize,
         headingWeight,
@@ -1111,6 +1121,7 @@ export function BrandingPanel({
       heroFocalY,
       heroZoom,
       headingColor,
+      headingColorPublic,
       headingFont,
       headingSize,
       headingWeight,
@@ -1279,6 +1290,7 @@ export function BrandingPanel({
     setHeroFocalY(hero.focalY);
     setHeroZoom(hero.zoom);
     setHeadingColor(heading.color ?? "#FFFFFF");
+    setHeadingColorPublic(heading.colorPublic ?? "#0F172A");
     setHeadingFont(normalizeBrandHeadingFont(heading.font));
     setHeadingSize(heading.size);
     setSizeDraft(String(heading.size));
@@ -1314,6 +1326,7 @@ export function BrandingPanel({
     formData.set("emailHeroFocalY", String(heroFocalY));
     formData.set("emailHeroZoom", String(heroZoom));
     formData.set("brandHeadingColor", headingColor);
+    formData.set("brandHeadingColorPublic", headingColorPublic);
     formData.set("brandHeadingFont", headingFont);
     formData.set("brandHeadingSize", formatBrandHeadingSize(headingSize));
     formData.set("brandHeadingWeight", headingWeight);
@@ -1366,8 +1379,6 @@ export function BrandingPanel({
 
   const showHeroPreview =
     previewMode === "hero" || (tab === "hero" && heroEnabled);
-  const publicHeadingColor =
-    headingColor === "#FFFFFF" ? "#0F172A" : headingColor;
 
   const contrastBackground = useMemo(() => {
     if (!showHeroPreview) return "#FFFFFF";
@@ -1387,7 +1398,7 @@ export function BrandingPanel({
 
   const contrastForeground = showHeroPreview
     ? headingColor
-    : publicHeadingColor;
+    : headingColorPublic;
   const contrastIssue = !headingContrastOk(
     contrastForeground,
     contrastBackground,
@@ -1814,22 +1825,38 @@ export function BrandingPanel({
           {tab === "type" ? (
             <SectionCard
               title="Heading style"
-              description="Shared for invitation hero text and public invite / registration headings."
+              description="Font and size are shared. Colours are separate for the invitation hero and public pages."
             >
-              <BrandingColorField
-                label="Colour"
-                value={headingColor}
-                onChange={setHeadingColor}
-                disabled={!canEdit}
-                hint="White reads best on photo heroes; public pages use dark when white is chosen."
-                swatches={[
-                  { label: "White", value: "#FFFFFF" },
-                  { label: "Dark", value: "#0F172A" },
-                  { label: "Brand colour", value: accent },
-                  { label: "Slate", value: "#475569" },
-                  { label: "Indigo", value: "#4338CA" },
-                ]}
-              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <BrandingColorField
+                  label="Hero colour"
+                  value={headingColor}
+                  onChange={setHeadingColor}
+                  disabled={!canEdit}
+                  hint="Invitation email hero text. White reads best on photos."
+                  swatches={[
+                    { label: "White", value: "#FFFFFF" },
+                    { label: "Dark", value: "#0F172A" },
+                    { label: "Brand colour", value: accent },
+                    { label: "Slate", value: "#475569" },
+                    { label: "Indigo", value: "#4338CA" },
+                  ]}
+                />
+                <BrandingColorField
+                  label="Public page colour"
+                  value={headingColorPublic}
+                  onChange={setHeadingColorPublic}
+                  disabled={!canEdit}
+                  hint="Invite, registration, and apply page headings."
+                  swatches={[
+                    { label: "Dark", value: "#0F172A" },
+                    { label: "White", value: "#FFFFFF" },
+                    { label: "Brand colour", value: accent },
+                    { label: "Slate", value: "#475569" },
+                    { label: "Indigo", value: "#4338CA" },
+                  ]}
+                />
+              </div>
               {contrastIssue ? (
                 <div className="flex flex-wrap items-center gap-2 rounded-lg bg-warning-bg px-3 py-2 text-[12.5px] text-warning">
                   <AlertTriangle
@@ -1845,7 +1872,13 @@ export function BrandingPanel({
                     <button
                       type="button"
                       className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-warning shadow-xs ring-1 ring-amber-200/80 hover:bg-amber-50"
-                      onClick={() => setHeadingColor(contrastSuggestion)}
+                      onClick={() => {
+                        if (showHeroPreview) {
+                          setHeadingColor(contrastSuggestion);
+                        } else {
+                          setHeadingColorPublic(contrastSuggestion);
+                        }
+                      }}
                     >
                       Use {contrastSuggestion === "#FFFFFF" ? "white" : "dark"}
                     </button>
@@ -2198,7 +2231,7 @@ export function BrandingPanel({
                   blur={bannerBlur}
                   logoUrl={displayLogoUrl}
                   eventName={eventName}
-                  headingColor={publicHeadingColor}
+                  headingColor={headingColorPublic}
                   headingFont={headingFont}
                   headingSize={headingSize}
                   headingWeight={headingWeight}

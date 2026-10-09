@@ -54,6 +54,7 @@ export default async function BrandingPage({
           emailInviteHighlights: true,
           emailHeroImageUrl: true,
           brandHeadingColor: true,
+          brandHeadingColorPublic: true,
           brandHeadingFont: true,
           brandHeadingSize: true,
           brandHeadingWeight: true,
@@ -85,6 +86,10 @@ export default async function BrandingPage({
     lineHeight: event?.settings?.brandHeadingLineHeight,
     eyebrowUppercase: event?.settings?.brandHeadingEyebrowUppercase,
   });
+
+  const publicHeadingColor =
+    event?.settings?.brandHeadingColorPublic ??
+    (heading.color === "#FFFFFF" ? "#0F172A" : heading.color);
 
   return (
     <BrandingPanel
@@ -126,7 +131,7 @@ export default async function BrandingPage({
         closing: event?.settings?.emailHeroClosing ?? "",
         imageUrl: event?.settings?.emailHeroImageUrl ?? null,
       }}
-      heading={heading}
+      heading={{ ...heading, colorPublic: publicHeadingColor }}
       inviteHighlights={event?.settings?.emailInviteHighlights ?? ""}
     />
   );

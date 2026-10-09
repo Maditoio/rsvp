@@ -466,8 +466,10 @@ model EventSettings {
   emailInviteHighlights  String?
   /// Cached composed invitation hero PNG URL for emails (HTTPS raster). Not the source photo.
   emailHeroImageUrl      String?
-  /// Heading text colour for invite hero + public pages (#RRGGBB). Null = smart default.
+  /// Heading text colour for invitation hero PNG (#RRGGBB). Null = smart default (white on accent).
   brandHeadingColor      String?
+  /// Heading text colour for public invite / registration pages (#RRGGBB). Null = smart default (dark).
+  brandHeadingColorPublic String?
   /// Heading font id (inter, dm-sans, source-serif, manrope, …)
   brandHeadingFont       String                    @default("inter")
   /// Heading size preset: xs | sm | md | lg | xl

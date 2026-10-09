@@ -109,6 +109,7 @@ export async function loadPublicEventBrandingByIds(input: {
           emailBannerFocalY: true,
           emailBannerZoom: true,
           brandHeadingColor: true,
+          brandHeadingColorPublic: true,
           brandHeadingFont: true,
           brandHeadingSize: true,
           brandHeadingWeight: true,
@@ -142,8 +143,14 @@ export async function loadPublicEventBrandingByIds(input: {
   const focalX = parseFocalPercent(event.settings?.emailBannerFocalX, 50);
   const focalY = parseFocalPercent(event.settings?.emailBannerFocalY, 50);
   const zoom = parsePhotoZoom(event.settings?.emailBannerZoom, 100);
+  const publicColor =
+    event.settings?.brandHeadingColorPublic ??
+    (event.settings?.brandHeadingColor === "#FFFFFF" ||
+    event.settings?.brandHeadingColor === "#FFF"
+      ? "#0F172A"
+      : event.settings?.brandHeadingColor);
   const heading = resolveBrandHeadingStyle({
-    color: event.settings?.brandHeadingColor,
+    color: publicColor,
     font: event.settings?.brandHeadingFont,
     size: event.settings?.brandHeadingSize,
     weight: event.settings?.brandHeadingWeight,

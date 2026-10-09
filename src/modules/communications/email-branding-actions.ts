@@ -79,6 +79,12 @@ const brandingSchema = z.object({
     .regex(/^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/, "Use a valid hex colour")
     .optional()
     .or(z.literal("")),
+  brandHeadingColorPublic: z
+    .string()
+    .trim()
+    .regex(/^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/, "Use a valid hex colour")
+    .optional()
+    .or(z.literal("")),
   brandHeadingFont: z.enum([
     "inter",
     "dm-sans",
@@ -206,6 +212,9 @@ export async function saveEmailBranding(
     emailBannerFocalY: parseFocalPercent(formData.get("emailBannerFocalY"), 50),
     emailBannerZoom: parsePhotoZoom(formData.get("emailBannerZoom"), 100),
     brandHeadingColor: String(formData.get("brandHeadingColor") ?? ""),
+    brandHeadingColorPublic: String(
+      formData.get("brandHeadingColorPublic") ?? "",
+    ),
     brandHeadingFont: parseBrandHeadingFont(formData.get("brandHeadingFont")),
     brandHeadingSize: parseBrandHeadingSize(formData.get("brandHeadingSize")),
     brandHeadingWeight: parseBrandHeadingWeight(
@@ -229,6 +238,9 @@ export async function saveEmailBranding(
     ? parseEmailHexColor(parsed.emailAccentColor)
     : null;
   const brandHeadingColor = parseBrandHeadingColor(parsed.brandHeadingColor);
+  const brandHeadingColorPublic = parseBrandHeadingColor(
+    parsed.brandHeadingColorPublic,
+  );
 
   const brandingFields = {
     emailBannerMode: parsed.emailBannerMode,
@@ -257,6 +269,7 @@ export async function saveEmailBranding(
     emailHeroFocalY: parsed.emailHeroFocalY,
     emailHeroZoom: parsed.emailHeroZoom,
     brandHeadingColor,
+    brandHeadingColorPublic,
     brandHeadingFont: parsed.brandHeadingFont,
     brandHeadingSize: formatBrandHeadingSize(parsed.brandHeadingSize),
     brandHeadingWeight: parsed.brandHeadingWeight,

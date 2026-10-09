@@ -26,6 +26,7 @@ Additive to [design-system.mdc](design-system.mdc) / Aurora. Organiser chrome st
 - Medium/Semibold must match live preview **and** invite-hero PNG — real weight TTFs in `assets/fonts/invite-hero/`.
 - Under More options: text align, line height, eyebrow uppercase toggle.
 - Counters: Title ≤160 (`HERO_TITLE_MAX`), Eyebrow ≤120 (`HERO_EYEBROW_MAX`).
+- Separate heading colours: `brandHeadingColor` (invite hero) vs `brandHeadingColorPublic` (public pages).
 
 ## Photo / colours
 
@@ -34,6 +35,8 @@ Additive to [design-system.mdc](design-system.mdc) / Aurora. Organiser chrome st
 - Low-res warning when photo width < ~1200px (`PHOTO_MIN_RECOMMENDED_WIDTH`).
 - Invite-hero overlay darkness slider; contrast warning + one-click heading fix vs backdrop.
 - Suggest colours from uploaded logo; recent custom colours row (localStorage OK).
+- Identity brand colour: no fixed accent presets — logo + recent only (picker/hex/pipette stay).
+- Hero copy (especially closing) must stay wrapped and centered inside the frame — never overflow left/right.
 
 ## Invitation email body
 
